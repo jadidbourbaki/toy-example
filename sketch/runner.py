@@ -34,6 +34,20 @@ from sketch.models import ModelSpec, by_id, provider_model_string
 
 EventType = Literal["run_start", "node_start", "node_done", "node_skipped", "run_done", "run_error"]
 
+# request_limit raises rather than stopping the loop, so a cap set exactly at
+# the tool budget turns a stage that wanted one more turn into a failed run.
+# The budget goes in the instructions, where the model can plan around it, and
+# request_limit sits above it as a backstop for a loop that has run away.
+BACKSTOP = 2
+
+
+def tool_budget(max_iterations: int) -> str:
+    return (
+        f"You may call tools at most {max_iterations} times. Answer as soon as you "
+        f"have enough to answer with, and answer from what you have once the "
+        f"budget is spent."
+    )
+
 
 class RunEvent(BaseModel):
     """One thing that happened during a run. The canvas lights a node on
@@ -214,7 +228,7 @@ class Runner:
                 elif isinstance(config, ReactConfig):
                     agent_deep = create_deep_agent(
                         model=self._model_string(model_id),
-                        instructions=f"{BASE_PROMPT}\n\n{config.instructions}",
+                        instructions=f"{BASE_PROMPT}\n\n{config.instructions}\n\n{tool_budget(config.max_iterations)}",
                         tools=self._tool_functions(config.tools),
                         web_search=False,
                         web_fetch=False,
@@ -231,7 +245,7 @@ class Runner:
                     result = await agent_deep.run(
                         render(config.prompt, values),
                         deps=self._deps,
-                        usage_limits=UsageLimits(request_limit=config.max_iterations),
+                        usage_limits=UsageLimits(request_limit=config.max_iterations + BACKSTOP),
                     )
                     text = str(result.output)
                     usd, input_tokens, output_tokens = self._charge(model_id, result)

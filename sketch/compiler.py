@@ -191,9 +191,15 @@ pydantic-ai and pydantic-deep. You return the module source and nothing else.
 - `output` returns the joined outputs of the nodes feeding it.
 - `llm` is a plain `pydantic_ai.Agent` with the node's instructions, run once.
 - `tool` calls a plain Python function from the tool catalog. No model.
-- `react` is `create_deep_agent` with the node's tools, capped by
-  `UsageLimits(request_limit=max_iterations)`. Compose its instructions with
-  `BASE_PROMPT` so the harness keeps its tool discipline.
+- `react` is `create_deep_agent` with the node's tools. Compose its
+  instructions with `BASE_PROMPT` so the harness keeps its tool discipline.
+
+  Put the node's tool budget in the instructions, saying it may call tools at
+  most `max_iterations` times and should answer from what it has once the
+  budget is spent. Then set `UsageLimits(request_limit=max_iterations + 2)` as
+  a backstop. `request_limit` raises rather than stopping the loop, so a limit
+  set exactly at the budget turns a stage that wanted one more turn into a
+  failed run.
 
   A node's tool list is exhaustive. `create_deep_agent` turns on a great deal
   by default, so every default the node did not ask for gets switched off
