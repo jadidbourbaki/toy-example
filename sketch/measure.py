@@ -167,9 +167,7 @@ def plan(
     for patch in patches:
         projected += len(sample) * estimate(apply_patch(graph, patch), models).usd
 
-    judge_spec = next((m for m in models if settings.judge_model.endswith(m.model)), None)
-    if judge_spec is None:
-        judge_spec = by_id(models, "sonnet")
+    judge_spec = by_id(models, settings.judge_model)
     if judge_spec is not None:
         per_judgement = (
             JUDGE_INPUT_TOKENS * judge_spec.input_usd_per_mtok

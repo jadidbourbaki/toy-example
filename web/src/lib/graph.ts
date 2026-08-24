@@ -1,9 +1,7 @@
 import type { AgentGraph, Edge, Node } from "@/types/wire";
 import type { NodeKind } from "./kinds";
 
-let counter = 0;
-const uid = (prefix: string): string =>
-  `${prefix}${Date.now().toString(36)}${(counter++).toString(36)}`;
+const uid = (prefix: string): string => `${prefix}${crypto.randomUUID().slice(0, 8)}`;
 
 /** A name that is unique in the graph and legal as a Python identifier. */
 export function uniqueName(graph: AgentGraph, base: string): string {

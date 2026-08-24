@@ -12,7 +12,6 @@ import type {
   PatchResponse,
   RunEvent,
   ToolSpec,
-  Turn,
   ValidateResponse,
 } from "@/types/wire";
 
@@ -85,8 +84,9 @@ async function streamPost<T>(
 export async function streamAsk(
   graph: AgentGraph,
   question: string,
-  history: Turn[],
+  history: unknown[],
   onDelta: (text: string) => void,
+  onHistory: (history: unknown[]) => void,
   signal?: AbortSignal,
 ): Promise<void> {
   const response = await fetch("/api/ask", {
@@ -101,6 +101,7 @@ export async function streamAsk(
   const parser = createParser({
     onEvent: (message) => {
       if (message.event === "delta") onDelta(message.data);
+      if (message.event === "history") onHistory(JSON.parse(message.data) as unknown[]);
     },
   });
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();

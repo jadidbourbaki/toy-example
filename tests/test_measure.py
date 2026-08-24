@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from sketch import measure
+from sketch.estimate import estimate
 from sketch.graph import AgentGraph
 from sketch.measure import (
     JudgePass,
@@ -13,7 +14,7 @@ from sketch.measure import (
     summarize,
 )
 from sketch.models import ModelSpec
-from sketch.optimizer import Patch
+from sketch.optimizer import Patch, apply_patch
 from tests.conftest import cheapest, dearest
 
 
@@ -129,3 +130,17 @@ async def test_a_split_verdict_keeps_the_reason_from_the_first_pass(
 
     monkeypatch.setattr(measure, "_judge_pass", fake_pass)
     assert (await measure.judge("q", "b", "c")).reason == "shorter"
+
+
+def test_plan_includes_what_the_judge_costs(brief: AgentGraph, models: list[ModelSpec]) -> None:
+    """The judge runs twice per request per candidate, and leaving it out of the
+    projection would understate a measurement before anyone agrees to pay for
+    it."""
+
+    patches = [patch("set_model", node_id="n4", model=cheapest(models))]
+    runs_only = sum(
+        len(["one"]) * e.usd
+        for e in [estimate(brief, models), estimate(apply_patch(brief, patches[0]), models)]
+    )
+    projected = plan(brief, patches, ["one"], models).projected_usd
+    assert projected > runs_only

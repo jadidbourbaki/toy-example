@@ -173,12 +173,7 @@ def model_of(node: Node) -> str:
 def references(text: str) -> set[str]:
     """The ${name} references a template mentions."""
 
-    found = set()
-    for match in Template.pattern.finditer(text):
-        name = match.group("named") or match.group("braced")
-        if name:
-            found.add(name)
-    return found
+    return set(Template(text).get_identifiers())
 
 
 def render(text: str, values: dict[str, str]) -> str:

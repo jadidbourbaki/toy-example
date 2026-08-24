@@ -37,7 +37,7 @@ export function ModelPicker() {
             <thead>
               <tr className="text-left">
                 {["id", "provider", "model", "$/Mtok in", "$/Mtok out", "quality"].map((head) => (
-                  <th key={head} className="label pb-1.5 font-medium">
+                  <th key={head} className="pb-1.5 text-[13px] font-normal text-faint">
                     {head}
                   </th>
                 ))}

@@ -1,16 +1,15 @@
 import * as Tabs from "@radix-ui/react-tabs";
-import { AlertTriangle, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Canvas } from "@/Canvas";
-import { Assistant } from "@/panels/Assistant";
 import { cn } from "@/lib/cn";
+import { Assistant } from "@/panels/Assistant";
 import { CodePanel } from "@/panels/CodePanel";
-import { StatusLine } from "@/panels/StatusLine";
 import { GraphRail } from "@/panels/GraphRail";
 import { Inspector } from "@/panels/Inspector";
 import { ModelPicker } from "@/panels/ModelPicker";
 import { OptimizePanel } from "@/panels/OptimizePanel";
 import { RunPanel } from "@/panels/RunPanel";
+import { StatusLine } from "@/panels/StatusLine";
 import { useStore, type Tab } from "@/store";
 
 const TABS: { id: Tab; label: string }[] = [
@@ -37,26 +36,21 @@ export function App() {
   }, [boot]);
 
   const errors = problems.filter((p) => p.severity === "error").length;
-  const warnings = problems.length - errors;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      <header className="flex h-12 shrink-0 items-center gap-4 border-b border-line bg-panel px-4">
-        <span className="font-mono text-[14px] tracking-tight text-ink">sketch</span>
-        {graph && (
-          <span className="font-mono text-[12px] text-faint">
-            <span className="text-mute">{graph.id}</span>
-          </span>
-        )}
+      <header className="flex h-14 shrink-0 items-center gap-4 border-b border-line px-4">
+        <span className="font-medium">Orla</span>
+        <span className="text-mute">Agent Platform</span>
 
-        <Tabs.Root value={tab} onValueChange={(value) => setTab(value as Tab)} className="ml-2">
-          <Tabs.List className="flex gap-px rounded-[3px] border border-line p-px">
+        <Tabs.Root value={tab} onValueChange={(value) => setTab(value as Tab)}>
+          <Tabs.List className="flex gap-1">
             {TABS.map((entry) => (
               <Tabs.Trigger
                 key={entry.id}
                 value={entry.id}
                 className={cn(
-                  "rounded-[2px] px-3 py-1 text-[12px] transition-colors",
+                  "rounded-md px-3 py-1.5 text-[14px] transition-colors",
                   tab === entry.id ? "bg-sunk text-ink" : "text-mute hover:text-ink",
                 )}
               >
@@ -69,23 +63,18 @@ export function App() {
         <div className="flex-1" />
 
         {errors > 0 && (
-          <span className="flex items-center gap-1.5 text-[12px] text-bad">
-            <AlertTriangle size={12} />
-            {errors} error{errors === 1 ? "" : "s"}
+          <span className="text-[13px] text-bad">
+            {errors} {errors === 1 ? "problem" : "problems"}
           </span>
         )}
-        {errors === 0 && warnings > 0 && (
-          <span className="text-[12px] text-warn">
-            {warnings} warning{warnings === 1 ? "" : "s"}
-          </span>
-        )}
-        {error && <span className="text-[12px] text-bad">{error}</span>}
+        {error && <span className="text-[13px] text-bad">{error}</span>}
 
         <ModelPicker />
-        <button className="btn" onClick={() => void save()} disabled={!dirty}>
-          <Save size={12} />
-          {dirty ? "Save" : "Saved"}
-        </button>
+        {dirty && (
+          <button className="btn" onClick={() => void save()}>
+            Save
+          </button>
+        )}
       </header>
 
       <div className="flex min-h-0 flex-1">
@@ -99,10 +88,10 @@ export function App() {
           <StatusLine />
         </main>
 
-        <Inspector />
+        {tab === "build" && <Inspector />}
       </div>
 
-      <Assistant />
+      {graph && <Assistant />}
     </div>
   );
 }

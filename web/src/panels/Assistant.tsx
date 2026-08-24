@@ -4,39 +4,94 @@ import { OrlaCat } from "@/components/OrlaCat";
 import { streamAsk } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/store";
-import type { Turn } from "@/types/wire";
 
-/** A corner button that waits. It answers questions about the open graph and
- *  never edits it, so opening it costs nothing and ignoring it costs nothing. */
+type Point = { x: number; y: number };
+type Turn = { role: "user" | "assistant"; text: string };
+
+const SPOT_KEY = "orla.assistant.spot";
+const SIZE = 64;
+
+function readSpot(): Point {
+  try {
+    const stored = localStorage.getItem(SPOT_KEY);
+    if (stored) return JSON.parse(stored) as Point;
+  } catch {
+    // A private window or blocked storage just means the default corner.
+  }
+  return { x: window.innerWidth - SIZE - 24, y: window.innerHeight - SIZE - 24 };
+}
+
+/** A cat that waits in a corner and answers questions about the open graph.
+ *  Drag it anywhere. It reads the graph and never edits it. */
 export function Assistant() {
   const graph = useStore((s) => s.graph);
+  const [spot, setSpot] = useState<Point>(readSpot);
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
+  const history = useRef<unknown[]>([]);
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ dx: number; dy: number; moved: boolean } | null>(null);
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
   }, [turns]);
+
+  const onPointerDown = (event: React.PointerEvent) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = { dx: event.clientX - spot.x, dy: event.clientY - spot.y, moved: false };
+  };
+
+  const onPointerMove = (event: React.PointerEvent) => {
+    if (!drag.current) return;
+    drag.current.moved = true;
+    setSpot({
+      x: Math.min(Math.max(0, event.clientX - drag.current.dx), window.innerWidth - SIZE),
+      y: Math.min(Math.max(0, event.clientY - drag.current.dy), window.innerHeight - SIZE),
+    });
+  };
+
+  const onPointerUp = (event: React.PointerEvent) => {
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    const wasDrag = drag.current?.moved ?? false;
+    drag.current = null;
+    if (wasDrag) {
+      try {
+        localStorage.setItem(SPOT_KEY, JSON.stringify(spot));
+      } catch {
+        // Nothing to do. The cat starts in the corner next time.
+      }
+    } else {
+      setOpen(!open);
+    }
+  };
 
   const send = async () => {
     const asked = question.trim();
     if (!asked || !graph || busy) return;
     setQuestion("");
     setBusy(true);
-    const history = [...turns, { role: "user" as const, text: asked }];
-    setTurns([...history, { role: "assistant" as const, text: "" }]);
+    const shown = [...turns, { role: "user" as const, text: asked }];
+    setTurns([...shown, { role: "assistant" as const, text: "" }]);
 
     let answer = "";
     try {
-      await streamAsk(graph, asked, turns, (delta) => {
-        answer += delta;
-        setTurns([...history, { role: "assistant", text: answer }]);
-      });
+      await streamAsk(
+        graph,
+        asked,
+        history.current,
+        (delta) => {
+          answer += delta;
+          setTurns([...shown, { role: "assistant", text: answer }]);
+        },
+        (updated) => {
+          history.current = updated;
+        },
+      );
     } catch (err) {
       setTurns([
-        ...history,
+        ...shown,
         { role: "assistant", text: err instanceof Error ? err.message : String(err) },
       ]);
     } finally {
@@ -44,40 +99,47 @@ export function Assistant() {
     }
   };
 
+  // The panel opens above the cat when there is room, and below when there is not.
+  const below = spot.y < 300;
+  const panelStyle = {
+    left: Math.min(spot.x, window.innerWidth - 400),
+    ...(below ? { top: spot.y + SIZE + 12 } : { bottom: window.innerHeight - spot.y + 12 }),
+  };
+
   return (
     <>
       {open && (
-        <div className="fixed right-4 bottom-20 z-50 flex h-[420px] w-[360px] flex-col rounded-lg border border-line bg-page shadow-lg">
-          <div className="flex items-center gap-2 border-b border-line px-3 py-2">
-            <OrlaCat className="h-5 w-6" />
-            <span className="flex-1 text-[12px] text-mute">Ask about this graph</span>
-            <button className="text-faint hover:text-ink" onClick={() => setOpen(false)}>
-              <X size={14} />
+        <div
+          style={panelStyle}
+          className="fixed z-50 flex h-[440px] w-[380px] flex-col rounded-xl border border-line bg-page shadow-xl"
+        >
+          <div className="flex items-center gap-2 border-b border-line px-4 py-3">
+            <span className="flex-1 text-mute">Ask about this agent</span>
+            <button className="btn-quiet" onClick={() => setOpen(false)} aria-label="Close">
+              <X size={16} />
             </button>
           </div>
 
-          <div ref={scroller} className="flex-1 overflow-y-auto p-3">
+          <div ref={scroller} className="flex-1 overflow-y-auto px-4 py-3">
             {turns.length === 0 && (
-              <div className="text-[12px] leading-relaxed text-faint">
-                Try &ldquo;which stage costs the most?&rdquo; or &ldquo;what does the router do
-                here?&rdquo;
-              </div>
+              <p className="text-[13px] leading-relaxed text-faint">
+                Which stage costs the most? What does the router do here?
+              </p>
             )}
             {turns.map((turn, index) => (
               <div
                 key={index}
                 className={cn(
-                  "mb-3 text-[12px] leading-relaxed",
+                  "mb-4 text-[14px] leading-relaxed",
                   turn.role === "user" ? "text-ink" : "text-mute",
                 )}
               >
-                {turn.role === "user" && <span className="label mr-1">You</span>}
-                {turn.text || (busy && index === turns.length - 1 ? "…" : "")}
+                {turn.text || (busy && index === turns.length - 1 ? "Thinking" : "")}
               </div>
             ))}
           </div>
 
-          <div className="border-t border-line p-2">
+          <div className="border-t border-line p-3">
             <input
               className="field"
               placeholder="Ask a question"
@@ -93,11 +155,15 @@ export function Assistant() {
       )}
 
       <button
-        onClick={() => setOpen(!open)}
-        title="Ask about this graph"
-        className="fixed right-4 bottom-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-line bg-page shadow-md transition-shadow hover:shadow-lg"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        style={{ left: spot.x, top: spot.y, width: SIZE, height: SIZE }}
+        title="Ask about this agent"
+        aria-label="Ask about this agent"
+        className="orla-cat fixed z-50 flex touch-none items-center justify-center rounded-full border border-line bg-page shadow-md transition-shadow hover:shadow-lg active:cursor-grabbing"
       >
-        <OrlaCat className="h-8 w-9" />
+        <OrlaCat className="h-[42px] w-[50px]" />
       </button>
     </>
   );

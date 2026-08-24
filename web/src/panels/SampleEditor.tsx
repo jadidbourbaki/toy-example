@@ -30,8 +30,7 @@ export function SampleEditor() {
   return (
     <div className="border-b border-line bg-panel px-4 py-3">
       <div className="mb-2 flex items-center gap-2">
-        <span className="label">Sample</span>
-        <span className="num text-[10px] text-faint">{graph.sample.length} requests</span>
+        <span className="text-[13px] text-faint">Sample</span>
         <div className="flex-1" />
         <button className="btn py-1 text-[11px]" onClick={() => void write()} disabled={busy}>
           <Sparkles size={11} />
@@ -67,13 +66,6 @@ export function SampleEditor() {
       >
         <Plus size={11} /> Add a request
       </button>
-
-      {graph.sample.length === 0 && (
-        <p className="mt-1 max-w-xl text-[11px] leading-relaxed text-faint">
-          Measuring runs the graph over these requests, so they should look like the traffic the
-          graph will really see.
-        </p>
-      )}
     </div>
   );
 }

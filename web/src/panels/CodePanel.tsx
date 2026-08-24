@@ -129,7 +129,7 @@ export function CodePanel() {
           <pre className="p-4 font-mono text-[12px] leading-[1.55] text-ink">{result.source}</pre>
         ) : (
           <div className="p-4 text-[12px] text-faint">
-            {running ? "" : "Compile the graph into a runnable module."}
+            {running ? "" : "Compile this agent into a runnable module."}
           </div>
         )}
       </div>

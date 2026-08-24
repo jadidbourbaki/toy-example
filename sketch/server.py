@@ -162,9 +162,8 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
         known = {g.id for g in workspace.all_graphs()} | {body.graph.id}
 
         async def stream() -> AsyncIterator[dict[str, str]]:
-            async for delta in assistant.ask(body, workspace.models(), known):
-                yield {"event": "delta", "data": delta}
-            yield {"event": "done", "data": ""}
+            async for event, data in assistant.ask(body, workspace.models(), known):
+                yield {"event": event, "data": data}
 
         return EventSourceResponse(stream())
 
@@ -242,7 +241,6 @@ class Wire(BaseModel):
     patch_response: PatchResponse
     validate_response: ValidateResponse
     run_event: RunEvent
-    turn: assistant.Turn
     measure_plan: measure.MeasurePlan
     measure_event: MeasureEvent
     health: Health

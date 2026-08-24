@@ -136,7 +136,7 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
 
         {answer && !failure && (
           <div className="border-t-2 border-line bg-panel px-4 py-3">
-            <div className="label mb-1">Answer</div>
+            <div className="mb-1 text-[13px] text-faint">Answer</div>
             <p className="max-w-3xl whitespace-pre-wrap text-[13px] leading-relaxed">
               {answer.text}
             </p>
@@ -152,7 +152,7 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
         )}
 
         {events.length === 0 && !busy && (
-          <div className="p-4 text-[12px] text-faint">Run the graph to see each stage.</div>
+          <div className="p-4 text-[12px] text-faint">Run this agent to see each stage.</div>
         )}
       </div>
     </div>

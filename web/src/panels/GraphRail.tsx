@@ -23,11 +23,11 @@ export function GraphRail() {
   return (
     <aside className="flex w-48 shrink-0 flex-col border-r border-line bg-panel">
       <div className="flex items-center justify-between px-3 pt-3 pb-1">
-        <span className="label">Graphs</span>
+        <span className="text-[13px] text-faint">Agents</span>
         <button
           className="text-faint hover:text-ink"
           onClick={() => setNaming(true)}
-          title="New graph"
+          title="New agent"
         >
           <Plus size={14} />
         </button>
@@ -38,7 +38,7 @@ export function GraphRail() {
           <input
             autoFocus
             className="field mb-1 text-[12px]"
-            placeholder="Name"
+            placeholder="Agent name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={submit}
@@ -74,7 +74,7 @@ export function GraphRail() {
       </div>
 
       <div className="border-t border-line px-3 pt-3 pb-1">
-        <span className="label">Stages</span>
+        <span className="text-[13px] text-faint">Stages</span>
       </div>
       <div className="flex-1 overflow-y-auto px-2 pb-3">
         {PALETTE_KINDS.map((kind) => (
@@ -82,7 +82,7 @@ export function GraphRail() {
             key={kind}
             onClick={() => addNode(kind, 220 + Math.random() * 160, 80 + Math.random() * 200)}
             draggable
-            onDragStart={(e) => e.dataTransfer.setData("application/sketch-kind", kind)}
+            onDragStart={(e) => e.dataTransfer.setData("application/orla-kind", kind)}
             className="block w-full rounded px-2 py-1 text-left text-[12px] hover:bg-sunk"
           >
             {KIND_LABELS[kind]}

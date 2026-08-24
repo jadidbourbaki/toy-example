@@ -1,8 +1,6 @@
 import { usd } from "@/lib/kinds";
 import { useStore } from "@/store";
 
-/** One line of numbers under the canvas. Estimated cost while you edit, and
- *  measured cost once a run has happened. */
 export function StatusLine() {
   const estimate = useStore((s) => s.estimate);
   const measured = useStore((s) => s.measured);
@@ -14,21 +12,19 @@ export function StatusLine() {
   const elapsed = events.reduce((sum, event) => sum + (event.ms ?? 0), 0);
 
   return (
-    <div className="flex h-9 shrink-0 items-center gap-5 border-t border-line bg-panel px-4 text-[12px]">
-      <span className="text-mute">
-        Estimated <span className="num text-ink">{usd(estimate.usd)}</span> per request
+    <div className="flex h-10 shrink-0 items-center gap-6 border-t border-line px-4 text-[13px] text-mute">
+      <span>
+        Estimated <span className="num text-ink">{usd(estimate.usd)}</span> a request
       </span>
       <span className="num text-faint">
-        {estimate.input_tokens.toLocaleString()} in · {estimate.output_tokens.toLocaleString()} out
+        {estimate.input_tokens.toLocaleString()} tokens in,{" "}
+        {estimate.output_tokens.toLocaleString()} out
       </span>
       {events.length > 0 && (
-        <>
-          <span className="h-3 w-px bg-line" />
-          <span className="text-mute">
-            Measured <span className="num text-good">{usd(spent)}</span> per request
-          </span>
-          <span className="num text-faint">{(elapsed / 1000).toFixed(1)}s</span>
-        </>
+        <span>
+          Measured <span className="num text-good">{usd(spent)}</span> in{" "}
+          <span className="num">{(elapsed / 1000).toFixed(1)}s</span>
+        </span>
       )}
     </div>
   );

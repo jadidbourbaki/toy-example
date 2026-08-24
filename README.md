@@ -1,4 +1,4 @@
-# sketch
+# Orla Agent Platform
 
 Sketch an agent as a graph of stages, bind a model to each stage, and get
 a runnable [pydantic-deep](https://github.com/vstorm-co/pydantic-deepagents)

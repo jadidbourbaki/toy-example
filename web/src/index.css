@@ -1,23 +1,24 @@
+@import "@fontsource-variable/inter";
 @import "tailwindcss";
 @import "@xyflow/react/dist/style.css";
 
 @theme {
   --color-page: #ffffff;
-  --color-panel: #fafafa;
-  --color-sunk: #f4f4f5;
-  --color-line: #e4e4e7;
-  --color-line-strong: #d4d4d8;
-  --color-ink: #18181b;
-  --color-mute: #52525b;
-  --color-faint: #8b8b93;
+  --color-panel: #fbfbfc;
+  --color-sunk: #f2f2f4;
+  --color-line: #e6e6e9;
+  --color-line-strong: #d3d3d8;
+  --color-ink: #16161a;
+  --color-mute: #62626c;
+  --color-faint: #97979f;
 
-  --color-accent: #2563eb;
-  --color-good: #15803d;
-  --color-bad: #b91c1c;
-  --color-warn: #a16207;
+  --color-accent: #3057e5;
+  --color-good: #157347;
+  --color-bad: #c2333a;
+  --color-warn: #96690a;
 
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: "Inter Variable", Inter, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
 }
 
 @layer base {
@@ -27,15 +28,20 @@
 
   body {
     @apply bg-page text-ink font-sans antialiased;
-    font-size: 13px;
+    font-size: 14px;
+    line-height: 1.5;
   }
 
+  /* Costs and token counts sit in columns, so their digits share one width. */
   .num {
-    @apply font-mono tabular-nums;
+    font-variant-numeric: tabular-nums;
   }
 
-  .label {
-    @apply text-[11px] font-medium tracking-wide text-faint uppercase;
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
   }
 
   ::-webkit-scrollbar {
@@ -56,46 +62,54 @@
 
 @layer components {
   .field {
-    @apply w-full rounded border border-line bg-page px-2 py-1.5 text-ink
+    @apply w-full rounded-md border border-line bg-page px-2.5 py-1.5 text-[14px]
       placeholder:text-faint focus:border-accent focus:outline-none;
   }
 
   .btn {
-    @apply inline-flex items-center gap-1.5 rounded border border-line bg-page px-2.5 py-1.5
-      text-ink hover:bg-sunk disabled:opacity-40 disabled:pointer-events-none transition-colors;
+    @apply inline-flex items-center gap-1.5 rounded-md border border-line bg-page px-3 py-1.5
+      text-[14px] hover:bg-sunk disabled:opacity-40 disabled:pointer-events-none transition-colors;
   }
 
   .btn-primary {
     @apply border-accent bg-accent text-white hover:bg-accent/90;
   }
+
+  .btn-quiet {
+    @apply rounded-md border-0 bg-transparent px-2 py-1 text-mute hover:bg-sunk hover:text-ink;
+  }
 }
 
 .react-flow {
-  --xy-background-color: var(--color-page);
+  --xy-background-color: var(--color-panel);
   --xy-edge-stroke: var(--color-line-strong);
   --xy-edge-stroke-selected: var(--color-accent);
   --xy-connectionline-stroke: var(--color-accent);
 }
 
 .react-flow__handle {
-  @apply h-2.5 w-2 rounded-[1px] border border-line-strong bg-page;
+  @apply h-3 w-1.5 rounded-sm border-0 bg-line-strong;
 }
 
 .react-flow__handle:hover {
-  @apply border-accent bg-accent;
+  @apply bg-accent;
 }
 
 .react-flow__edge-text {
   @apply fill-mute font-sans;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .react-flow__edge-textbg {
-  fill: var(--color-page);
+  fill: var(--color-panel);
 }
 
 .react-flow__attribution {
   display: none;
+}
+
+.react-flow__controls {
+  @apply overflow-hidden rounded-md border border-line shadow-none;
 }
 
 .react-flow__controls-button {
@@ -111,13 +125,34 @@
   }
 }
 
-@keyframes stage-running {
+/* The cat's eyes are their own rects, so a blink is a fill swap to the face
+   colour rather than a second image. It blinks on its own occasionally, and
+   again whenever someone points at it. */
+.orla-cat-eyes rect {
+  fill: #5faf00;
+  animation: orla-blink 7s infinite;
+}
+
+.orla-cat:hover .orla-cat-eyes rect {
+  animation: orla-blink 0.9s infinite;
+}
+
+@keyframes orla-blink {
   0%,
+  94%,
   100% {
-    opacity: 0.3;
+    fill: #5faf00;
   }
-  50% {
-    opacity: 1;
+  96%,
+  98% {
+    fill: #5f5f5f;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orla-cat-eyes rect,
+  .orla-cat:hover .orla-cat-eyes rect {
+    animation: none;
   }
 }
 
@@ -125,27 +160,12 @@
   animation: stage-running 1.2s ease-in-out infinite;
 }
 
-/* The cat's eyes are their own rects, so a blink is a fill swap to the face
-   colour rather than a second image. */
-.orla-cat-eyes rect {
-  fill: #5faf00;
-  animation: orla-blink 6.5s infinite;
-}
-
-@keyframes orla-blink {
+@keyframes stage-running {
   0%,
-  93%,
   100% {
-    fill: #5faf00;
+    border-color: var(--color-line-strong);
   }
-  95%,
-  97% {
-    fill: #5f5f5f;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .orla-cat-eyes rect {
-    animation: none;
+  50% {
+    border-color: var(--color-accent);
   }
 }

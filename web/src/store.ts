@@ -65,6 +65,7 @@ type Actions = {
   setGraph: (graph: AgentGraph) => void;
   patchGraph: (change: Partial<AgentGraph>) => void;
   updateNode: (id: string, change: Partial<Node>) => void;
+  moveNodes: (positions: Record<string, { x: number; y: number }>) => void;
   updateConfig: (id: string, change: Record<string, unknown>) => void;
   addNode: (kind: NodeKind, x: number, y: number) => void;
   removeNode: (id: string) => void;
@@ -77,21 +78,31 @@ type Actions = {
 };
 
 /** Validation and pricing both live on the server, so the canvas asks for them
- *  rather than keeping a second opinion. */
-async function refresh(graph: AgentGraph, set: (partial: Partial<State>) => void): Promise<void> {
-  try {
-    const result = await api.validate(graph);
-    set({ problems: result.problems, estimate: result.estimate, error: "" });
-  } catch (err) {
-    set({ error: err instanceof Error ? err.message : String(err) });
-  }
+ *  rather than keeping a second opinion. Typing in a prompt changes the price,
+ *  so the ask is debounced instead of fired per keystroke. */
+let pending: ReturnType<typeof setTimeout> | undefined;
+
+function refresh(graph: AgentGraph, set: (partial: Partial<State>) => void): void {
+  clearTimeout(pending);
+  pending = setTimeout(async () => {
+    try {
+      const result = await api.validate(graph);
+      set({ problems: result.problems, estimate: result.estimate, error: "" });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err) });
+    }
+  }, 250);
 }
 
 export const useStore = create<State & Actions>((set, get) => {
   const mutate = (next: AgentGraph) => {
     set({ graph: next, dirty: true });
-    void refresh(next, set);
+    refresh(next, set);
   };
+
+  // Moving a stage changes neither what the graph does nor what it costs, so a
+  // drag never asks the server anything.
+  const move = (next: AgentGraph) => set({ graph: next, dirty: true });
 
   return {
     graph: null,
@@ -128,14 +139,14 @@ export const useStore = create<State & Actions>((set, get) => {
         error: "",
         compile: IDLE_COMPILE,
       });
-      await refresh(graph, set);
+      refresh(graph, set);
     },
 
     createGraph: async (name) => {
       const graph = blankGraph(slugify(name), name);
       await api.saveGraph(graph);
       set({ graphs: await api.listGraphs(), graph, selectedId: null, dirty: false, measured: {} });
-      await refresh(graph, set);
+      refresh(graph, set);
     },
 
     removeGraph: async (id) => {
@@ -169,9 +180,24 @@ export const useStore = create<State & Actions>((set, get) => {
     updateNode: (id, change) => {
       const graph = get().graph;
       if (!graph) return;
-      mutate({
+      const next = {
         ...graph,
         nodes: graph.nodes.map((n) => (n.id === id ? { ...n, ...change } : n)),
+      };
+      const positionOnly = Object.keys(change).length === 1 && "position" in change;
+      if (positionOnly) move(next);
+      else mutate(next);
+    },
+
+    moveNodes: (positions) => {
+      const graph = get().graph;
+      if (!graph) return;
+      move({
+        ...graph,
+        nodes: graph.nodes.map((n) => {
+          const moved = positions[n.id];
+          return moved ? { ...n, position: moved } : n;
+        }),
       });
     },
 
@@ -224,7 +250,7 @@ export const useStore = create<State & Actions>((set, get) => {
     setModels: async (models) => {
       set({ models: await api.saveModels(models) });
       const graph = get().graph;
-      if (graph) await refresh(graph, set);
+      if (graph) refresh(graph, set);
     },
 
     recordRun: (events) => {

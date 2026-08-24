@@ -1,4 +1,5 @@
 import {
+  applyNodeChanges,
   Background,
   BackgroundVariant,
   Controls,
@@ -9,7 +10,7 @@ import {
   type NodeChange,
   type NodeMouseHandler,
 } from "@xyflow/react";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StageNode, type StageNodeData } from "@/nodes/StageNode";
 import { type NodeKind } from "@/lib/kinds";
 import { useStore } from "@/store";
@@ -18,7 +19,6 @@ import type { RunEvent } from "@/types/wire";
 const nodeTypes = { stage: StageNode };
 
 export type CanvasProps = {
-  /** Node ids currently executing, so the canvas can light them up. */
   running: Set<string>;
   skipped: Set<string>;
 };
@@ -30,7 +30,7 @@ export function Canvas({ running, skipped }: CanvasProps) {
   const problems = useStore((s) => s.problems);
   const selectedId = useStore((s) => s.selectedId);
   const select = useStore((s) => s.select);
-  const updateNode = useStore((s) => s.updateNode);
+  const moveNodes = useStore((s) => s.moveNodes);
   const connect = useStore((s) => s.connect);
   const disconnect = useStore((s) => s.disconnect);
   const addNode = useStore((s) => s.addNode);
@@ -42,14 +42,13 @@ export function Canvas({ running, skipped }: CanvasProps) {
     [problems],
   );
 
-  const flowNodes = useMemo<FlowNode<StageNodeData>[]>(() => {
+  const built = useMemo<FlowNode<StageNodeData>[]>(() => {
     if (!graph) return [];
     const estimates = new Map((estimate?.nodes ?? []).map((row) => [row.node_id, row]));
     return graph.nodes.map((node) => ({
       id: node.id,
       type: "stage",
       position: node.position ?? { x: 0, y: 0 },
-      selected: node.id === selectedId,
       data: {
         node,
         estimate: estimates.get(node.id),
@@ -59,37 +58,46 @@ export function Canvas({ running, skipped }: CanvasProps) {
         invalid: invalid.has(node.id),
       },
     }));
-  }, [graph, estimate, measured, running, skipped, invalid, selectedId]);
+  }, [graph, estimate, measured, running, skipped, invalid]);
+
+  // React Flow owns node state while a drag is in flight, so a pointer move
+  // touches local state and nothing else. Positions reach the store on drag
+  // stop, which is the only moment they matter.
+  const [nodes, setNodes] = useState<FlowNode<StageNodeData>[]>(built);
+  const dragging = useRef(false);
+
+  useEffect(() => {
+    if (!dragging.current) setNodes(built);
+  }, [built]);
+
+  const onNodesChange = useCallback((changes: NodeChange<FlowNode<StageNodeData>>[]) => {
+    if (changes.some((c) => c.type === "position" && c.dragging)) dragging.current = true;
+    setNodes((current) => applyNodeChanges(changes, current));
+  }, []);
+
+  const onNodeDragStop = useCallback(() => {
+    dragging.current = false;
+    setNodes((current) => {
+      moveNodes(Object.fromEntries(current.map((n) => [n.id, n.position])));
+      return current;
+    });
+  }, [moveNodes]);
 
   const flowEdges = useMemo<FlowEdge[]>(() => {
     if (!graph) return [];
-    return graph.edges.map((edge) => {
-      const live = running.has(edge.target) || Boolean(measured[edge.target]);
-      return {
-        id: edge.id,
-        source: edge.source,
-        target: edge.target,
-        sourceHandle: edge.label || null,
-        label: edge.label || undefined,
-        animated: running.has(edge.target),
-        style: {
-          stroke: live ? "var(--color-accent)" : "var(--color-line-strong)",
-          strokeWidth: 1.4,
-        },
-      };
-    });
-  }, [graph, running, measured]);
-
-  const onNodesChange = useCallback(
-    (changes: NodeChange<FlowNode<StageNodeData>>[]) => {
-      for (const change of changes) {
-        if (change.type === "position" && change.position && !change.dragging) {
-          updateNode(change.id, { position: change.position });
-        }
-      }
-    },
-    [updateNode],
-  );
+    return graph.edges.map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.label || null,
+      label: edge.label || undefined,
+      animated: running.has(edge.target),
+      style: {
+        stroke: running.has(edge.target) ? "var(--color-accent)" : "var(--color-line-strong)",
+        strokeWidth: 1.5,
+      },
+    }));
+  }, [graph, running]);
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -108,20 +116,16 @@ export function Canvas({ running, skipped }: CanvasProps) {
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
-      const kind = event.dataTransfer.getData("application/sketch-kind") as NodeKind;
+      const kind = event.dataTransfer.getData("application/orla-kind") as NodeKind;
       if (!kind || !wrapper.current) return;
       const bounds = wrapper.current.getBoundingClientRect();
-      addNode(kind, event.clientX - bounds.left - 100, event.clientY - bounds.top - 30);
+      addNode(kind, event.clientX - bounds.left - 110, event.clientY - bounds.top - 30);
     },
     [addNode],
   );
 
   if (!graph) {
-    return (
-      <div className="flex flex-1 items-center justify-center text-mute">
-        No graph open. Make one from the rail on the left.
-      </div>
-    );
+    return <div className="flex flex-1 items-center justify-center text-mute">No agent open.</div>;
   }
 
   return (
@@ -132,23 +136,24 @@ export function Canvas({ running, skipped }: CanvasProps) {
       onDragOver={(e) => e.preventDefault()}
     >
       <ReactFlow
-        nodes={flowNodes}
+        nodes={nodes.map((n) => ({ ...n, selected: n.id === selectedId }))}
         edges={flowEdges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
+        onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
         onPaneClick={() => select(null)}
         onEdgesDelete={(edges) => edges.forEach((edge) => disconnect(edge.id))}
         proOptions={{ hideAttribution: true }}
         fitView
-        fitViewOptions={{ padding: 0.12, maxZoom: 1.35 }}
+        fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
         minZoom={0.3}
         maxZoom={1.6}
         defaultEdgeOptions={{ type: "smoothstep" }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="var(--color-line)" />
-        <Controls showInteractive={false} position="bottom-right" />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e2e2e6" />
+        <Controls showInteractive={false} position="bottom-left" />
       </ReactFlow>
     </div>
   );

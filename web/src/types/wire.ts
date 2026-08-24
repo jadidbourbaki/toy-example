@@ -472,14 +472,6 @@ export interface ToolSpec {
 }
 /**
  * This interface was referenced by `Sketch`'s JSON-Schema
- * via the `definition` "Turn".
- */
-export interface Turn {
-  role: "user" | "assistant";
-  text: string;
-}
-/**
- * This interface was referenced by `Sketch`'s JSON-Schema
  * via the `definition` "ValidateResponse".
  */
 export interface ValidateResponse {

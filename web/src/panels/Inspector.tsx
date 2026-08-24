@@ -8,7 +8,7 @@ import type { Node, Route } from "@/types/wire";
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="mb-3">
-      <div className="label mb-1">{label}</div>
+      <div className="mb-1 text-[13px] text-faint">{label}</div>
       {children}
     </div>
   );
@@ -61,7 +61,7 @@ export function Inspector() {
   return (
     <aside className="flex w-72 shrink-0 flex-col overflow-y-auto border-l border-line bg-panel">
       <div className="flex items-center gap-2 border-b border-line px-3 py-2">
-        <span className="label flex-1">{KIND_LABELS[config.kind]}</span>
+        <span className="flex-1 text-[13px] text-faint">{KIND_LABELS[config.kind]}</span>
         {config.kind !== "input" && config.kind !== "output" && (
           <button
             className="text-faint hover:text-bad"
@@ -287,13 +287,13 @@ export function Inspector() {
         )}
 
         {config.kind === "subagent" && (
-          <Row label="Graph">
+          <Row label="Agent">
             <select
               className="field"
               value={config.graph_id}
               onChange={(e) => updateConfig(node.id, { graph_id: e.target.value })}
             >
-              <option value="">Pick a graph</option>
+              <option value="">Pick an agent</option>
               {graphs
                 .filter((g) => g.id !== graph.id)
                 .map((g) => (

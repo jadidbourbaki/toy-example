@@ -29,7 +29,7 @@ function Measured({ measured }: { measured: PatchMeasurement }) {
       )}
     >
       <div className="mb-1.5 flex items-center gap-3">
-        <span className="label">Measured</span>
+        <span className="text-[13px] text-faint">Measured</span>
         <span className={cn("num text-[12px]", cheaper ? "text-good" : "text-warn")}>
           {signedUsd(measured.usd_delta)} per request
         </span>
@@ -174,7 +174,7 @@ export function OptimizePanel() {
       <div className="flex items-center gap-2 border-b border-line px-4 py-2.5">
         <button className="btn btn-primary" onClick={() => void review()} disabled={busy || !graph}>
           <Sparkles size={12} />
-          {busy ? "Reviewing" : "Review the graph"}
+          {busy ? "Reviewing" : "Review this agent"}
         </button>
 
         {accepted.size > 0 && (
@@ -225,7 +225,7 @@ export function OptimizePanel() {
 
         {result?.summary && (
           <div className="border-b border-line bg-panel px-4 py-3">
-            <div className="label mb-1.5">What it found</div>
+            <div className="mb-1.5 text-[13px] text-faint">What it found</div>
             <p className="max-w-3xl text-[13px] leading-relaxed text-ink">{result.summary}</p>
             <div className="num mt-2 flex gap-4 text-[11px] text-faint">
               <span>estimated {usd(result.baseline_usd)} per request</span>
@@ -309,16 +309,9 @@ export function OptimizePanel() {
         })}
 
         {!result && !busy && (
-          <div className="flex flex-1 items-center justify-center px-8 py-16 text-center">
-            <div className="max-w-md">
-              <div className="mb-2 text-[13px] text-ink">Ask for changes worth making.</div>
-              <div className="text-[12px] leading-relaxed text-mute">
-                Proposals arrive with a static estimate, which is free and instant. Tick the ones
-                worth testing and press Measure to run them against the sample for a real cost, a
-                real latency, and a judged comparison against the current graph.
-              </div>
-            </div>
-          </div>
+          <p className="p-4 text-[13px] text-faint">
+            Ask for changes worth making, then measure the ones worth testing.
+          </p>
         )}
       </div>
     </div>

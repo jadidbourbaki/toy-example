@@ -1,7 +1,7 @@
 import { Handle, Position } from "@xyflow/react";
 import { memo } from "react";
 import { cn } from "@/lib/cn";
-import { BILLED, KIND_LABELS, usd } from "@/lib/kinds";
+import { BILLED, KIND_ICONS, KIND_LABELS, usd } from "@/lib/kinds";
 import type { Node, NodeEstimate, RunEvent } from "@/types/wire";
 
 export type StageNodeData = {
@@ -19,17 +19,19 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
   const { node, estimate, measured, running, skipped, invalid } = data;
   const config = node.config;
   const kind = config.kind;
+  const Icon = KIND_ICONS[kind];
 
   if (kind === "input" || kind === "output") {
     return (
       <div
         className={cn(
-          "rounded-full border bg-panel px-3 py-1.5 text-[12px] text-mute",
+          "flex items-center gap-2 rounded-full border bg-page px-3.5 py-2 text-mute",
           selected ? "border-accent" : "border-line-strong",
           skipped && "opacity-40",
         )}
       >
         {kind === "output" && <Handle type="target" position={Position.Left} />}
+        <Icon size={14} className="text-faint" />
         {node.name}
         {kind === "input" && <Handle type="source" position={Position.Right} />}
       </div>
@@ -37,20 +39,19 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
   }
 
   const routes = kind === "router" ? config.routes : [];
-  const detail =
+  const subtitle =
     kind === "tool"
       ? config.tool
       : kind === "subagent"
-        ? config.graph_id || "no graph chosen"
+        ? config.graph_id || "Pick a graph"
         : "model" in config
           ? config.model
           : "";
-  const cost = measured ? (measured.usd ?? 0) : (estimate?.usd ?? 0);
 
   return (
     <div
       className={cn(
-        "min-w-[200px] rounded border bg-page shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
+        "w-[212px] rounded-lg border bg-page shadow-[0_1px_3px_rgba(20,20,30,0.06)]",
         selected ? "border-accent" : "border-line-strong",
         invalid && "border-bad",
         running && "stage-running",
@@ -59,22 +60,22 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
     >
       <Handle type="target" position={Position.Left} />
 
-      <div className="px-3 py-2">
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="truncate text-[13px] text-ink">{node.name}</span>
+      <div className="px-3.5 py-3">
+        <div className="flex items-center gap-2">
+          <Icon size={14} className="shrink-0 text-faint" aria-label={KIND_LABELS[kind]} />
+          <span className="min-w-0 flex-1 truncate">{node.name}</span>
           {BILLED[kind] && (
             <span
-              className={cn("num shrink-0 text-[11px]", measured ? "text-good" : "text-mute")}
+              className={cn("num shrink-0 text-[13px]", measured ? "text-good" : "text-faint")}
               title={measured ? "Measured on the last run" : "Estimated"}
             >
-              {usd(cost)}
+              {usd(measured ? (measured.usd ?? 0) : (estimate?.usd ?? 0))}
             </span>
           )}
         </div>
-        <div className="mt-0.5 truncate text-[11px] text-mute">
-          {KIND_LABELS[kind]}
-          {detail ? ` · ${detail}` : ""}
-        </div>
+        {subtitle && (
+          <div className="mt-1 truncate pl-[22px] text-[13px] text-faint">{subtitle}</div>
+        )}
       </div>
 
       {routes.length > 0 ? (
@@ -82,7 +83,7 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
           {routes.map((route) => (
             <div
               key={route.label}
-              className="relative border-b border-line px-3 py-1 text-right text-[11px] text-mute last:border-b-0"
+              className="relative border-b border-line px-3.5 py-1.5 text-right text-[13px] text-mute last:border-b-0"
             >
               {route.label}
               <Handle type="source" id={route.label} position={Position.Right} />
