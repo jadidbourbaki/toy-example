@@ -1,90 +1,76 @@
+import { Badge, Box, Button, Card, Checkbox, Flex, ScrollArea, Text } from "@radix-ui/themes";
 import { FlaskConical, Sparkles, Square } from "lucide-react";
 import { useRef, useState } from "react";
 import { api, streamMeasure } from "@/lib/api";
-import { cn } from "@/lib/cn";
 import { ms, signedUsd, usd } from "@/lib/kinds";
 import { SampleEditor } from "@/panels/SampleEditor";
 import { useStore } from "@/store";
 import type { MeasurePlan, OptimizeResult, Patch, PatchMeasurement } from "@/types/wire";
 
-function Record({ measured }: { measured: PatchMeasurement }) {
-  const { wins, losses, ties } = measured;
-  const verdict =
-    losses > wins ? "worse" : wins > losses ? "better" : ties > 0 ? "no difference" : "unjudged";
-  const tone =
-    losses > wins ? "text-destructive" : wins > losses ? "text-primary" : "text-muted-foreground";
-  return <span className={cn("num", tone)}>{verdict}</span>;
-}
-
 function Measured({ measured }: { measured: PatchMeasurement }) {
-  const cheaper = measured.usd_delta < 0;
+  const worse = measured.losses > measured.wins;
+  const verdict = worse ? "worse" : measured.wins > measured.losses ? "better" : "no difference";
+
   return (
-    <div
-      className={cn(
-        "mt-2 rounded-[3px] border px-2.5 py-2",
-        measured.losses > measured.wins ? "border-bad/40 bg-bad/5" : "border-border bg-panel",
-      )}
-    >
-      <div className="mb-1.5 flex items-center gap-3">
-        <span className="text-[14px] text-muted-foreground">Measured</span>
-        <span className={cn("num text-[14px]", cheaper ? "text-primary" : "text-muted-foreground")}>
+    <Card mt="3" variant="surface">
+      <Flex align="center" gap="4" wrap="wrap">
+        <Text size="2" color="gray">
+          Measured
+        </Text>
+        <Text size="2" className="num" color={measured.usd_delta < 0 ? "green" : "amber"}>
           {signedUsd(measured.usd_delta)} per request
-        </span>
-        <span className="num text-[14px] text-muted-foreground">
+        </Text>
+        <Text size="2" className="num" color="gray">
           {measured.ms_delta >= 0 ? "+" : "−"}
           {ms(Math.abs(measured.ms_delta))}
-        </span>
-        <Record measured={measured} />
-        <div className="flex-1" />
-        <span
-          className="num text-[14px] text-muted-foreground"
-          title="How many sample requests both versions completed. A small n on a loop is noisy."
-        >
+        </Text>
+        <Badge color={worse ? "red" : measured.wins > measured.losses ? "green" : "gray"} size="2">
+          {verdict}
+        </Badge>
+        <Flex flexGrow="1" />
+        <Text size="2" color="gray" className="num">
           n={measured.paired}
-        </span>
-      </div>
+        </Text>
+      </Flex>
 
       {measured.error && (
-        <div className="mb-1.5 text-[14px] text-destructive">{measured.error}</div>
+        <Text as="p" size="2" color="red" mt="2">
+          {measured.error}
+        </Text>
       )}
 
-      {measured.verdicts.map((verdict, index) => (
-        <div key={index} className="mb-1 flex items-start gap-2">
-          <span
-            className={cn(
-              "font-mono mt-px w-16 shrink-0 text-[14px]",
-              verdict.winner === "candidate"
-                ? "text-primary"
-                : verdict.winner === "baseline"
-                  ? "text-destructive"
-                  : "text-muted-foreground",
-            )}
+      {measured.verdicts.map((verdictRow, index) => (
+        <Flex key={index} gap="3" mt="2" align="start">
+          <Text
+            size="2"
+            style={{ width: 64, flexShrink: 0 }}
+            color={
+              verdictRow.winner === "candidate"
+                ? "green"
+                : verdictRow.winner === "baseline"
+                  ? "red"
+                  : "gray"
+            }
           >
-            {verdict.winner === "candidate"
+            {verdictRow.winner === "candidate"
               ? "better"
-              : verdict.winner === "baseline"
+              : verdictRow.winner === "baseline"
                 ? "worse"
                 : "tie"}
-          </span>
-          <span className="text-[14px] leading-snug text-muted-foreground">
-            {verdict.reason}
-            {!verdict.agreed && (
-              <span className="text-muted-foreground">
-                {" "}
-                (the two orderings disagreed, so it scores a tie)
-              </span>
-            )}
-          </span>
-        </div>
+          </Text>
+          <Text size="2" color="gray">
+            {verdictRow.reason}
+          </Text>
+        </Flex>
       ))}
-    </div>
+    </Card>
   );
 }
 
 export function OptimizePanel() {
   const graph = useStore((s) => s.graph);
   const setGraph = useStore((s) => s.setGraph);
-  const select = useStore((s) => s.select);
+  const setEditing = useStore((s) => s.setEditing);
   const setTab = useStore((s) => s.setTab);
   const [result, setResult] = useState<OptimizeResult | null>(null);
   const [accepted, setAccepted] = useState<Set<string>>(new Set());
@@ -172,173 +158,156 @@ export function OptimizePanel() {
   }).length;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-        <button
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
-          onClick={() => void review()}
-          disabled={busy || !graph}
-        >
-          <Sparkles size={12} />
+    <Flex direction="column" flexGrow="1" style={{ minHeight: 0 }}>
+      <Flex
+        align="center"
+        gap="3"
+        px="4"
+        py="3"
+        style={{ borderBottom: "1px solid var(--gray-6)" }}
+      >
+        <Button size="2" onClick={() => void review()} disabled={busy || !graph}>
+          <Sparkles size={15} />
           {busy ? "Reviewing" : "Review this agent"}
-        </button>
+        </Button>
 
         {accepted.size > 0 && (
           <>
             {measuring ? (
-              <button
-                className="inline-flex items-center gap-2 rounded-lg border bg-card px-3.5 py-2 hover:bg-accent disabled:opacity-40"
-                onClick={() => abort.current?.abort()}
-              >
-                <Square size={11} /> Stop
-              </button>
+              <Button size="2" variant="outline" onClick={() => abort.current?.abort()}>
+                <Square size={14} /> Stop
+              </Button>
             ) : (
-              <button
-                className="inline-flex items-center gap-2 rounded-lg border bg-card px-3.5 py-2 hover:bg-accent disabled:opacity-40"
+              <Button
+                size="2"
+                variant="outline"
                 onClick={() => void measure()}
                 disabled={!graph?.sample.length}
-                title={
-                  graph?.sample.length
-                    ? "Run the baseline and each candidate over the sample"
-                    : "Write a sample first"
-                }
               >
-                <FlaskConical size={12} /> Measure
+                <FlaskConical size={15} /> Measure
                 {plan ? ` ${usd(plan.projected_usd)}` : ""}
-              </button>
+              </Button>
             )}
-            <div className="flex-1" />
+            <Flex flexGrow="1" />
             {regressions > 0 && (
-              <span className="mr-1 text-[14px] text-destructive">
+              <Badge color="red" size="2">
                 {regressions} measured worse
-              </span>
+              </Badge>
             )}
-            <span className="num text-[14px] text-muted-foreground">{accepted.size} selected</span>
-            <button
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
-              onClick={() => void applyChosen()}
-            >
+            <Text size="2" color="gray" className="num">
+              {accepted.size} selected
+            </Text>
+            <Button size="2" onClick={() => void applyChosen()}>
               Apply to the canvas
-            </button>
+            </Button>
           </>
         )}
-        {accepted.size === 0 && <div className="flex-1" />}
-      </div>
+      </Flex>
 
       {error && (
-        <div className="border-b border-border bg-bad/10 px-4 py-2 text-[14px] text-destructive">
-          {error}
-        </div>
+        <Box px="4" py="2" style={{ background: "var(--red-2)" }}>
+          <Text size="2" color="red">
+            {error}
+          </Text>
+        </Box>
       )}
       {result && !result.ok && (
-        <div className="border-b border-border bg-bad/10 px-4 py-2 text-[14px] text-destructive">
-          {result.error}
-        </div>
+        <Box px="4" py="2" style={{ background: "var(--red-2)" }}>
+          <Text size="2" color="red">
+            {result.error}
+          </Text>
+        </Box>
       )}
 
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea style={{ flex: 1 }}>
         <SampleEditor />
 
         {result?.summary && (
-          <div className="border-b border-border bg-panel px-4 py-3">
-            <div className="mb-1.5 text-[14px] text-muted-foreground">What it found</div>
-            <p className="max-w-3xl text-[14px] leading-relaxed text-foreground">
+          <Box px="4" py="4" style={{ borderBottom: "1px solid var(--gray-6)" }}>
+            <Text as="p" style={{ maxWidth: "72ch" }}>
               {result.summary}
-            </p>
-            <div className="num mt-2 flex gap-4 text-[14px] text-muted-foreground">
-              <span>estimated {usd(result.baseline_usd)} per request</span>
+            </Text>
+            <Flex gap="4" mt="2">
+              <Text size="2" color="gray" className="num">
+                estimated {usd(result.baseline_usd)} per request
+              </Text>
               {baselineUsd !== null && (
-                <span className="text-muted-foreground">
+                <Text size="2" color="gray" className="num">
                   measured {usd(baselineUsd)} per request
-                </span>
+                </Text>
               )}
-            </div>
-          </div>
+            </Flex>
+          </Box>
         )}
 
         {result?.patches.map((priced, index) => {
           const id = priced.patch.id ?? String(index);
-          const on = accepted.has(id);
           const record = measured[id];
           return (
-            <div
+            <Box
               key={id}
-              className={cn(
-                "border-b border-border px-4 py-3",
-                on ? "bg-accent/5" : "",
-                !priced.applies && "opacity-50",
-              )}
+              px="4"
+              py="4"
+              style={{
+                borderBottom: "1px solid var(--gray-6)",
+                background: accepted.has(id) ? "var(--accent-2)" : undefined,
+                opacity: priced.applies ? 1 : 0.5,
+              }}
             >
-              <button
-                disabled={!priced.applies}
-                onClick={() => {
-                  void toggle(id);
-                  if (priced.patch.node_id) select(priced.patch.node_id);
-                }}
-                className="block w-full text-left"
-              >
-                <div className="flex items-baseline gap-3">
-                  <span
-                    className={cn(
-                      "mt-0.5 h-3 w-3 shrink-0 rounded-[2px] border",
-                      on ? "border-primary bg-accent" : "border-faint",
-                    )}
-                  />
-                  <span className="flex-1 text-[14px] text-foreground">{priced.patch.title}</span>
-                  <span
-                    className={cn(
-                      "num shrink-0 text-[14px]",
-                      record
-                        ? "text-muted-foreground"
-                        : priced.usd_delta < 0
-                          ? "text-primary"
-                          : "text-muted-foreground",
-                    )}
-                    title={
-                      record
-                        ? "What the static estimate predicted, before this was measured"
-                        : "Static estimate"
-                    }
-                  >
-                    <span className="text-[14px] text-muted-foreground">est </span>
-                    {signedUsd(priced.usd_delta)}
-                  </span>
-                </div>
-                <div className="mt-1.5 pl-6">
-                  <p className="max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
+              <Flex gap="3" align="start">
+                <Checkbox
+                  mt="1"
+                  checked={accepted.has(id)}
+                  disabled={!priced.applies}
+                  onCheckedChange={() => {
+                    void toggle(id);
+                    if (priced.patch.node_id) setEditing(null);
+                  }}
+                />
+                <Box style={{ flex: 1, minWidth: 0 }}>
+                  <Flex align="baseline" gap="3">
+                    <Text weight="medium" style={{ flex: 1 }}>
+                      {priced.patch.title}
+                    </Text>
+                    <Text
+                      size="2"
+                      className="num"
+                      color={record ? "gray" : priced.usd_delta < 0 ? "green" : "gray"}
+                    >
+                      est {signedUsd(priced.usd_delta)}
+                    </Text>
+                  </Flex>
+                  <Text as="p" size="2" color="gray" mt="1" style={{ maxWidth: "68ch" }}>
                     {priced.patch.rationale}
-                  </p>
-                  <div className="font-mono mt-1.5 text-[14px] text-muted-foreground">
+                  </Text>
+                  <Badge size="1" color="gray" variant="soft" mt="2">
                     {priced.patch.op.replace(/_/g, " ")}
-                  </div>
+                  </Badge>
                   {priced.problems.map((problem, i) => (
-                    <div key={i} className="mt-1 text-[14px] text-destructive">
+                    <Text key={i} as="p" size="2" color="red" mt="1">
                       {problem}
-                    </div>
+                    </Text>
                   ))}
-                </div>
-              </button>
-
-              {record && (
-                <div className="pl-6">
-                  <Measured measured={record} />
-                </div>
-              )}
-              {measuring && on && !record && (
-                <div className="pl-6 pt-2 text-[14px] text-muted-foreground">
-                  Running the sample…
-                </div>
-              )}
-            </div>
+                  {record && <Measured measured={record} />}
+                  {measuring && accepted.has(id) && !record && (
+                    <Text as="p" size="2" color="gray" mt="2">
+                      Running the sample
+                    </Text>
+                  )}
+                </Box>
+              </Flex>
+            </Box>
           );
         })}
 
         {!result && !busy && (
-          <p className="p-4 text-[14px] text-muted-foreground">
-            Ask for changes worth making, then measure the ones worth testing.
-          </p>
+          <Box p="4">
+            <Text size="2" color="gray">
+              Ask for changes worth making, then measure the ones worth testing.
+            </Text>
+          </Box>
         )}
-      </div>
-    </div>
+      </ScrollArea>
+    </Flex>
   );
 }

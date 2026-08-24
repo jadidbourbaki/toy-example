@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { Theme } from "@radix-ui/themes";
 import { App } from "@/App";
 import "./index.css";
 
@@ -8,6 +9,8 @@ if (!root) throw new Error("The page is missing its #root element.");
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <Theme>
+      <App />
+    </Theme>
   </StrictMode>,
 );

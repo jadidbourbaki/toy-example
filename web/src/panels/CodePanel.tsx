@@ -1,3 +1,4 @@
+import { Box, Button, Code, Flex, ScrollArea, Text } from "@radix-ui/themes";
 import { Check, Copy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { streamCompile } from "@/lib/api";
@@ -17,8 +18,11 @@ function Elapsed({ since }: { since: number }) {
     const timer = setInterval(() => setNow(Date.now()), 200);
     return () => clearInterval(timer);
   }, []);
-  const seconds = Math.max(0, (now - since) / 1000);
-  return <span className="num text-[14px] text-muted-foreground">{seconds.toFixed(1)}s</span>;
+  return (
+    <Text size="2" color="gray" className="num">
+      {Math.max(0, (now - since) / 1000).toFixed(1)}s
+    </Text>
+  );
 }
 
 export function CodePanel() {
@@ -62,83 +66,96 @@ export function CodePanel() {
   const { result, running, step, attempt, error } = compile;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center gap-3 border-b border-border px-4 py-2">
-        <button
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
-          onClick={() => void start()}
-          disabled={running || !graph}
-        >
+    <Flex direction="column" flexGrow="1" style={{ minHeight: 0 }}>
+      <Flex
+        align="center"
+        gap="4"
+        px="4"
+        py="3"
+        style={{ borderBottom: "1px solid var(--gray-6)" }}
+      >
+        <Button size="2" onClick={() => void start()} disabled={running || !graph}>
           {running ? "Compiling" : "Compile"}
-        </button>
+        </Button>
 
         {running && (
           <>
-            <span className="text-[14px] text-muted-foreground">
+            <Text size="2" color="gray">
               {STEP_TEXT[step] ?? "Working"}
               {attempt > 1 ? ` (attempt ${attempt})` : ""}
-            </span>
+            </Text>
             <Elapsed since={compile.startedAt} />
           </>
         )}
 
         {result?.source && !running && (
-          <button
-            className="inline-flex items-center gap-2 rounded-lg border bg-card px-3.5 py-2 hover:bg-accent disabled:opacity-40"
-            onClick={() => void copy()}
-          >
-            {copied ? <Check size={13} /> : <Copy size={13} />}
+          <Button size="2" variant="outline" onClick={() => void copy()}>
+            {copied ? <Check size={15} /> : <Copy size={15} />}
             {copied ? "Copied" : "Copy"}
-          </button>
+          </Button>
         )}
 
-        <div className="flex-1" />
+        <Flex flexGrow="1" />
 
         {result && !running && (
-          <span className="num text-[14px] text-muted-foreground">
+          <Text size="2" color="gray" className="num">
             {result.source.split("\n").length} lines
-          </span>
+          </Text>
         )}
-      </div>
+      </Flex>
 
       {compile.problems.length > 0 && running && (
-        <div className="border-b border-border bg-muted px-4 py-2">
+        <Flex direction="column" px="4" py="2" style={{ background: "var(--amber-2)" }}>
           {compile.problems.map((problem, index) => (
-            <div key={index} className="font-mono text-[14px] text-muted-foreground">
+            <Text key={index} size="2" color="amber" className="num">
               {problem}
-            </div>
+            </Text>
           ))}
-        </div>
+        </Flex>
       )}
 
       {(error || (result && !result.ok)) && (
-        <div className="border-b border-border px-4 py-2">
-          {error && <div className="text-[14px] text-destructive">{error}</div>}
+        <Flex direction="column" px="4" py="2" style={{ background: "var(--red-2)" }}>
+          {error && (
+            <Text size="2" color="red">
+              {error}
+            </Text>
+          )}
           {result?.problems.map((problem, index) => (
-            <div key={index} className="font-mono text-[14px] text-destructive">
+            <Text key={index} size="2" color="red" className="num">
               {problem}
-            </div>
+            </Text>
           ))}
-        </div>
+        </Flex>
       )}
 
       {result?.notes && !running && (
-        <div className="border-b border-border px-4 py-2 text-[14px] text-muted-foreground">
-          {result.notes}
-        </div>
+        <Box px="4" py="2" style={{ borderBottom: "1px solid var(--gray-6)" }}>
+          <Text size="2" color="gray">
+            {result.notes}
+          </Text>
+        </Box>
       )}
 
-      <div className="flex-1 overflow-auto">
+      <ScrollArea style={{ flex: 1 }}>
         {result?.source ? (
-          <pre className="p-4 font-mono text-[14px] leading-[1.55] text-foreground">
+          <Code
+            variant="ghost"
+            size="2"
+            style={{ display: "block", whiteSpace: "pre", padding: "var(--space-4)" }}
+          >
             {result.source}
-          </pre>
+          </Code>
         ) : (
-          <div className="p-4 text-[14px] text-muted-foreground">
-            {running ? "" : "Compile this agent into a runnable module."}
-          </div>
+          !running && (
+            <Box p="4">
+              <Text size="2" color="gray">
+                Compile this agent into a runnable module.
+              </Text>
+            </Box>
+          )
         )}
-      </div>
-    </div>
+      </ScrollArea>
+    </Flex>
   );
 }

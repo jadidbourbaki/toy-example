@@ -11,6 +11,7 @@ import {
   type NodeMouseHandler,
   MarkerType,
 } from "@xyflow/react";
+import { Flex, Text } from "@radix-ui/themes";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StageNode, type StageNodeData } from "@/nodes/StageNode";
 import { type NodeKind } from "@/lib/kinds";
@@ -144,16 +145,18 @@ export function Canvas({ running, skipped }: CanvasProps) {
 
   if (!graph) {
     return (
-      <div className="flex flex-1 items-center justify-center text-muted-foregroundd-foreground">
-        No agent open.
-      </div>
+      <Flex align="center" justify="center" flexGrow="1">
+        <Text size="2" color="gray">
+          No agent open.
+        </Text>
+      </Flex>
     );
   }
 
   return (
     <div
       ref={wrapper}
-      className="relative flex-1"
+      style={{ position: "relative", flex: 1, minHeight: 0 }}
       onDrop={onDrop}
       onDragOver={(e) => e.preventDefault()}
     >

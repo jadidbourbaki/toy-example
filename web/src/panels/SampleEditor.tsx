@@ -1,10 +1,10 @@
+import { Box, Button, Flex, IconButton, Text, TextField } from "@radix-ui/themes";
 import { Plus, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { useStore } from "@/store";
 
-/** The requests a measurement runs against. The sample decides what a measured
- *  result means, so it is edited in the open rather than hidden in a config. */
+/** The requests a measurement runs against. */
 export function SampleEditor() {
   const graph = useStore((s) => s.graph);
   const patchGraph = useStore((s) => s.patchGraph);
@@ -28,44 +28,55 @@ export function SampleEditor() {
   };
 
   return (
-    <div className="border-b border-border bg-panel px-4 py-3">
-      <div className="mb-2 flex items-center gap-2">
-        <span className="text-[14px] text-muted-foreground">Sample</span>
-        <div className="flex-1" />
-        <button className="btn py-1 text-[14px]" onClick={() => void write()} disabled={busy}>
-          <Sparkles size={11} />
+    <Box px="4" py="3" style={{ borderBottom: "1px solid var(--gray-6)" }}>
+      <Flex align="center" gap="3" mb="2">
+        <Text size="2" color="gray">
+          Sample
+        </Text>
+        <Flex flexGrow="1" />
+        <Button size="1" variant="outline" onClick={() => void write()} disabled={busy}>
+          <Sparkles size={14} />
           {busy ? "Writing" : graph.sample.length ? "Rewrite" : "Write a sample"}
-        </button>
-      </div>
+        </Button>
+      </Flex>
 
-      {error && <div className="mb-2 text-[14px] text-destructive">{error}</div>}
+      {error && (
+        <Text size="2" color="red" as="p" mb="2">
+          {error}
+        </Text>
+      )}
 
-      {graph.sample.map((request, index) => (
-        <div key={index} className="group mb-1 flex items-start gap-1.5">
-          <span className="num mt-1.5 w-4 shrink-0 text-right text-[14px] text-muted-foreground">
-            {index + 1}
-          </span>
-          <input
-            className="w-full rounded-lg border bg-card px-3 py-2 flex-1 py-1 text-[14px]"
-            value={request}
-            onChange={(e) => set(graph.sample.map((r, i) => (i === index ? e.target.value : r)))}
-          />
-          <button
-            className="mt-1.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
-            onClick={() => set(graph.sample.filter((_, i) => i !== index))}
-            title="Remove this request"
-          >
-            <X size={12} />
-          </button>
-        </div>
-      ))}
+      <Flex direction="column" gap="2">
+        {graph.sample.map((request, index) => (
+          <Flex key={index} align="center" gap="2">
+            <TextField.Root
+              size="2"
+              style={{ flex: 1 }}
+              value={request}
+              onChange={(e) => set(graph.sample.map((r, i) => (i === index ? e.target.value : r)))}
+            />
+            <IconButton
+              size="1"
+              variant="ghost"
+              color="gray"
+              aria-label="Remove this request"
+              onClick={() => set(graph.sample.filter((_, i) => i !== index))}
+            >
+              <X size={15} />
+            </IconButton>
+          </Flex>
+        ))}
+      </Flex>
 
-      <button
-        className="ml-5 flex items-center gap-1 text-[14px] text-muted-foreground hover:text-foreground"
+      <Button
+        size="1"
+        variant="ghost"
+        color="gray"
+        mt="2"
         onClick={() => set([...graph.sample, ""])}
       >
-        <Plus size={11} /> Add a request
-      </button>
-    </div>
+        <Plus size={14} /> Add a request
+      </Button>
+    </Box>
   );
 }

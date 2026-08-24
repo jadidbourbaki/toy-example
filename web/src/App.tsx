@@ -1,8 +1,6 @@
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge, Button, Flex, Heading, SegmentedControl, Text } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import { Canvas } from "@/Canvas";
-import { cn } from "@/lib/cn";
 import { Assistant } from "@/panels/Assistant";
 import { CodePanel } from "@/panels/CodePanel";
 import { GraphRail } from "@/panels/GraphRail";
@@ -38,57 +36,73 @@ export function App() {
   const errors = problems.filter((p) => p.severity === "error").length;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      <header className="flex h-14 shrink-0 items-center gap-5 border-b border-border px-4">
-        <span className="text-[17px] font-semibold tracking-[-0.02em]">Orla Dashboard</span>
+    <Flex direction="column" style={{ height: "100vh", overflow: "hidden" }}>
+      <Flex
+        align="center"
+        gap="5"
+        px="4"
+        style={{ height: 56, flexShrink: 0, borderBottom: "1px solid var(--gray-6)" }}
+      >
+        <Heading size="4" weight="bold">
+          Orla Dashboard
+        </Heading>
 
-        <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)}>
-          <TabsList>
-            {WORK_TABS.map((entry) => (
-              <TabsTrigger key={entry.id} value={entry.id}>
-                {entry.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <SegmentedControl.Root
+          value={tab === "optimize" ? "" : tab}
+          onValueChange={(value) => value && setTab(value as Tab)}
+          size="2"
+        >
+          {WORK_TABS.map((entry) => (
+            <SegmentedControl.Item key={entry.id} value={entry.id}>
+              {entry.label}
+            </SegmentedControl.Item>
+          ))}
+        </SegmentedControl.Root>
 
         {/* Optimizing an agent is the product, so it stands apart from the
             working tabs rather than hiding among them. */}
         <Button
-          variant={tab === "optimize" ? "default" : "outline"}
-          className={cn(tab !== "optimize" && "border-primary/50 text-primary")}
+          size="2"
+          variant={tab === "optimize" ? "solid" : "outline"}
           onClick={() => setTab("optimize")}
         >
           Optimize
         </Button>
 
-        <div className="flex-1" />
+        <Flex flexGrow="1" />
 
         {errors > 0 && (
-          <span className="text-destructive">
+          <Badge color="red" size="2">
             {errors} {errors === 1 ? "problem" : "problems"}
-          </span>
+          </Badge>
         )}
-        {error && <span className="text-destructive">{error}</span>}
+        {error && (
+          <Text size="2" color="red">
+            {error}
+          </Text>
+        )}
 
         <ModelPicker />
-        {dirty && <Button onClick={() => void save()}>Save</Button>}
-      </header>
+        {dirty && (
+          <Button size="2" onClick={() => void save()}>
+            Save
+          </Button>
+        )}
+      </Flex>
 
-      <div className="flex min-h-0 flex-1">
+      <Flex flexGrow="1" style={{ minHeight: 0 }}>
         <GraphRail />
-
-        <main className="flex min-w-0 flex-1 flex-col">
+        <Flex direction="column" flexGrow="1" style={{ minWidth: 0 }}>
           {tab === "build" && <Canvas running={running} skipped={skipped} />}
           {tab === "code" && <CodePanel />}
           {tab === "optimize" && <OptimizePanel />}
           {tab === "run" && <RunPanel onRunning={setRunning} onSkipped={setSkipped} />}
           <StatusLine />
-        </main>
-      </div>
+        </Flex>
+      </Flex>
 
       <StageModal />
       {graph && <Assistant />}
-    </div>
+    </Flex>
   );
 }

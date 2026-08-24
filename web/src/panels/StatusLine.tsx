@@ -1,3 +1,4 @@
+import { Flex, Text } from "@radix-ui/themes";
 import { usd } from "@/lib/kinds";
 import { useStore } from "@/store";
 
@@ -12,20 +13,35 @@ export function StatusLine() {
   const elapsed = events.reduce((sum, event) => sum + (event.ms ?? 0), 0);
 
   return (
-    <div className="flex h-10 shrink-0 items-center gap-6 border-t border-border px-4 text-[14px] text-muted-foreground">
-      <span>
-        Estimated <span className="num text-foreground">{usd(estimate.usd)}</span> per request
-      </span>
-      <span className="num text-muted-foreground">
+    <Flex
+      align="center"
+      gap="6"
+      px="4"
+      style={{ height: 44, flexShrink: 0, borderTop: "1px solid var(--gray-6)" }}
+    >
+      <Text size="2" color="gray">
+        Estimated{" "}
+        <Text className="num" color="gray" highContrast>
+          {usd(estimate.usd)}
+        </Text>{" "}
+        per request
+      </Text>
+      <Text size="2" color="gray" className="num">
         {estimate.input_tokens.toLocaleString()} tokens in,{" "}
         {estimate.output_tokens.toLocaleString()} out
-      </span>
+      </Text>
       {events.length > 0 && (
-        <span>
-          Measured <span className="num text-primary">{usd(spent)}</span> in{" "}
-          <span className="num">{(elapsed / 1000).toFixed(1)}s</span>
-        </span>
+        <Text size="2" color="gray">
+          Measured{" "}
+          <Text className="num" color="green">
+            {usd(spent)}
+          </Text>{" "}
+          in{" "}
+          <Text className="num" color="gray" highContrast>
+            {(elapsed / 1000).toFixed(1)}s
+          </Text>
+        </Text>
       )}
-    </div>
+    </Flex>
   );
 }

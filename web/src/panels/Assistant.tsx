@@ -1,8 +1,8 @@
+import { Box, Card, Flex, IconButton, Text, TextField } from "@radix-ui/themes";
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { OrlaCat } from "@/components/OrlaCat";
 import { streamAsk } from "@/lib/api";
-import { cn } from "@/lib/cn";
 import { useStore } from "@/store";
 
 type Point = { x: number; y: number };
@@ -23,8 +23,8 @@ function readSpot(): Point {
   return { x: window.innerWidth - WIDTH - 28, y: window.innerHeight - HEIGHT - 28 };
 }
 
-/** A cat that waits in a corner and answers questions about the open graph.
- *  Drag it anywhere. It reads the graph and never edits it. */
+/** A cat that waits in a corner and answers questions about the open agent.
+ *  Drag it anywhere. It reads the agent and never edits it. */
 export function Assistant() {
   const graph = useStore((s) => s.graph);
   const [spot, setSpot] = useState<Point>(readSpot);
@@ -101,53 +101,52 @@ export function Assistant() {
     }
   };
 
-  // The panel opens above the cat when there is room, and below when there is not.
-  const below = spot.y < 300;
-  const panelStyle = {
+  const below = spot.y < 320;
+  const panelStyle: React.CSSProperties = {
+    position: "fixed",
+    zIndex: 50,
+    width: 380,
+    height: 440,
     left: Math.min(spot.x, window.innerWidth - 400),
-    ...(below ? { top: spot.y + HEIGHT + 14 } : { bottom: window.innerHeight - spot.y + 12 }),
+    ...(below ? { top: spot.y + HEIGHT + 14 } : { bottom: window.innerHeight - spot.y + 14 }),
   };
 
   return (
     <>
       {open && (
-        <div
-          style={panelStyle}
-          className="fixed z-50 flex h-[440px] w-[380px] flex-col rounded-xl border border-border bg-background shadow-xl"
-        >
-          <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-            <span className="flex-1 text-muted-foreground">Ask about this agent</span>
-            <button
-              className="rounded-lg px-2 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-              onClick={() => setOpen(false)}
-              aria-label="Close"
-            >
-              <X size={16} />
-            </button>
-          </div>
+        <Card style={panelStyle}>
+          <Flex direction="column" style={{ height: "100%" }}>
+            <Flex align="center" gap="2" pb="2" style={{ borderBottom: "1px solid var(--gray-6)" }}>
+              <Text size="2" color="gray" style={{ flex: 1 }}>
+                Ask about this agent
+              </Text>
+              <IconButton size="1" variant="ghost" color="gray" onClick={() => setOpen(false)}>
+                <X size={16} />
+              </IconButton>
+            </Flex>
 
-          <div ref={scroller} className="flex-1 overflow-y-auto px-4 py-3">
-            {turns.length === 0 && (
-              <p className="text-[14px] leading-relaxed text-muted-foreground">
-                Which stage costs the most? What does the router do here?
-              </p>
-            )}
-            {turns.map((turn, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "mb-4 text-[14px] leading-relaxed",
-                  turn.role === "user" ? "text-foreground" : "text-muted-foreground",
-                )}
-              >
-                {turn.text || (busy && index === turns.length - 1 ? "Thinking" : "")}
-              </div>
-            ))}
-          </div>
+            <Box ref={scroller} py="3" style={{ flex: 1, overflowY: "auto" }}>
+              {turns.length === 0 && (
+                <Text size="2" color="gray">
+                  Which stage costs the most? What does the router do here?
+                </Text>
+              )}
+              {turns.map((turn, index) => (
+                <Text
+                  key={index}
+                  as="p"
+                  size="2"
+                  mb="3"
+                  color={turn.role === "user" ? undefined : "gray"}
+                  weight={turn.role === "user" ? "medium" : "regular"}
+                >
+                  {turn.text || (busy && index === turns.length - 1 ? "Thinking" : "")}
+                </Text>
+              ))}
+            </Box>
 
-          <div className="border-t border-border p-3">
-            <input
-              className="w-full rounded-lg border bg-card px-3 py-2"
+            <TextField.Root
+              size="2"
               placeholder="Ask a question"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
@@ -156,20 +155,28 @@ export function Assistant() {
               }}
               disabled={busy}
             />
-          </div>
-        </div>
+          </Flex>
+        </Card>
       )}
 
       <button
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        style={{ left: spot.x, top: spot.y, width: WIDTH, height: HEIGHT }}
+        style={{
+          position: "fixed",
+          zIndex: 50,
+          left: spot.x,
+          top: spot.y,
+          width: WIDTH,
+          height: HEIGHT,
+          touchAction: "none",
+        }}
         title="Ask about this agent"
         aria-label="Ask about this agent"
-        className="orla-cat fixed z-50 flex touch-none cursor-grab items-end justify-center bg-transparent active:cursor-grabbing"
+        className="orla-cat"
       >
-        <OrlaCat className="h-full w-full" />
+        <OrlaCat className="orla-cat-svg" />
       </button>
     </>
   );

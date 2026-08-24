@@ -1,7 +1,7 @@
+import { Badge, Box, Button, Flex, ScrollArea, Text, TextField } from "@radix-ui/themes";
 import { Square } from "lucide-react";
 import { useRef, useState } from "react";
 import { streamRun } from "@/lib/api";
-import { cn } from "@/lib/cn";
 import { ms, usd } from "@/lib/kinds";
 import { useStore } from "@/store";
 import type { RunEvent } from "@/types/wire";
@@ -14,7 +14,7 @@ export type RunPanelProps = {
 export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
   const graph = useStore((s) => s.graph);
   const recordRun = useStore((s) => s.recordRun);
-  const select = useStore((s) => s.select);
+  const setEditing = useStore((s) => s.setEditing);
   const [prompt, setPrompt] = useState("How much chunk overlap should I use?");
   const [events, setEvents] = useState<RunEvent[]>([]);
   const [busy, setBusy] = useState(false);
@@ -62,10 +62,17 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
   const failure = events.find((e) => e.type === "run_error");
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-border px-4 py-2">
-        <input
-          className="w-full rounded-lg border bg-card px-3 py-2 flex-1"
+    <Flex direction="column" flexGrow="1" style={{ minHeight: 0 }}>
+      <Flex
+        align="center"
+        gap="3"
+        px="4"
+        py="3"
+        style={{ borderBottom: "1px solid var(--gray-6)" }}
+      >
+        <TextField.Root
+          size="2"
+          style={{ flex: 1 }}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => {
@@ -73,28 +80,25 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
           }}
         />
         {busy ? (
-          <button
-            className="inline-flex items-center gap-2 rounded-lg border bg-card px-3.5 py-2 hover:bg-accent disabled:opacity-40"
-            onClick={() => abort.current?.abort()}
-          >
-            <Square size={12} /> Stop
-          </button>
+          <Button size="2" variant="outline" onClick={() => abort.current?.abort()}>
+            <Square size={14} /> Stop
+          </Button>
         ) : (
-          <button
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
-            onClick={() => void start()}
-            disabled={!graph}
-          >
+          <Button size="2" onClick={() => void start()} disabled={!graph}>
             Run
-          </button>
+          </Button>
         )}
-      </div>
+      </Flex>
 
       {error && (
-        <div className="border-b border-border px-4 py-2 text-[14px] text-destructive">{error}</div>
+        <Box px="4" py="2" style={{ background: "var(--red-2)" }}>
+          <Text size="2" color="red">
+            {error}
+          </Text>
+        </Box>
       )}
 
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea style={{ flex: 1 }}>
         {events
           .filter(
             (e) => e.type === "node_done" || e.type === "node_skipped" || e.type === "run_error",
@@ -103,69 +107,83 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
           .map((event, index) => {
             const failed = event.type === "run_error";
             return (
-              <button
+              <Box
                 key={index}
-                onClick={() => event.node_id && select(event.node_id)}
-                className="block w-full border-b border-border px-4 py-2 text-left hover:bg-panel"
-                style={{ paddingLeft: 16 + (event.depth ?? 0) * 14 }}
+                px="4"
+                py="3"
+                style={{
+                  borderBottom: "1px solid var(--gray-4)",
+                  paddingLeft: 16 + (event.depth ?? 0) * 16,
+                  cursor: event.node_id ? "pointer" : undefined,
+                }}
+                onClick={() => event.node_id && setEditing(event.node_id)}
               >
-                <div className="flex items-baseline gap-2">
-                  <span
-                    className={cn("text-[14px]", failed ? "text-destructive" : "text-foreground")}
-                  >
+                <Flex align="center" gap="2">
+                  <Text size="2" weight="medium" color={failed ? "red" : undefined}>
                     {event.name}
-                  </span>
+                  </Text>
                   {event.route && (
-                    <span className="rounded border border-border px-1 text-[14px] text-muted-foreground">
+                    <Badge size="1" color="gray" variant="soft">
                       {event.route}
-                    </span>
+                    </Badge>
                   )}
                   {event.type === "node_skipped" && (
-                    <span className="text-[14px] text-muted-foreground">skipped</span>
+                    <Text size="2" color="gray">
+                      skipped
+                    </Text>
                   )}
-                  <span className="flex-1" />
+                  <Flex flexGrow="1" />
                   {event.ms ? (
-                    <span className="num text-[14px] text-muted-foreground">{ms(event.ms)}</span>
+                    <Text size="2" color="gray" className="num">
+                      {ms(event.ms)}
+                    </Text>
                   ) : null}
                   {event.usd ? (
-                    <span className="num text-[14px] text-muted-foreground">{usd(event.usd)}</span>
+                    <Text size="2" color="gray" className="num">
+                      {usd(event.usd)}
+                    </Text>
                   ) : null}
-                </div>
+                </Flex>
                 {event.text && event.type !== "node_skipped" && (
-                  <p
-                    className={cn(
-                      "mt-0.5 max-w-3xl text-[14px] leading-relaxed",
-                      failed ? "text-destructive" : "text-muted-foreground",
-                    )}
-                  >
+                  <Text as="p" size="2" color={failed ? "red" : "gray"} mt="1">
                     {event.text.length > 300 ? `${event.text.slice(0, 300)}…` : event.text}
-                  </p>
+                  </Text>
                 )}
-              </button>
+              </Box>
             );
           })}
 
         {answer && !failure && (
-          <div className="border-t-2 border-border bg-panel px-4 py-3">
-            <div className="mb-1 text-[14px] text-muted-foreground">Answer</div>
-            <p className="max-w-3xl whitespace-pre-wrap text-[14px] leading-relaxed">
+          <Box px="4" py="4" style={{ borderTop: "2px solid var(--gray-6)" }}>
+            <Text size="2" color="gray">
+              Answer
+            </Text>
+            <Text as="p" mt="2" style={{ whiteSpace: "pre-wrap", maxWidth: "68ch" }}>
               {answer.text}
-            </p>
-            <div className="num mt-2 flex gap-4 text-[14px] text-muted-foreground">
-              <span>{ms(answer.ms ?? 0)}</span>
-              <span>{usd(answer.usd ?? 0)}</span>
-              <span>{(answer.input_tokens ?? 0).toLocaleString()} tokens in</span>
-              <span>{(answer.output_tokens ?? 0).toLocaleString()} out</span>
-            </div>
-          </div>
+            </Text>
+            <Flex gap="4" mt="3">
+              <Text size="2" color="gray" className="num">
+                {ms(answer.ms ?? 0)}
+              </Text>
+              <Text size="2" color="gray" className="num">
+                {usd(answer.usd ?? 0)}
+              </Text>
+              <Text size="2" color="gray" className="num">
+                {(answer.input_tokens ?? 0).toLocaleString()} tokens in,{" "}
+                {(answer.output_tokens ?? 0).toLocaleString()} out
+              </Text>
+            </Flex>
+          </Box>
         )}
 
         {events.length === 0 && !busy && (
-          <div className="p-4 text-[14px] text-muted-foreground">
-            Run this agent to see each stage.
-          </div>
+          <Box p="4">
+            <Text size="2" color="gray">
+              Run this agent to see each stage.
+            </Text>
+          </Box>
         )}
-      </div>
-    </div>
+      </ScrollArea>
+    </Flex>
   );
 }

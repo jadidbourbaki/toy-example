@@ -1,8 +1,6 @@
+import { Box, Button, Flex, IconButton, Text, TextField } from "@radix-ui/themes";
 import { Plus, Settings2 } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/cn";
 import { KIND_LABELS, KIND_TINT, PALETTE_KINDS } from "@/lib/kinds";
 import { AgentModal } from "@/panels/AgentModal";
 import { useStore } from "@/store";
@@ -24,87 +22,114 @@ export function GraphRail() {
   };
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col gap-7 border-r px-3 py-4">
-      <div>
-        <div className="mb-1 flex items-center justify-between pl-2.5">
-          <span className="text-muted-foreground">Agents</span>
-          <Button
+    <Flex
+      direction="column"
+      gap="5"
+      p="3"
+      style={{ width: 248, flexShrink: 0, borderRight: "1px solid var(--gray-6)" }}
+    >
+      <Box>
+        <Flex align="center" justify="between" pl="2" mb="1">
+          <Text size="2" color="gray">
+            Agents
+          </Text>
+          <IconButton
+            size="1"
             variant="ghost"
-            size="icon"
             onClick={() => setNaming(true)}
             aria-label="New agent"
           >
-            <Plus />
-          </Button>
-        </div>
+            <Plus size={16} />
+          </IconButton>
+        </Flex>
 
         {naming && (
-          <Input
-            autoFocus
-            className="mb-1"
-            placeholder="Agent name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={submit}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void submit();
-              if (e.key === "Escape") setNaming(false);
-            }}
-          />
+          <Box mb="1">
+            <TextField.Root
+              autoFocus
+              size="2"
+              placeholder="Agent name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={submit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void submit();
+                if (e.key === "Escape") setNaming(false);
+              }}
+            />
+          </Box>
         )}
 
         {graphs.map((summary) => {
           const active = graph?.id === summary.id;
           return (
-            <div
+            <Flex
               key={summary.id}
-              className={cn(
-                "group flex items-center gap-1 rounded-lg pr-1 pl-2.5 transition-colors",
-                active ? "bg-muted font-medium" : "hover:bg-accent",
-              )}
+              align="center"
+              gap="1"
+              pl="2"
+              pr="1"
+              style={{
+                borderRadius: "var(--radius-3)",
+                background: active ? "var(--gray-4)" : undefined,
+              }}
             >
-              <button
-                className="min-w-0 flex-1 truncate py-2 text-left"
+              <Button
+                variant="ghost"
+                color="gray"
                 onClick={() => void openGraph(summary.id)}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  justifyContent: "flex-start",
+                  fontWeight: active ? 500 : 400,
+                  color: active ? "var(--gray-12)" : undefined,
+                }}
               >
-                {summary.name}
-              </button>
+                <Text truncate>{summary.name}</Text>
+              </Button>
               {active && (
-                <Button
+                <IconButton
+                  size="1"
                   variant="ghost"
-                  size="icon"
-                  className="opacity-0 group-hover:opacity-100"
                   onClick={() => setSettingsOpen(true)}
                   aria-label="Agent settings"
                 >
-                  <Settings2 />
-                </Button>
+                  <Settings2 size={16} />
+                </IconButton>
               )}
-            </div>
+            </Flex>
           );
         })}
 
         <AgentModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      </div>
+      </Box>
 
-      <div>
-        <div className="mb-1 pl-2.5 text-muted-foreground">Add a stage</div>
-        {PALETTE_KINDS.map((kind) => (
-          <button
-            key={kind}
-            onClick={() => addNode(kind, 260 + Math.random() * 140, 90 + Math.random() * 180)}
-            draggable
-            onDragStart={(e) => e.dataTransfer.setData("application/orla-kind", kind)}
-            className="flex w-full cursor-grab items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent active:cursor-grabbing"
-          >
-            <span
-              className="h-2 w-2 shrink-0 rounded-full"
-              style={{ background: KIND_TINT[kind] }}
-            />
-            {KIND_LABELS[kind]}
-          </button>
-        ))}
-      </div>
-    </aside>
+      <Box>
+        <Text size="2" color="gray" ml="2">
+          Add a stage
+        </Text>
+        <Flex direction="column" mt="1">
+          {PALETTE_KINDS.map((kind) => (
+            <Button
+              key={kind}
+              variant="ghost"
+              color="gray"
+              draggable
+              onDragStart={(e) => e.dataTransfer.setData("application/orla-kind", kind)}
+              onClick={() => addNode(kind, 260 + Math.random() * 140, 90 + Math.random() * 180)}
+              style={{ justifyContent: "flex-start", cursor: "grab" }}
+            >
+              <Box
+                width="8px"
+                height="8px"
+                style={{ borderRadius: 999, background: KIND_TINT[kind] }}
+              />
+              {KIND_LABELS[kind]}
+            </Button>
+          ))}
+        </Flex>
+      </Box>
+    </Flex>
   );
 }

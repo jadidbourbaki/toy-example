@@ -1,51 +1,43 @@
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Button,
+  Checkbox,
   Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
+  Flex,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+  Text,
+  TextArea,
+  TextField,
+} from "@radix-ui/themes";
 import { X } from "lucide-react";
-import { cn } from "@/lib/cn";
 import { upstreamNames } from "@/lib/graph";
 import { KIND_LABELS, KIND_TINT } from "@/lib/kinds";
 import { useStore } from "@/store";
 import type { Route } from "@/types/wire";
 
-/** Label and control on one line, both at the library's own size so they sit
- *  on a shared baseline. */
+/** Label and control on one line. Both sizes come from the theme scale, so they
+ *  share a baseline without anything being chosen by hand. */
 function Prop({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[7rem_1fr] items-center gap-4">
-      <Label className="text-muted-foregroundd-foreground">{label}</Label>
-      <div className="min-w-0">{children}</div>
-    </div>
+    <Flex align="center" gap="4">
+      <Text size="2" color="gray" style={{ width: 128, flexShrink: 0 }}>
+        {label}
+      </Text>
+      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+    </Flex>
   );
 }
 
 function Block({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid gap-2">
-      <Label className="text-muted-foregroundd-foreground">{label}</Label>
+    <Flex direction="column" gap="2">
+      <Text size="2" color="gray">
+        {label}
+      </Text>
       {children}
-    </div>
+    </Flex>
   );
 }
 
-/** The stage editor. It opens over the canvas on a double click, holds every
- *  setting the stage has, and closes back to the graph. */
 export function StageModal() {
   const graph = useStore((s) => s.graph);
   const editingId = useStore((s) => s.editingId);
@@ -67,18 +59,20 @@ export function StageModal() {
   const available = ["input", ...upstreamNames(graph, node.id)];
 
   return (
-    <Dialog open onOpenChange={(open) => !open && setEditing(null)}>
-      <DialogContent className="flex max-h-[82vh] flex-col gap-0 p-0 sm:max-w-[620px]">
-        <DialogHeader className="flex-row items-center gap-3 border-b px-6 py-4">
-          <span className="font-medium" style={{ color: KIND_TINT[config.kind] }}>
+    <Dialog.Root open onOpenChange={(open: boolean) => !open && setEditing(null)}>
+      <Dialog.Content maxWidth="620px">
+        <Flex align="center" gap="3">
+          <Text size="2" weight="medium" style={{ color: KIND_TINT[config.kind] }}>
             {KIND_LABELS[config.kind]}
-          </span>
-          <DialogTitle className="flex-1 truncate text-lg">{node.name}</DialogTitle>
-        </DialogHeader>
+          </Text>
+          <Dialog.Title size="4" mb="0" truncate style={{ flex: 1 }}>
+            {node.name}
+          </Dialog.Title>
+        </Flex>
 
-        <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
+        <Flex direction="column" gap="4" mt="5" style={{ maxHeight: "60vh", overflowY: "auto" }}>
           <Prop label="Name">
-            <Input
+            <TextField.Root
               value={node.name}
               onChange={(e) => updateNode(node.id, { name: e.target.value })}
             />
@@ -86,7 +80,7 @@ export function StageModal() {
 
           {"stage" in config && (
             <Prop label="Stage">
-              <Input
+              <TextField.Root
                 value={config.stage}
                 onChange={(e) => updateConfig(node.id, { stage: e.target.value })}
               />
@@ -95,52 +89,49 @@ export function StageModal() {
 
           {"model" in config && (
             <Prop label="Model">
-              <Select
-                value={config.model}
+              <Select.Root
+                value={config.model || undefined}
                 onValueChange={(value) => updateConfig(node.id, { model: value })}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Pick a model" />
-                </SelectTrigger>
-                <SelectContent>
+                <Select.Trigger placeholder="Pick a model" style={{ width: "100%" }} />
+                <Select.Content>
                   {models.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
+                    <Select.Item key={model.id} value={model.id}>
                       {model.label}
-                    </SelectItem>
+                    </Select.Item>
                   ))}
-                </SelectContent>
-              </Select>
+                </Select.Content>
+              </Select.Root>
             </Prop>
           )}
 
           {config.kind === "tool" && (
             <Prop label="Function">
-              <Select
+              <Select.Root
                 value={config.tool}
                 onValueChange={(value) => updateConfig(node.id, { tool: value })}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
+                <Select.Trigger style={{ width: "100%" }} />
+                <Select.Content>
                   {tools.map((tool) => (
-                    <SelectItem key={tool.id} value={tool.id}>
+                    <Select.Item key={tool.id} value={tool.id}>
                       {tool.id}
-                    </SelectItem>
+                    </Select.Item>
                   ))}
-                </SelectContent>
-              </Select>
+                </Select.Content>
+              </Select.Root>
             </Prop>
           )}
 
           {config.kind === "react" && (
             <Prop label="Tool budget">
-              <Input
+              <TextField.Root
                 type="number"
-                min={1}
-                max={20}
-                className="num w-28"
-                value={config.max_iterations}
+                min="1"
+                max="20"
+                className="num"
+                style={{ width: 120 }}
+                value={String(config.max_iterations)}
                 onChange={(e) =>
                   updateConfig(node.id, { max_iterations: Number(e.target.value) || 1 })
                 }
@@ -150,52 +141,52 @@ export function StageModal() {
 
           {config.kind === "subagent" && (
             <Prop label="Agent">
-              <Select
-                value={config.graph_id}
+              <Select.Root
+                value={config.graph_id || undefined}
                 onValueChange={(value) => updateConfig(node.id, { graph_id: value })}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Pick an agent" />
-                </SelectTrigger>
-                <SelectContent>
+                <Select.Trigger placeholder="Pick an agent" style={{ width: "100%" }} />
+                <Select.Content>
                   {graphs
                     .filter((g) => g.id !== graph.id)
                     .map((g) => (
-                      <SelectItem key={g.id} value={g.id}>
+                      <Select.Item key={g.id} value={g.id}>
                         {g.name}
-                      </SelectItem>
+                      </Select.Item>
                     ))}
-                </SelectContent>
-              </Select>
+                </Select.Content>
+              </Select.Root>
             </Prop>
           )}
 
           {config.kind === "react" && (
             <Block label="Tools">
-              <div className="flex flex-wrap gap-x-6 gap-y-2.5">
+              <Flex gap="5" wrap="wrap">
                 {tools.map((tool) => (
-                  <Label key={tool.id} className="font-mono font-normal">
-                    <Checkbox
-                      checked={config.tools.includes(tool.id)}
-                      onCheckedChange={(on) =>
-                        updateConfig(node.id, {
-                          tools: on
-                            ? [...config.tools, tool.id]
-                            : config.tools.filter((t) => t !== tool.id),
-                        })
-                      }
-                    />
-                    {tool.id}
-                  </Label>
+                  <Text key={tool.id} as="label" size="2">
+                    <Flex gap="2" align="center">
+                      <Checkbox
+                        checked={config.tools.includes(tool.id)}
+                        onCheckedChange={(on: boolean | "indeterminate") =>
+                          updateConfig(node.id, {
+                            tools: on
+                              ? [...config.tools, tool.id]
+                              : config.tools.filter((t) => t !== tool.id),
+                          })
+                        }
+                      />
+                      <span className="num">{tool.id}</span>
+                    </Flex>
+                  </Text>
                 ))}
-              </div>
+              </Flex>
             </Block>
           )}
 
           {config.kind === "router" && (
             <Block label="Question">
-              <Textarea
-                className="h-16 resize-none"
+              <TextArea
+                rows={2}
                 value={config.question}
                 onChange={(e) => updateConfig(node.id, { question: e.target.value })}
               />
@@ -204,8 +195,8 @@ export function StageModal() {
 
           {"instructions" in config && (
             <Block label="Instructions">
-              <Textarea
-                className="h-24 resize-none"
+              <TextArea
+                rows={3}
                 value={config.instructions}
                 onChange={(e) => updateConfig(node.id, { instructions: e.target.value })}
               />
@@ -214,33 +205,35 @@ export function StageModal() {
 
           {"prompt" in config && (
             <Block label="Prompt">
-              <Textarea
-                className="h-24 resize-none font-mono"
+              <TextArea
+                rows={3}
+                className="num"
                 value={config.prompt}
                 onChange={(e) => updateConfig(node.id, { prompt: e.target.value })}
               />
-              <div className="flex flex-wrap gap-1.5">
+              <Flex gap="2" wrap="wrap">
                 {available.map((name) => (
                   <Button
                     key={name}
-                    variant="outline"
-                    size="sm"
-                    className="font-mono"
+                    size="1"
+                    variant="soft"
+                    color="gray"
+                    className="num"
                     onClick={() => updateConfig(node.id, { prompt: `${config.prompt}\${${name}}` })}
                   >
                     {name}
                   </Button>
                 ))}
-              </div>
+              </Flex>
             </Block>
           )}
 
           {config.kind === "router" && (
             <Block label="Routes">
               {config.routes.map((route: Route, index: number) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Input
-                    className="w-36 shrink-0"
+                <Flex key={index} align="center" gap="2">
+                  <TextField.Root
+                    style={{ width: 150, flexShrink: 0 }}
                     value={route.label}
                     onChange={(e) => {
                       const routes = [...config.routes];
@@ -248,7 +241,8 @@ export function StageModal() {
                       updateConfig(node.id, { routes });
                     }}
                   />
-                  <Input
+                  <TextField.Root
+                    style={{ flex: 1 }}
                     placeholder="When it applies"
                     value={route.description}
                     onChange={(e) => {
@@ -258,23 +252,25 @@ export function StageModal() {
                     }}
                   />
                   <Button
+                    size="2"
                     variant="ghost"
-                    size="icon"
+                    color="gray"
+                    aria-label="Remove this route"
                     onClick={() =>
                       updateConfig(node.id, {
                         routes: config.routes.filter((_, i) => i !== index),
                       })
                     }
-                    aria-label="Remove this route"
                   >
-                    <X />
+                    <X size={15} />
                   </Button>
-                </div>
+                </Flex>
               ))}
               <Button
-                variant="outline"
-                size="sm"
-                className="self-start"
+                size="2"
+                variant="soft"
+                color="gray"
+                style={{ alignSelf: "flex-start" }}
                 onClick={() =>
                   updateConfig(node.id, {
                     routes: [
@@ -291,8 +287,8 @@ export function StageModal() {
 
           {boundary && (
             <Block label="Description">
-              <Textarea
-                className="h-16 resize-none"
+              <TextArea
+                rows={2}
                 value={config.description}
                 onChange={(e) => updateConfig(node.id, { description: e.target.value })}
               />
@@ -300,25 +296,17 @@ export function StageModal() {
           )}
 
           {nodeProblems.map((problem, index) => (
-            <p
-              key={index}
-              className={cn(
-                "leading-snug",
-                problem.severity === "error"
-                  ? "text-destructive"
-                  : "text-muted-foregroundd-foreground",
-              )}
-            >
+            <Text key={index} size="2" color={problem.severity === "error" ? "red" : "amber"}>
               {problem.message}
-            </p>
+            </Text>
           ))}
-        </div>
+        </Flex>
 
-        <DialogFooter className="border-t px-6 py-4 sm:justify-between">
-          {!boundary ? (
+        <Flex align="center" mt="5">
+          {!boundary && (
             <Button
               variant="ghost"
-              className="text-muted-foregroundd-foreground hover:text-destructive"
+              color="red"
               onClick={() => {
                 removeNode(node.id);
                 setEditing(null);
@@ -326,12 +314,11 @@ export function StageModal() {
             >
               Remove stage
             </Button>
-          ) : (
-            <span />
           )}
+          <Flex flexGrow="1" />
           <Button onClick={() => setEditing(null)}>Done</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </Flex>
+      </Dialog.Content>
+    </Dialog.Root>
   );
 }
