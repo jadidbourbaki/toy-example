@@ -11,6 +11,6 @@ build/
 *.egg-info/
 node_modules/
 web/dist/
-sketch/static/
+orla/static/
 workspace/
 .DS_Store

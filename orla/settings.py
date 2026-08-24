@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     """The compiler and the optimizer both drive a model. compiler_model
     selects it, separate from the models a graph binds to its stages."""
 
-    model_config = SettingsConfigDict(env_prefix="SKETCH_", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="ORLA_", extra="ignore")
 
     compiler_model: str = "qwen3-coder-480b"
     judge_model: str = "glm-5"

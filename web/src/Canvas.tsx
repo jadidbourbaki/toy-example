@@ -9,6 +9,7 @@ import {
   type Node as FlowNode,
   type NodeChange,
   type NodeMouseHandler,
+  MarkerType,
 } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StageNode, type StageNodeData } from "@/nodes/StageNode";
@@ -94,6 +95,14 @@ export function Canvas({ running, skipped }: CanvasProps) {
       sourceHandle: edge.label || null,
       label: edge.label || undefined,
       animated: running.has(edge.target),
+      // An arrow is what says which way the data goes, and a graph without
+      // them is a picture of boxes.
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 16,
+        height: 16,
+        color: running.has(edge.target) ? "var(--color-accent)" : "var(--color-line-strong)",
+      },
       style: {
         stroke: running.has(edge.target) ? "var(--color-accent)" : "var(--color-line-strong)",
         strokeWidth: 1.5,
@@ -154,7 +163,7 @@ export function Canvas({ running, skipped }: CanvasProps) {
         fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
         minZoom={0.3}
         maxZoom={1.6}
-        defaultEdgeOptions={{ type: "smoothstep" }}
+        defaultEdgeOptions={{ type: "bezier" }}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e2e2e6" />
         <Controls showInteractive={false} position="bottom-left" />

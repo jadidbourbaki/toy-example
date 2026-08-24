@@ -12,12 +12,12 @@ import uvicorn
 from rich.console import Console
 from rich.table import Table
 
-from sketch import apiref, compiler, measure, optimizer, server
-from sketch.estimate import estimate
-from sketch.graph import validate_graph
-from sketch.runner import run_graph
-from sketch.settings import settings
-from sketch.store import Workspace
+from orla import apiref, compiler, measure, optimizer, server
+from orla.estimate import estimate
+from orla.graph import validate_graph
+from orla.runner import run_graph
+from orla.settings import settings
+from orla.store import Workspace
 
 app = typer.Typer(
     add_completion=False, help="Sketch an agent graph, compile it, run it, improve it."
@@ -41,7 +41,7 @@ def serve(
 
     _workspace()
     uvicorn.run(
-        "sketch.server:app",
+        "orla.server:app",
         host=host or settings.host,
         port=port or settings.port,
         reload=reload,
@@ -74,7 +74,7 @@ def check(graph_id: str) -> None:
     if not problems:
         console.print("[green]No problems.[/green]")
 
-    priced = estimate(graph, workspace.models())
+    priced = estimate(graph, workspace.models(), workspace.all_graphs())
     console.print(
         f"\nEstimated ${priced.usd:.6f} per request, "
         f"{priced.input_tokens} input and {priced.output_tokens} output tokens."

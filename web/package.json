@@ -1,5 +1,5 @@
 {
-  "name": "orla-agent-platform",
+  "name": "orla-dashboard",
   "private": true,
   "type": "module",
   "scripts": {

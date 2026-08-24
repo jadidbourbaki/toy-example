@@ -5,11 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from sketch.graph import AgentGraph
-from sketch.models import DEFAULT_MODELS, ModelSpec
-from sketch.store import Workspace
+from orla.graph import AgentGraph
+from orla.models import DEFAULT_MODELS, ModelSpec
+from orla.store import Workspace
 
-ASSETS = Path(__file__).resolve().parent.parent / "sketch" / "prompts"
+ASSETS = Path(__file__).resolve().parent.parent / "orla" / "prompts"
 
 
 @pytest.fixture

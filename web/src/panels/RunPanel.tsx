@@ -143,10 +143,8 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
             <div className="num mt-2 flex gap-4 text-[11px] text-faint">
               <span>{ms(answer.ms ?? 0)}</span>
               <span>{usd(answer.usd ?? 0)}</span>
-              <span>
-                {(answer.input_tokens ?? 0).toLocaleString()} in ·{" "}
-                {(answer.output_tokens ?? 0).toLocaleString()} out
-              </span>
+              <span>{(answer.input_tokens ?? 0).toLocaleString()} tokens in</span>
+              <span>{(answer.output_tokens ?? 0).toLocaleString()} out</span>
             </div>
           </div>
         )}

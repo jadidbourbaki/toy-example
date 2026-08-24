@@ -18,14 +18,14 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, TypeAdapter
 from sse_starlette.sse import EventSourceResponse
 
-from sketch import assistant, compiler, measure, optimizer
-from sketch.estimate import GraphEstimate, estimate
-from sketch.graph import AgentGraph, Problem, validate_graph
-from sketch.measure import MeasureEvent
-from sketch.models import TOOL_CATALOG, ModelSpec, ToolSpec, capability_problems
-from sketch.runner import RunEvent, run_graph
-from sketch.settings import settings
-from sketch.store import GraphSummary, Workspace
+from orla import assistant, compiler, measure, optimizer
+from orla.estimate import GraphEstimate, estimate
+from orla.graph import AgentGraph, Problem, validate_graph
+from orla.measure import MeasureEvent
+from orla.models import TOOL_CATALOG, ModelSpec, ToolSpec, capability_problems
+from orla.runner import RunEvent, run_graph
+from orla.settings import settings
+from orla.store import GraphSummary, Workspace
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -76,7 +76,7 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
     workspace = Workspace(workspace_root or settings.workspace)
     workspace.seed()
 
-    app = FastAPI(title="sketch", version="0.1.0")
+    app = FastAPI(title="orla", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -131,7 +131,7 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
         models = workspace.models()
         return ValidateResponse(
             problems=validate_graph(body.graph, known) + capability_problems(body.graph, models),
-            estimate=estimate(body.graph, models),
+            estimate=estimate(body.graph, models, workspace.all_graphs()),
         )
 
     @app.post("/api/compile")
@@ -154,7 +154,7 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
         return PatchResponse(
             graph=patched,
             diff=optimizer.diff(body.graph, patched),
-            estimate=estimate(patched, workspace.models()),
+            estimate=estimate(patched, workspace.models(), workspace.all_graphs()),
         )
 
     @app.post("/api/ask")
@@ -295,7 +295,7 @@ def wire_schema() -> dict[str, object]:
             if isinstance(properties, dict):
                 scrubbed["required"] = sorted(properties)
         definitions[name] = scrubbed
-    return {"title": "sketch", "definitions": definitions}
+    return {"title": "orla", "definitions": definitions}
 
 
 def schema_document() -> str:

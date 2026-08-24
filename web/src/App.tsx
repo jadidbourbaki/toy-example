@@ -40,11 +40,7 @@ export function App() {
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <header className="flex h-14 shrink-0 items-center gap-5 border-b border-line px-4">
-        <span className="text-[17px] font-semibold tracking-[-0.02em]">Orla</span>
-
-        {graph && (
-          <span className="max-w-[200px] truncate text-[14px] text-mute">{graph.name}</span>
-        )}
+        <span className="text-[17px] font-semibold tracking-[-0.02em]">Orla Dashboard</span>
 
         <Tabs.Root value={tab} onValueChange={(value) => setTab(value as Tab)}>
           <Tabs.List className="flex items-center gap-0.5 rounded-lg bg-sunk p-0.5">

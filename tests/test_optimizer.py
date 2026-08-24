@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from sketch.graph import AgentGraph, ReactConfig, validate_graph
-from sketch.optimizer import Patch, apply_patch, apply_patches, diff
+from orla.graph import AgentGraph, ReactConfig, validate_graph
+from orla.optimizer import Patch, apply_patch, apply_patches, diff
 
 
 def patch(op: str, **fields: object) -> Patch:

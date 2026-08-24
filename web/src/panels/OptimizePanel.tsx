@@ -12,11 +12,7 @@ function Record({ measured }: { measured: PatchMeasurement }) {
   const verdict =
     losses > wins ? "worse" : wins > losses ? "better" : ties > 0 ? "no difference" : "unjudged";
   const tone = losses > wins ? "text-bad" : wins > losses ? "text-good" : "text-mute";
-  return (
-    <span className={cn("num", tone)}>
-      {wins}W {losses}L {ties}T · {verdict}
-    </span>
-  );
+  return <span className={cn("num", tone)}>{verdict}</span>;
 }
 
 function Measured({ measured }: { measured: PatchMeasurement }) {
@@ -195,7 +191,7 @@ export function OptimizePanel() {
                 }
               >
                 <FlaskConical size={12} /> Measure
-                {plan ? ` · ${usd(plan.projected_usd)}` : ""}
+                {plan ? ` ${usd(plan.projected_usd)}` : ""}
               </button>
             )}
             <div className="flex-1" />
@@ -285,8 +281,7 @@ export function OptimizePanel() {
                     {priced.patch.rationale}
                   </p>
                   <div className="font-mono mt-1.5 text-[10px] text-faint">
-                    {priced.patch.op}
-                    {priced.patch.node_id ? ` · ${priced.patch.node_id}` : ""}
+                    {priced.patch.op.replace(/_/g, " ")}
                   </div>
                   {priced.problems.map((problem, i) => (
                     <div key={i} className="mt-1 text-[11px] text-bad">

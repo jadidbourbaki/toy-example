@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from sketch.server import Wire, create_app, wire_schema
+from orla.server import Wire, create_app, wire_schema
 
 
 @pytest.fixture

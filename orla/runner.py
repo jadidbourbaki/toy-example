@@ -18,8 +18,8 @@ from pydantic_ai import Agent
 from pydantic_ai.usage import UsageLimits
 from pydantic_deep import BASE_PROMPT, create_deep_agent, create_default_deps
 
-from sketch import tools
-from sketch.graph import (
+from orla import tools
+from orla.graph import (
     AgentGraph,
     LLMConfig,
     ReactConfig,
@@ -30,7 +30,7 @@ from sketch.graph import (
     render,
     topological_order,
 )
-from sketch.models import ModelSpec, build_model, by_id
+from orla.models import ModelSpec, build_model, by_id
 
 EventType = Literal["run_start", "node_start", "node_done", "node_skipped", "run_done", "run_error"]
 

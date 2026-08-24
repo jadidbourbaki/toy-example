@@ -14,13 +14,13 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --locked
-      - run: uv run ruff format --check sketch tests
-      - run: uv run ruff check sketch tests
-      - run: uv run ty check sketch
+      - run: uv run ruff format --check orla tests
+      - run: uv run ruff check orla tests
+      - run: uv run ty check orla
       - run: uv run pytest -q
       - name: The committed types match the models
         run: |
-          uv run sketch schema --out /tmp/schema.json
+          uv run orla schema --out /tmp/schema.json
           diff -u web/src/types/schema.json /tmp/schema.json \
             || { echo "The wire schema changed. Run 'just types' and commit the result."; exit 1; }
 

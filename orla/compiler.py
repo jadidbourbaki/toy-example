@@ -26,9 +26,9 @@ from typing import Literal
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from sketch.graph import AgentGraph, SubagentConfig
-from sketch.models import ModelSpec, by_id, driver_model, provider_model_string
-from sketch.settings import settings
+from orla.graph import AgentGraph, SubagentConfig
+from orla.models import ModelSpec, by_id, driver_model, provider_model_string
+from orla.settings import settings
 
 MAX_ATTEMPTS = 2
 
@@ -68,7 +68,7 @@ class CompileEvent(BaseModel):
 
 
 def _asset(name: str) -> str:
-    return resources.files("sketch.prompts").joinpath(name).read_text(encoding="utf-8")
+    return resources.files("orla.prompts").joinpath(name).read_text(encoding="utf-8")
 
 
 def stages_of(graph: AgentGraph) -> dict[str, str]:
@@ -353,7 +353,7 @@ Copy the bodies of any tools the graph uses into the module verbatim.
 
 
 def _tool_sources() -> str:
-    from sketch import tools
+    from orla import tools
 
     path = Path(tools.__file__)
     return path.read_text(encoding="utf-8")

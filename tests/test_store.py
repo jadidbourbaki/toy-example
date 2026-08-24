@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from sketch.graph import AgentGraph
-from sketch.models import DEFAULT_MODELS
-from sketch.store import Workspace
+from orla.graph import AgentGraph
+from orla.models import DEFAULT_MODELS
+from orla.store import Workspace
 
 
 def test_seed_puts_both_examples_in_an_empty_workspace(workspace: Workspace) -> None:

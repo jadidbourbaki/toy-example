@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from sketch import tools
+from orla import tools
 
 
 @pytest.mark.parametrize(
@@ -64,7 +64,7 @@ def test_call_reports_a_wrong_argument(tmp_path: Path) -> None:
 
 
 def test_the_registry_covers_the_catalog(tmp_path: Path) -> None:
-    from sketch.models import TOOL_CATALOG
+    from orla.models import TOOL_CATALOG
 
     registry = tools.registry(tmp_path)
     assert {spec.id for spec in TOOL_CATALOG} == set(registry)

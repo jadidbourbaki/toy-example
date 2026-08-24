@@ -76,7 +76,7 @@ export function CodePanel() {
           <>
             <span className="text-[12px] text-mute">
               {STEP_TEXT[step] ?? "Working"}
-              {attempt > 1 ? ` · attempt ${attempt}` : ""}
+              {attempt > 1 ? ` (attempt ${attempt})` : ""}
             </span>
             <Elapsed since={compile.startedAt} />
           </>
@@ -93,8 +93,7 @@ export function CodePanel() {
 
         {result && !running && (
           <span className="num text-[12px] text-faint">
-            {result.source.split("\n").length} lines · {result.attempts} attempt
-            {result.attempts === 1 ? "" : "s"}
+            {result.source.split("\n").length} lines
           </span>
         )}
       </div>

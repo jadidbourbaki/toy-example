@@ -30,12 +30,12 @@ from typing import Literal
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from sketch.estimate import estimate
-from sketch.graph import AgentGraph
-from sketch.models import ModelSpec, by_id, driver_model
-from sketch.optimizer import Patch, apply_patch
-from sketch.runner import run_graph
-from sketch.settings import settings
+from orla.estimate import estimate
+from orla.graph import AgentGraph
+from orla.models import ModelSpec, by_id, driver_model
+from orla.optimizer import Patch, apply_patch
+from orla.runner import run_graph
+from orla.settings import settings
 
 # What one pairwise judgement costs, in tokens. Two answers and a request go
 # in, a verdict and a sentence come out.
@@ -294,7 +294,7 @@ async def measure(
             text=(
                 f"The run projects ${projection.projected_usd:.2f}, over the "
                 f"${projection.budget_usd:.2f} cap. Shorten the sample, pick fewer "
-                f"proposals, or raise SKETCH_MEASURE_BUDGET_USD."
+                f"proposals, or raise ORLA_MEASURE_BUDGET_USD."
             ),
         )
         return

@@ -2,7 +2,7 @@ import { Handle, Position } from "@xyflow/react";
 import { X } from "lucide-react";
 import { memo } from "react";
 import { cn } from "@/lib/cn";
-import { BILLED, usd } from "@/lib/kinds";
+import { BILLED, KIND_LABELS, KIND_TINT, usd } from "@/lib/kinds";
 import type { Node, NodeEstimate, RunEvent } from "@/types/wire";
 
 export type StageNodeData = {
@@ -17,20 +17,21 @@ export type StageNodeData = {
 
 type StageNodeProps = { data: StageNodeData; selected?: boolean };
 
-/** A stage. Its shape says what kind it is, so nothing here carries an icon:
- *  a router lists its routes, a ReAct loop shows its tool budget, a tool shows
- *  the function it calls. Name, model, and cost are the three things every
- *  stage has, and they always sit in the same three places. */
+/** A stage reads top to bottom: what kind of work it is, what it is called,
+ *  and what it is configured with. The kind is named and tinted rather than
+ *  drawn as an icon, so two stages of the same kind are recognisable from
+ *  across the canvas without anything to decode. */
 function StageNodeImpl({ data, selected }: StageNodeProps) {
   const { node, estimate, measured, running, skipped, invalid, onRemove } = data;
   const config = node.config;
   const kind = config.kind;
+  const tint = KIND_TINT[kind];
 
   if (kind === "input" || kind === "output") {
     return (
       <div
         className={cn(
-          "rounded-full border bg-raised px-4 py-2 text-[14px] text-mute",
+          "rounded-full border border-dashed bg-page px-4 py-1.5 text-[13px] text-mute",
           selected ? "border-accent" : "border-line-strong",
           skipped && "opacity-40",
         )}
@@ -43,79 +44,80 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
   }
 
   const routes = kind === "router" ? config.routes : [];
-
-  // Two rows on every stage, so a row of them lines up. The chips carry
-  // whatever that kind of stage is configured by.
-  const primary = "model" in config ? config.model || "no model" : "";
-  const secondary =
-    kind === "react"
-      ? `${config.max_iterations} turns`
-      : kind === "tool"
-        ? config.tool
-        : kind === "subagent"
-          ? config.graph_id || "no agent chosen"
-          : "";
+  const settings: string[] = [];
+  if ("model" in config) settings.push(config.model || "no model");
+  if (kind === "react") settings.push(`${config.max_iterations} turns`);
+  if (kind === "tool") settings.push(config.tool);
+  if (kind === "subagent") settings.push(config.graph_id || "no agent chosen");
 
   return (
     <div
       className={cn(
-        "group w-[268px] rounded-xl border bg-raised",
-        "shadow-[0_1px_2px_rgb(27_26_23/0.04),0_8px_20px_-12px_rgb(27_26_23/0.14)]",
+        "group relative w-[264px] overflow-hidden rounded-xl border bg-raised",
+        "shadow-[0_1px_2px_rgb(27_26_23/0.05),0_10px_24px_-16px_rgb(27_26_23/0.2)]",
         selected ? "border-accent" : "border-line",
         invalid && "border-bad",
         running && "stage-running",
         skipped && "opacity-40",
       )}
     >
+      <span className="absolute inset-y-0 left-0 w-[3px]" style={{ background: tint }} />
       <Handle type="target" position={Position.Left} />
 
-      <div className="px-4 pt-3.5 pb-3">
-        <div className="flex items-start gap-2">
-          <span className="min-w-0 flex-1 truncate font-medium">{node.name}</span>
+      <div className="py-3 pr-3 pl-4">
+        <div className="flex items-baseline gap-2">
+          <span className="text-[12px] font-medium" style={{ color: tint }}>
+            {KIND_LABELS[kind]}
+          </span>
+          <span className="flex-1" />
+          {BILLED[kind] && (
+            <span
+              className={cn("num text-[12px]", measured ? "text-accent" : "text-faint")}
+              title={measured ? "Measured on the last run" : "Estimated"}
+            >
+              {usd(measured ? (measured.usd ?? 0) : (estimate?.usd ?? 0))}
+            </span>
+          )}
           <button
             onClick={(event) => {
               event.stopPropagation();
               onRemove(node.id);
             }}
             title="Remove this stage"
-            className="-mr-1 -mt-0.5 shrink-0 rounded p-0.5 text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:bg-sunk hover:text-bad"
+            className="-mr-1 shrink-0 rounded p-0.5 text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:bg-sunk hover:text-bad"
           >
-            <X size={14} />
+            <X size={13} />
           </button>
         </div>
 
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            {primary && (
-              <span className="truncate rounded-md bg-sunk px-2 py-0.5 text-[12px] text-mute">
-                {primary}
-              </span>
-            )}
-            {secondary && <span className="shrink-0 text-[12px] text-faint">{secondary}</span>}
-          </div>
-          {BILLED[kind] && (
+        <div className="mt-0.5 truncate text-[15px] font-medium">{node.name}</div>
+
+        <div className="mt-2 flex items-center gap-1.5">
+          {settings.map((setting) => (
             <span
-              className={cn("num shrink-0 text-[13px]", measured ? "text-accent" : "text-faint")}
-              title={measured ? "Measured on the last run" : "Estimated"}
+              key={setting}
+              className="truncate rounded-md bg-sunk px-2 py-0.5 text-[12px] text-mute"
             >
-              {usd(measured ? (measured.usd ?? 0) : (estimate?.usd ?? 0))}
+              {setting}
             </span>
-          )}
+          ))}
         </div>
       </div>
 
-      {routes.length > 0 ? (
-        <div className="border-t border-line px-4 py-2">
+      {routes.length > 0 && (
+        <div className="border-t border-line">
           {routes.map((route) => (
-            <div key={route.label} className="relative py-1 text-right text-[13px] text-mute">
+            <div
+              key={route.label}
+              className="relative border-b border-line py-1.5 pr-4 text-right text-[13px] text-mute last:border-b-0"
+            >
               {route.label}
               <Handle type="source" id={route.label} position={Position.Right} />
             </div>
           ))}
         </div>
-      ) : (
-        <Handle type="source" position={Position.Right} />
       )}
+      {routes.length === 0 && <Handle type="source" position={Position.Right} />}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-# Orla Agent Platform
+# Orla Dashboard
 
 Sketch an agent as a graph of stages, bind a model to each stage, and get
 a runnable [pydantic-deep](https://github.com/vstorm-co/pydantic-deepagents)
@@ -80,14 +80,14 @@ the graph's hardest stage, and one request near the edge of what the graph is
 for. Edit it, because the sample decides what a measured result means.
 
 ```bash
-uv run sketch sample research_brief --save
-uv run sketch measure research_brief
+uv run orla sample research_brief --save
+uv run orla measure research_brief
 ```
 
 Measuring runs the graph once per request per candidate, so it costs real
-money. `sketch measure` prints its projection and asks before spending, the
+money. `orla measure` prints its projection and asks before spending, the
 panel puts the projection on the button, and a run that projects past
-`SKETCH_MEASURE_BUDGET_USD` refuses to start.
+`ORLA_MEASURE_BUDGET_USD` refuses to start.
 
 ## Stages
 
@@ -146,7 +146,7 @@ nothing else, and binding it anywhere else is reported on the canvas rather
 than failing during a run.
 
 Editing a rate or adding a model is a change to `DEFAULT_MODELS` in
-`sketch/models.py`, or an edit in the model picker. A model added to the
+`orla/models.py`, or an edit in the model picker. A model added to the
 defaults later shows up in an existing workspace on the next read, and a rate
 you edited there is kept.
 
@@ -159,13 +159,13 @@ Every panel has a headless equivalent, which is the faster way to iterate
 on a graph.
 
 ```bash
-uv run sketch list                       # the graphs in the workspace
-uv run sketch check research_brief       # validate one and price a request
-uv run sketch compile research_brief     # write the module to stdout
-uv run sketch run research_brief "how much chunk overlap?"
-uv run sketch optimize research_brief    # proposals with a price on each
-uv run sketch sample research_brief      # write a sample to measure against
-uv run sketch measure research_brief     # measure every proposal against it
+uv run orla list                       # the graphs in the workspace
+uv run orla check research_brief       # validate one and price a request
+uv run orla compile research_brief     # write the module to stdout
+uv run orla run research_brief "how much chunk overlap?"
+uv run orla optimize research_brief    # proposals with a price on each
+uv run orla sample research_brief      # write a sample to measure against
+uv run orla measure research_brief     # measure every proposal against it
 ```
 
 ## The workspace
@@ -188,19 +188,19 @@ it is drawn without any credential beyond the model key. `search_notes`
 reads a small built-in corpus, `calculator` evaluates arithmetic through
 [simpleeval](https://github.com/danthedeckie/simpleeval), and `read_file`
 is confined to the workspace directory. Replacing one with a real
-integration is a change to a single function in `sketch/tools.py`.
+integration is a change to a single function in `orla/tools.py`.
 
 ## Layout
 
 ```
-sketch/          the graph model, the compiler, the runner, the HTTP API
-sketch/prompts/  prompt assets and the generated pydantic-deep reference
+orla/          the graph model, the compiler, the runner, the HTTP API
+orla/prompts/  prompt assets and the generated pydantic-deep reference
 web/             the canvas and the panels around it
 tests/           pytest suite
 ```
 
 The two languages meet at one artifact. The Pydantic models in
-`sketch/graph.py` are the single source of truth, and `just types`
+`orla/graph.py` are the single source of truth, and `just types`
 generates the frontend's types from their JSON Schema. No TypeScript in
 this repo restates a model, and CI fails if the committed types drift.
 

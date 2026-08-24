@@ -18,8 +18,8 @@ from deepdiff import DeepDiff
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from sketch.estimate import estimate
-from sketch.graph import (
+from orla.estimate import estimate
+from orla.graph import (
     AgentGraph,
     Edge,
     LLMConfig,
@@ -30,8 +30,8 @@ from sketch.graph import (
     SubagentConfig,
     validate_graph,
 )
-from sketch.models import TOOL_CATALOG, ModelSpec, driver_model
-from sketch.settings import settings
+from orla.models import TOOL_CATALOG, ModelSpec, driver_model
+from orla.settings import settings
 
 Operation = Literal[
     "set_model",

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from sketch.graph import AgentGraph
-from sketch.models import DEFAULT_MODELS, ModelSpec, build_model, by_id, capability_problems
+from orla.graph import AgentGraph
+from orla.models import DEFAULT_MODELS, ModelSpec, build_model, by_id, capability_problems
 
 
 def test_every_registry_id_is_unique() -> None:
@@ -36,12 +36,22 @@ def test_a_valid_graph_has_no_capability_problems(
     assert capability_problems(desk, models) == []
 
 
+def toolless(models: list[ModelSpec]) -> ModelSpec:
+    """A model that can neither call a tool nor return a typed result. Nothing
+    in the registry is like this, so the check is exercised against one made
+    for the test."""
+
+    spec = models[0].model_copy(update={"id": "no-tools", "tools": False, "structured": False})
+    models.append(spec)
+    return spec
+
+
 def test_a_react_stage_on_a_toolless_model_is_an_error(
     brief: AgentGraph, models: list[ModelSpec]
 ) -> None:
-    toolless = next(m for m in models if not m.tools)
+    toolless_spec = toolless(models)
     react = next(n for n in brief.nodes if n.config.kind == "react")
-    react.config.model = toolless.id  # ty: ignore[unresolved-attribute]
+    react.config.model = toolless_spec.id  # ty: ignore[unresolved-attribute]
     problems = capability_problems(brief, models)
     assert len(problems) == 1
     assert "cannot call tools" in problems[0].message
@@ -50,7 +60,7 @@ def test_a_react_stage_on_a_toolless_model_is_an_error(
 def test_a_router_on_a_model_without_typed_output_is_an_error(
     desk: AgentGraph, models: list[ModelSpec]
 ) -> None:
-    untyped = next(m for m in models if not m.structured)
+    untyped = toolless(models)
     router = next(n for n in desk.nodes if n.config.kind == "router")
     router.config.model = untyped.id  # ty: ignore[unresolved-attribute]
     problems = capability_problems(desk, models)
@@ -60,9 +70,8 @@ def test_a_router_on_a_model_without_typed_output_is_an_error(
 def test_a_plain_call_on_a_toolless_model_is_fine(
     brief: AgentGraph, models: list[ModelSpec]
 ) -> None:
-    toolless = next(m for m in models if not m.tools)
     plain = next(n for n in brief.nodes if n.config.kind == "llm")
-    plain.config.model = toolless.id  # ty: ignore[unresolved-attribute]
+    plain.config.model = toolless(models).id  # ty: ignore[unresolved-attribute]
     assert capability_problems(brief, models) == []
 
 
@@ -74,13 +83,13 @@ def test_a_model_outside_the_registry_is_an_error(
 
 
 @pytest.mark.parametrize("model", DEFAULT_MODELS, ids=lambda m: m.id)
-def test_a_toolless_model_is_also_untyped(model: ModelSpec) -> None:
-    """Nothing in the registry calls tools while failing to return a typed
-    result, so a single capability check would be enough today. Both flags
-    exist because the next model added may split them."""
+def test_every_shipped_model_can_serve_any_stage(model: ModelSpec) -> None:
+    """A model that cannot call a tool is unusable on a ReAct stage and a model
+    that cannot return a typed result is unusable on a router. Shipping one
+    would put a trap in the picker."""
 
-    if not model.tools:
-        assert not model.structured
+    assert model.tools
+    assert model.structured
 
 
 def test_by_id_finds_nothing_for_an_unknown_name(models: list[ModelSpec]) -> None:

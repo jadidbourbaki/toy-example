@@ -5,11 +5,11 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
-export interface Sketch {
+export interface Orla {
   [k: string]: unknown;
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "AgentGraph".
  */
 export interface AgentGraph {
@@ -24,7 +24,7 @@ export interface AgentGraph {
   sample: string[];
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "Node".
  */
 export interface Node {
@@ -44,7 +44,7 @@ export interface Node {
 /**
  * Where the node sits on the canvas, in canvas coordinates.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "Position".
  */
 export interface Position {
@@ -52,7 +52,7 @@ export interface Position {
   y: number;
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "InputConfig".
  */
 export interface InputConfig {
@@ -60,7 +60,7 @@ export interface InputConfig {
   description: string;
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "OutputConfig".
  */
 export interface OutputConfig {
@@ -70,7 +70,7 @@ export interface OutputConfig {
 /**
  * A single model call. One prompt in, one response out.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "LLMConfig".
  */
 export interface LLMConfig {
@@ -83,7 +83,7 @@ export interface LLMConfig {
 /**
  * A deterministic call into the tool catalog. No model involved.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "ToolConfig".
  */
 export interface ToolConfig {
@@ -97,7 +97,7 @@ export interface ToolConfig {
  * A reason-and-act loop. The model calls tools until it answers or
  * the iteration cap stops it.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "ReactConfig".
  */
 export interface ReactConfig {
@@ -113,7 +113,7 @@ export interface ReactConfig {
  * A classifier that picks one outgoing branch. Nodes on the
  * branches the router does not pick are skipped for that run.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "RouterConfig".
  */
 export interface RouterConfig {
@@ -128,7 +128,7 @@ export interface RouterConfig {
  * One labelled branch out of a router. The label matches the label
  * on the outgoing edge that carries it.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "Route".
  */
 export interface Route {
@@ -140,7 +140,7 @@ export interface Route {
  * puts it in the palette of every other graph, which is how a network
  * of agents gets assembled out of parts that were each built alone.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "SubagentConfig".
  */
 export interface SubagentConfig {
@@ -153,7 +153,7 @@ export interface SubagentConfig {
  * a template reference to the source node's name. label carries the
  * route name when the source is a router.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "Edge".
  */
 export interface Edge {
@@ -166,7 +166,7 @@ export interface Edge {
  * Progress from a compile. Writing the module takes long enough that
  * silence reads as a hang, and the checks it runs are worth watching.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "CompileEvent".
  */
 export interface CompileEvent {
@@ -177,7 +177,7 @@ export interface CompileEvent {
   text: string;
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "CompileResult".
  */
 export interface CompileResult {
@@ -193,7 +193,7 @@ export interface CompileResult {
  * routes, since a static estimate has no traffic to learn a real split
  * from.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "GraphEstimate".
  */
 export interface GraphEstimate {
@@ -203,7 +203,7 @@ export interface GraphEstimate {
   output_tokens: number;
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "NodeEstimate".
  */
 export interface NodeEstimate {
@@ -216,7 +216,7 @@ export interface NodeEstimate {
   usd: number;
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "GraphSummary".
  */
 export interface GraphSummary {
@@ -227,7 +227,7 @@ export interface GraphSummary {
   edges: number;
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "Health".
  */
 export interface Health {
@@ -236,7 +236,7 @@ export interface Health {
   compiler_model: string;
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "MeasureEvent".
  */
 export interface MeasureEvent {
@@ -252,7 +252,7 @@ export interface MeasureEvent {
 /**
  * What the run is about to do and what it is about to spend.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "MeasurePlan".
  */
 export interface MeasurePlan {
@@ -269,7 +269,7 @@ export interface MeasurePlan {
  * the cheapest and the dearest run, which is what says how much to trust
  * the mean.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "Measurement".
  */
 export interface Measurement {
@@ -283,7 +283,7 @@ export interface Measurement {
 /**
  * One request through one version of the graph.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "SampleRun".
  */
 export interface SampleRun {
@@ -304,7 +304,7 @@ export interface SampleRun {
  * candidate that completed nothing reports an error and no delta at all,
  * because a broken graph is the cheapest graph there is.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "PatchMeasurement".
  */
 export interface PatchMeasurement {
@@ -322,7 +322,7 @@ export interface PatchMeasurement {
   error: string;
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "Verdict".
  */
 export interface Verdict {
@@ -336,7 +336,7 @@ export interface Verdict {
  * the operator's own belief about how strong the model is, on a zero
  * to one scale, and it is what the optimizer trades against cost.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "ModelSpec".
  */
 export interface ModelSpec {
@@ -353,7 +353,7 @@ export interface ModelSpec {
   structured: boolean;
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "OptimizeResult".
  */
 export interface OptimizeResult {
@@ -364,7 +364,7 @@ export interface OptimizeResult {
   error: string;
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "PricedPatch".
  */
 export interface PricedPatch {
@@ -378,7 +378,7 @@ export interface PricedPatch {
  * on, and the fields a given operation reads are the only ones it
  * needs.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "Patch".
  */
 export interface Patch {
@@ -411,7 +411,7 @@ export interface Patch {
   name: string;
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "PatchResponse".
  */
 export interface PatchResponse {
@@ -425,7 +425,7 @@ export interface PatchResponse {
  * One thing wrong with a graph. node_id is empty when the problem
  * belongs to the graph as a whole.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "Problem".
  */
 export interface Problem {
@@ -437,7 +437,7 @@ export interface Problem {
  * One thing that happened during a run. The canvas lights a node on
  * node_start and fills it in on node_done.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "RunEvent".
  */
 export interface RunEvent {
@@ -461,7 +461,7 @@ export interface RunEvent {
  * implementations so a graph runs with no credentials beyond the model
  * key.
  *
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "ToolSpec".
  */
 export interface ToolSpec {
@@ -471,7 +471,7 @@ export interface ToolSpec {
   parameters: string[];
 }
 /**
- * This interface was referenced by `Sketch`'s JSON-Schema
+ * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "ValidateResponse".
  */
 export interface ValidateResponse {

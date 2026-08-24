@@ -1199,6 +1199,67 @@ wheels = [
 ]
 
 [[package]]
+name = "orla"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "anthropic" },
+    { name = "deepdiff" },
+    { name = "fastapi" },
+    { name = "networkx" },
+    { name = "pydantic" },
+    { name = "pydantic-ai-slim", extra = ["anthropic", "bedrock", "duckduckgo", "openai"] },
+    { name = "pydantic-deep" },
+    { name = "pydantic-settings" },
+    { name = "python-dotenv" },
+    { name = "rich" },
+    { name = "simpleeval" },
+    { name = "sse-starlette" },
+    { name = "tiktoken" },
+    { name = "typer" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "pillow" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+    { name = "ty" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "anthropic", specifier = "==1.0.0" },
+    { name = "deepdiff", specifier = "==9.1.0" },
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "networkx", specifier = "==3.6.1" },
+    { name = "pydantic", specifier = "==2.13.4" },
+    { name = "pydantic-ai-slim", extras = ["anthropic", "bedrock", "duckduckgo", "openai"], specifier = "==2.33.0" },
+    { name = "pydantic-deep", specifier = "==0.3.43" },
+    { name = "pydantic-settings", specifier = "==2.14.2" },
+    { name = "python-dotenv", specifier = "==1.2.2" },
+    { name = "rich", specifier = "==15.0.0" },
+    { name = "simpleeval", specifier = "==1.0.7" },
+    { name = "sse-starlette", specifier = "==3.4.8" },
+    { name = "tiktoken", specifier = "==0.14.0" },
+    { name = "typer", specifier = "==0.24.1" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.34" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.28" },
+    { name = "pillow", specifier = "==12.1.0" },
+    { name = "pytest", specifier = "==8.4.2" },
+    { name = "pytest-asyncio", specifier = "==1.4.0" },
+    { name = "ruff", specifier = "==0.15.20" },
+    { name = "ty", specifier = "==0.0.56" },
+]
+
+[[package]]
 name = "packaging"
 version = "26.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1918,67 +1979,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
-]
-
-[[package]]
-name = "sketch"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "anthropic" },
-    { name = "deepdiff" },
-    { name = "fastapi" },
-    { name = "networkx" },
-    { name = "pydantic" },
-    { name = "pydantic-ai-slim", extra = ["anthropic", "bedrock", "duckduckgo", "openai"] },
-    { name = "pydantic-deep" },
-    { name = "pydantic-settings" },
-    { name = "python-dotenv" },
-    { name = "rich" },
-    { name = "simpleeval" },
-    { name = "sse-starlette" },
-    { name = "tiktoken" },
-    { name = "typer" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "httpx" },
-    { name = "pillow" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-    { name = "ty" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "anthropic", specifier = "==1.0.0" },
-    { name = "deepdiff", specifier = "==9.1.0" },
-    { name = "fastapi", specifier = ">=0.115" },
-    { name = "networkx", specifier = "==3.6.1" },
-    { name = "pydantic", specifier = "==2.13.4" },
-    { name = "pydantic-ai-slim", extras = ["anthropic", "bedrock", "duckduckgo", "openai"], specifier = "==2.33.0" },
-    { name = "pydantic-deep", specifier = "==0.3.43" },
-    { name = "pydantic-settings", specifier = "==2.14.2" },
-    { name = "python-dotenv", specifier = "==1.2.2" },
-    { name = "rich", specifier = "==15.0.0" },
-    { name = "simpleeval", specifier = "==1.0.7" },
-    { name = "sse-starlette", specifier = "==3.4.8" },
-    { name = "tiktoken", specifier = "==0.14.0" },
-    { name = "typer", specifier = "==0.24.1" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.34" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx", specifier = ">=0.28" },
-    { name = "pillow", specifier = "==12.1.0" },
-    { name = "pytest", specifier = "==8.4.2" },
-    { name = "pytest-asyncio", specifier = "==1.4.0" },
-    { name = "ruff", specifier = "==0.15.20" },
-    { name = "ty", specifier = "==0.0.56" },
 ]
 
 [[package]]

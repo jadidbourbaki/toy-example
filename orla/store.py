@@ -13,8 +13,8 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from sketch.graph import AgentGraph
-from sketch.models import DEFAULT_MODELS, ModelSpec
+from orla.graph import AgentGraph
+from orla.models import DEFAULT_MODELS, ModelSpec
 
 
 class GraphSummary(BaseModel):
@@ -105,6 +105,6 @@ class Workspace:
         from importlib import resources
 
         for asset in ("example_graph.json", "example_triage.json"):
-            body = resources.files("sketch.prompts").joinpath(asset).read_text()
+            body = resources.files("orla.prompts").joinpath(asset).read_text()
             self.write(AgentGraph.model_validate_json(body))
         self.models()

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from sketch.graph import (
+from orla.graph import (
     AgentGraph,
     branch_exclusive,
     find_cycle,

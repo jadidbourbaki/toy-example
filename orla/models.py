@@ -15,8 +15,8 @@ from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
-from sketch.graph import AgentGraph, LLMConfig, Problem, ReactConfig, RouterConfig
-from sketch.settings import settings
+from orla.graph import AgentGraph, LLMConfig, Problem, ReactConfig, RouterConfig
+from orla.settings import settings
 
 Provider = Literal["bedrock-mantle", "bedrock-runtime", "anthropic", "openai", "ollama"]
 
@@ -129,7 +129,10 @@ DEFAULT_MODELS: list[ModelSpec] = [
     ),
     _bedrock("kimi-k2.5", "moonshotai.kimi-k2.5", "Kimi K2.5", 0.60, 3.00, 0.88),
     _bedrock("glm-5", "zai.glm-5", "GLM 5", 1.00, 3.20, 0.92),
-    # Served by Converse on bedrock-runtime rather than by mantle.
+    # Served by Converse on bedrock-runtime rather than by mantle. The registry
+    # ships only models that can do everything a stage might need, so nothing in
+    # the picker is a trap. The capability flags stay because a model added
+    # later may not clear that bar.
     _bedrock(
         "llama4-maverick",
         "us.meta.llama4-maverick-17b-instruct-v1:0",
@@ -138,19 +141,6 @@ DEFAULT_MODELS: list[ModelSpec] = [
         0.97,
         0.78,
         provider="bedrock-runtime",
-    ),
-    # A reasoning model with no tool calling and no typed output, so it serves a
-    # plain call and nothing else.
-    _bedrock(
-        "deepseek-r1",
-        "us.deepseek.r1-v1:0",
-        "DeepSeek R1",
-        1.35,
-        5.40,
-        0.90,
-        provider="bedrock-runtime",
-        tools=False,
-        structured=False,
     ),
 ]
 

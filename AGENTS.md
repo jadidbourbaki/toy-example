@@ -13,15 +13,15 @@ the graph and shows what each one costs.
 The repo is two languages with one boundary between them. Python owns
 the graph model, compilation, execution, and the HTTP API. TypeScript
 owns the canvas and the panels around it. The boundary is JSON Schema:
-the Pydantic models in `sketch/graph.py` are the single source of truth,
+the Pydantic models in `orla/graph.py` are the single source of truth,
 and `just types` generates the TypeScript from them. Never hand-write a
 TypeScript type that mirrors a Pydantic model.
 
 ## Repository layout
 
 ```
-sketch/          python package: graph model, compiler, runner, HTTP API
-sketch/prompts/  prompt assets and the pydantic-deep API reference
+orla/          python package: graph model, compiler, runner, HTTP API
+orla/prompts/  prompt assets and the pydantic-deep API reference
 web/             vite + react frontend, the canvas and the panels
 tests/           pytest suite
 justfile         task runner
@@ -89,12 +89,12 @@ checks rather than by narrowing what the model is allowed to write.
 
 ## Measuring beats estimating, and cost alone beats nothing
 
-`sketch/estimate.py` prices prompt size. It is right about a model swap and
+`orla/estimate.py` prices prompt size. It is right about a model swap and
 about an iteration cap, and it is blind to a prompt rewrite whose saving
 lands in a later stage's output tokens. Keep it for the canvas, where it is
 instant and free, and for predicting what a measurement is about to spend.
 
-`sketch/measure.py` runs the thing. Two rules hold there and are worth
+`orla/measure.py` runs the thing. Two rules hold there and are worth
 restating before changing it.
 
 Cost never travels alone. Every candidate that moves a stage to a cheaper

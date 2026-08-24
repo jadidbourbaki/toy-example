@@ -17,15 +17,16 @@ from functools import lru_cache
 import tiktoken
 from pydantic import BaseModel
 
-from sketch.graph import (
+from orla.graph import (
     AgentGraph,
     Node,
     ReactConfig,
     RouterConfig,
+    SubagentConfig,
     templates_of,
     topological_order,
 )
-from sketch.models import ModelSpec, by_id
+from orla.models import ModelSpec, by_id
 
 UPSTREAM_TOKENS = 400
 ASSUMED_OUTPUT_TOKENS = 400
@@ -100,11 +101,43 @@ def _branch_weights(graph: AgentGraph) -> dict[str, float]:
     return weights
 
 
-def estimate(graph: AgentGraph, models: list[ModelSpec]) -> GraphEstimate:
+def estimate(
+    graph: AgentGraph,
+    models: list[ModelSpec],
+    workspace: list[AgentGraph] | None = None,
+    _visiting: frozenset[str] = frozenset(),
+) -> GraphEstimate:
+    """What one request through the graph costs.
+
+    A subagent stage runs a whole other agent, so it is priced by estimating
+    that agent and charging the total here. workspace is what makes those
+    reachable, and _visiting stops a cycle of agents calling each other from
+    recursing forever."""
+
     weights = _branch_weights(graph)
+    others = {g.id: g for g in workspace or []}
     rows: list[NodeEstimate] = []
 
     for node in graph.nodes:
+        if isinstance(node.config, SubagentConfig):
+            child = others.get(node.config.graph_id)
+            if child is None or child.id in _visiting:
+                continue
+            inner = estimate(child, models, workspace, _visiting | {graph.id})
+            calls = weights.get(node.id, 1.0)
+            rows.append(
+                NodeEstimate(
+                    node_id=node.id,
+                    name=node.name,
+                    model=child.name,
+                    calls=round(calls, 3),
+                    input_tokens=int(inner.input_tokens * calls),
+                    output_tokens=int(inner.output_tokens * calls),
+                    usd=round(inner.usd * calls, 6),
+                )
+            )
+            continue
+
         spec = by_id(models, getattr(node.config, "model", ""))
         if spec is None:
             continue

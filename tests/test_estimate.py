@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from sketch.estimate import count_tokens, estimate
-from sketch.graph import AgentGraph
-from sketch.models import ModelSpec
+from orla.estimate import count_tokens, estimate
+from orla.graph import AgentGraph
+from orla.models import ModelSpec
 from tests.conftest import edge, graph_from, node
 
 INPUT = {"kind": "input"}

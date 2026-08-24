@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import pytest
 
-from sketch import measure
-from sketch.estimate import estimate
-from sketch.graph import AgentGraph
-from sketch.measure import (
+from orla import measure
+from orla.estimate import estimate
+from orla.graph import AgentGraph
+from orla.measure import (
     JudgePass,
     Measurement,
     PatchMeasurement,
@@ -13,8 +13,8 @@ from sketch.measure import (
     plan,
     summarize,
 )
-from sketch.models import ModelSpec
-from sketch.optimizer import Patch, apply_patch
+from orla.models import ModelSpec
+from orla.optimizer import Patch, apply_patch
 from tests.conftest import cheapest, dearest
 
 

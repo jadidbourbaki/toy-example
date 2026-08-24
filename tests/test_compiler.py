@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from sketch.compiler import entry_name, resolve_network, stages_of, validate
-from sketch.graph import AgentGraph
+from orla.compiler import entry_name, resolve_network, stages_of, validate
+from orla.graph import AgentGraph
 
 ENTRY = "async def research_brief_run(request: str) -> str:\n    return request\n"
 STAGES = 'STAGES: dict[str, str] = {"clarify": "haiku", "research": "sonnet", "answer": "sonnet"}\n'
@@ -92,5 +92,5 @@ def test_the_worked_example_satisfies_the_validator(brief: AgentGraph) -> None:
     """The example in the compiler prompt has to pass the checks the compiler
     applies, or it teaches the model to produce rejected source."""
 
-    source = (Path("sketch/prompts/example_module.py")).read_text(encoding="utf-8")
+    source = (Path("orla/prompts/example_module.py")).read_text(encoding="utf-8")
     assert validate(source, brief, [brief]) == []

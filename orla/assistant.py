@@ -23,10 +23,10 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 
-from sketch.estimate import estimate
-from sketch.graph import AgentGraph, validate_graph
-from sketch.models import ModelSpec, capability_problems, driver_model
-from sketch.settings import settings
+from orla.estimate import estimate
+from orla.graph import AgentGraph, validate_graph
+from orla.models import ModelSpec, capability_problems, driver_model
+from orla.settings import settings
 
 INSTRUCTIONS = """
 You answer questions about the agent graph someone is building.

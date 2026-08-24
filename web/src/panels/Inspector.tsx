@@ -1,17 +1,33 @@
-import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { upstreamNames } from "@/lib/graph";
-import { KIND_LABELS } from "@/lib/kinds";
+import { KIND_LABELS, KIND_TINT } from "@/lib/kinds";
 import { useStore } from "@/store";
 import type { Node, Route } from "@/types/wire";
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+/** A compact property: label on the left, control on the right. Most of what a
+ *  stage carries is one short value, and stacking a heading above every one of
+ *  them is what makes a panel read as a pile. */
+function Prop({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="mb-3">
-      <div className="mb-1 text-[13px] text-faint">{label}</div>
+    <label className="flex min-h-9 items-center gap-3 px-4">
+      <span className="w-20 shrink-0 text-[13px] text-mute">{label}</span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </label>
+  );
+}
+
+/** A property whose value needs room: prompts, instructions, descriptions. */
+function Block({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="px-4 py-2">
+      <div className="mb-1.5 text-[13px] text-mute">{label}</div>
       {children}
     </div>
   );
+}
+
+function Divider() {
+  return <div className="my-2 border-t border-line" />;
 }
 
 export function Inspector() {
@@ -23,33 +39,32 @@ export function Inspector() {
   const problems = useStore((s) => s.problems);
   const updateNode = useStore((s) => s.updateNode);
   const updateConfig = useStore((s) => s.updateConfig);
-  const removeNode = useStore((s) => s.removeNode);
   const patchGraph = useStore((s) => s.patchGraph);
 
   const node: Node | undefined = graph?.nodes.find((n) => n.id === selectedId);
 
-  if (!graph) return <aside className="w-72 shrink-0 border-l border-line bg-panel" />;
+  if (!graph) return <aside className="w-[300px] shrink-0 border-l border-line" />;
 
   if (!node) {
     return (
-      <aside className="w-72 shrink-0 overflow-y-auto border-l border-line bg-panel p-3">
-        <Row label="Name">
+      <aside className="w-[300px] shrink-0 overflow-y-auto border-l border-line py-3">
+        <Prop label="Name">
           <input
-            className="field"
+            className="field py-1"
             value={graph.name}
             onChange={(e) => patchGraph({ name: e.target.value })}
           />
-        </Row>
-        <Row label="Description">
+        </Prop>
+        <Block label="Description">
           <textarea
             className="field h-20 resize-none"
             value={graph.description}
             onChange={(e) => patchGraph({ description: e.target.value })}
           />
-        </Row>
-        <Row label="Identifier">
-          <div className="num text-[12px] text-mute">{graph.id}</div>
-        </Row>
+        </Block>
+        <Prop label="Stages">
+          <span className="num text-[13px] text-mute">{graph.nodes.length}</span>
+        </Prop>
       </aside>
     );
   }
@@ -59,237 +74,94 @@ export function Inspector() {
   const available = ["input", ...upstreamNames(graph, node.id)];
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col overflow-y-auto border-l border-line bg-panel">
-      <div className="flex items-center gap-2 border-b border-line px-3 py-2">
-        <span className="flex-1 text-[13px] text-faint">{KIND_LABELS[config.kind]}</span>
-        {config.kind !== "input" && config.kind !== "output" && (
-          <button
-            className="text-faint hover:text-bad"
-            onClick={() => removeNode(node.id)}
-            title="Delete"
-          >
-            <Trash2 size={13} />
-          </button>
-        )}
+    <aside className="flex w-[300px] shrink-0 flex-col overflow-y-auto border-l border-line">
+      <div className="flex items-center gap-2 px-4 pt-3.5 pb-1">
+        <span className="h-2 w-2 rounded-full" style={{ background: KIND_TINT[config.kind] }} />
+        <span className="text-[13px] font-medium" style={{ color: KIND_TINT[config.kind] }}>
+          {KIND_LABELS[config.kind]}
+        </span>
       </div>
 
-      <div className="p-3">
-        <Row label="Name">
+      <div className="pb-3">
+        <Prop label="Name">
           <input
-            className="field"
+            className="field py-1"
             value={node.name}
             onChange={(e) => updateNode(node.id, { name: e.target.value })}
           />
-        </Row>
+        </Prop>
 
         {"stage" in config && (
-          <Row label="Stage">
+          <Prop label="Stage">
             <input
-              className="field"
+              className="field py-1"
               value={config.stage}
               onChange={(e) => updateConfig(node.id, { stage: e.target.value })}
             />
-          </Row>
+          </Prop>
         )}
 
         {"model" in config && (
-          <Row label="Model">
-            <select
-              className="field"
-              value={config.model}
-              onChange={(e) => updateConfig(node.id, { model: e.target.value })}
-            >
-              {models.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.label || model.model}
-                </option>
-              ))}
-            </select>
-            {models
-              .filter((m) => m.id === config.model)
-              .map((m) => (
-                <div key={m.id} className="num mt-1 text-[11px] text-faint">
-                  ${m.input_usd_per_mtok} in · ${m.output_usd_per_mtok} out per Mtok
-                </div>
-              ))}
-          </Row>
-        )}
-
-        {"instructions" in config && (
-          <Row label="Instructions">
-            <textarea
-              className="field h-24 resize-none leading-relaxed"
-              value={config.instructions}
-              onChange={(e) => updateConfig(node.id, { instructions: e.target.value })}
-            />
-          </Row>
-        )}
-
-        {config.kind === "router" && (
-          <Row label="Question">
-            <textarea
-              className="field h-16 resize-none"
-              value={config.question}
-              onChange={(e) => updateConfig(node.id, { question: e.target.value })}
-            />
-          </Row>
-        )}
-
-        {"prompt" in config && (
-          <Row label="Prompt">
-            <textarea
-              className="field h-24 resize-none font-mono text-[12px] leading-relaxed"
-              value={config.prompt}
-              onChange={(e) => updateConfig(node.id, { prompt: e.target.value })}
-            />
-            <div className="mt-1 flex flex-wrap gap-1">
-              {available.map((name) => (
-                <button
-                  key={name}
-                  className="rounded border border-line px-1.5 py-0.5 font-mono text-[11px] text-mute hover:border-accent hover:text-accent"
-                  onClick={() => updateConfig(node.id, { prompt: `${config.prompt}\${${name}}` })}
-                >
-                  ${"{"}
-                  {name}
-                  {"}"}
-                </button>
-              ))}
-            </div>
-          </Row>
-        )}
-
-        {config.kind === "tool" && (
           <>
-            <Row label="Tool">
+            <Prop label="Model">
               <select
-                className="field"
-                value={config.tool}
-                onChange={(e) => updateConfig(node.id, { tool: e.target.value })}
+                className="field py-1"
+                value={config.model}
+                onChange={(e) => updateConfig(node.id, { model: e.target.value })}
               >
-                {tools.map((tool) => (
-                  <option key={tool.id} value={tool.id}>
-                    {tool.label}
+                {!config.model && <option value="">Pick a model</option>}
+                {models.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.label}
                   </option>
                 ))}
               </select>
-            </Row>
-            {tools
-              .filter((t) => t.id === config.tool)
-              .map((tool) => (
-                <Row key={tool.id} label="Arguments">
-                  {tool.parameters.map((parameter) => (
-                    <div key={parameter} className="mb-1.5">
-                      <div className="mb-0.5 font-mono text-[11px] text-faint">{parameter}</div>
-                      <input
-                        className="field font-mono text-[12px]"
-                        value={config.arguments[parameter] ?? ""}
-                        onChange={(e) =>
-                          updateConfig(node.id, {
-                            arguments: { ...config.arguments, [parameter]: e.target.value },
-                          })
-                        }
-                      />
-                    </div>
-                  ))}
-                </Row>
+            </Prop>
+            {models
+              .filter((m) => m.id === config.model)
+              .map((m) => (
+                <div key={m.id} className="num px-4 pb-1 pl-[92px] text-[12px] text-faint">
+                  ${m.input_usd_per_mtok} in, ${m.output_usd_per_mtok} out per million
+                </div>
               ))}
           </>
         )}
 
-        {config.kind === "react" && (
-          <>
-            <Row label="Tools">
-              {tools.map((tool) => {
-                const on = config.tools.includes(tool.id);
-                return (
-                  <label
-                    key={tool.id}
-                    className="mb-1 flex cursor-pointer items-center gap-2 text-[12px]"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      onChange={() =>
-                        updateConfig(node.id, {
-                          tools: on
-                            ? config.tools.filter((t) => t !== tool.id)
-                            : [...config.tools, tool.id],
-                        })
-                      }
-                    />
-                    {tool.label}
-                  </label>
-                );
-              })}
-            </Row>
-            <Row label="Tool budget">
-              <input
-                type="number"
-                min={1}
-                max={20}
-                className="field num"
-                value={config.max_iterations}
-                onChange={(e) =>
-                  updateConfig(node.id, { max_iterations: Number(e.target.value) || 1 })
-                }
-              />
-            </Row>
-          </>
+        {config.kind === "tool" && (
+          <Prop label="Function">
+            <select
+              className="field py-1"
+              value={config.tool}
+              onChange={(e) => updateConfig(node.id, { tool: e.target.value })}
+            >
+              {tools.map((tool) => (
+                <option key={tool.id} value={tool.id}>
+                  {tool.label}
+                </option>
+              ))}
+            </select>
+          </Prop>
         )}
 
-        {config.kind === "router" && (
-          <Row label="Routes">
-            {config.routes.map((route: Route, index: number) => (
-              <div key={index} className="mb-1.5 rounded border border-line p-1.5">
-                <input
-                  className="field mb-1 text-[12px]"
-                  value={route.label}
-                  onChange={(e) => {
-                    const routes = [...config.routes];
-                    routes[index] = { ...route, label: e.target.value };
-                    updateConfig(node.id, { routes });
-                  }}
-                />
-                <input
-                  className="field text-[12px]"
-                  placeholder="When this branch applies"
-                  value={route.description}
-                  onChange={(e) => {
-                    const routes = [...config.routes];
-                    routes[index] = { ...route, description: e.target.value };
-                    updateConfig(node.id, { routes });
-                  }}
-                />
-                <button
-                  className="mt-1 text-[11px] text-faint hover:text-bad"
-                  onClick={() =>
-                    updateConfig(node.id, { routes: config.routes.filter((_, i) => i !== index) })
-                  }
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            <button
-              className="btn w-full justify-center text-[12px]"
-              onClick={() =>
-                updateConfig(node.id, {
-                  routes: [
-                    ...config.routes,
-                    { label: `route_${config.routes.length + 1}`, description: "" },
-                  ],
-                })
+        {config.kind === "react" && (
+          <Prop label="Tool budget">
+            <input
+              type="number"
+              min={1}
+              max={20}
+              className="field num py-1"
+              value={config.max_iterations}
+              onChange={(e) =>
+                updateConfig(node.id, { max_iterations: Number(e.target.value) || 1 })
               }
-            >
-              Add a route
-            </button>
-          </Row>
+            />
+          </Prop>
         )}
 
         {config.kind === "subagent" && (
-          <Row label="Agent">
+          <Prop label="Agent">
             <select
-              className="field"
+              className="field py-1"
               value={config.graph_id}
               onChange={(e) => updateConfig(node.id, { graph_id: e.target.value })}
             >
@@ -302,30 +174,148 @@ export function Inspector() {
                   </option>
                 ))}
             </select>
-          </Row>
+          </Prop>
+        )}
+
+        {("instructions" in config || "prompt" in config) && <Divider />}
+
+        {config.kind === "router" && (
+          <Block label="Question">
+            <textarea
+              className="field h-16 resize-none"
+              value={config.question}
+              onChange={(e) => updateConfig(node.id, { question: e.target.value })}
+            />
+          </Block>
+        )}
+
+        {"instructions" in config && (
+          <Block label="Instructions">
+            <textarea
+              className="field h-24 resize-none leading-relaxed"
+              value={config.instructions}
+              onChange={(e) => updateConfig(node.id, { instructions: e.target.value })}
+            />
+          </Block>
+        )}
+
+        {"prompt" in config && (
+          <Block label="Prompt">
+            <textarea
+              className="field h-24 resize-none font-mono text-[13px] leading-relaxed"
+              value={config.prompt}
+              onChange={(e) => updateConfig(node.id, { prompt: e.target.value })}
+            />
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {available.map((name) => (
+                <button
+                  key={name}
+                  className="rounded-md border border-line px-1.5 py-0.5 font-mono text-[12px] text-mute hover:border-accent hover:text-accent"
+                  onClick={() => updateConfig(node.id, { prompt: `${config.prompt}\${${name}}` })}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          </Block>
+        )}
+
+        {config.kind === "react" && (
+          <>
+            <Divider />
+            <Block label="Tools">
+              {tools.map((tool) => {
+                const on = config.tools.includes(tool.id);
+                return (
+                  <label key={tool.id} className="mb-1 flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() =>
+                        updateConfig(node.id, {
+                          tools: on
+                            ? config.tools.filter((t) => t !== tool.id)
+                            : [...config.tools, tool.id],
+                        })
+                      }
+                    />
+                    <span className="text-[14px]">{tool.label}</span>
+                  </label>
+                );
+              })}
+            </Block>
+          </>
+        )}
+
+        {config.kind === "router" && (
+          <>
+            <Divider />
+            <Block label="Routes">
+              {config.routes.map((route: Route, index: number) => (
+                <div key={index} className="mb-2 flex items-center gap-2">
+                  <input
+                    className="field w-24 shrink-0 py-1"
+                    value={route.label}
+                    onChange={(e) => {
+                      const routes = [...config.routes];
+                      routes[index] = { ...route, label: e.target.value };
+                      updateConfig(node.id, { routes });
+                    }}
+                  />
+                  <input
+                    className="field py-1"
+                    placeholder="When it applies"
+                    value={route.description}
+                    onChange={(e) => {
+                      const routes = [...config.routes];
+                      routes[index] = { ...route, description: e.target.value };
+                      updateConfig(node.id, { routes });
+                    }}
+                  />
+                </div>
+              ))}
+              <button
+                className="text-[13px] text-mute hover:text-accent"
+                onClick={() =>
+                  updateConfig(node.id, {
+                    routes: [
+                      ...config.routes,
+                      { label: `route_${config.routes.length + 1}`, description: "" },
+                    ],
+                  })
+                }
+              >
+                Add a route
+              </button>
+            </Block>
+          </>
         )}
 
         {(config.kind === "input" || config.kind === "output") && (
-          <Row label="Description">
+          <Block label="Description">
             <textarea
               className="field h-16 resize-none"
               value={config.description}
               onChange={(e) => updateConfig(node.id, { description: e.target.value })}
             />
-          </Row>
+          </Block>
         )}
 
-        {nodeProblems.map((problem, index) => (
-          <div
-            key={index}
-            className={cn(
-              "mt-2 text-[12px] leading-snug",
-              problem.severity === "error" ? "text-bad" : "text-warn",
-            )}
-          >
-            {problem.message}
+        {nodeProblems.length > 0 && (
+          <div className="mt-1 px-4">
+            {nodeProblems.map((problem, index) => (
+              <p
+                key={index}
+                className={cn(
+                  "mb-1 text-[13px] leading-snug",
+                  problem.severity === "error" ? "text-bad" : "text-warn",
+                )}
+              >
+                {problem.message}
+              </p>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </aside>
   );
