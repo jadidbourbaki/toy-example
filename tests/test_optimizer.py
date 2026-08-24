@@ -9,9 +9,10 @@ def patch(op: str, **fields: object) -> Patch:
 
 
 def test_set_model_rebinds_one_node(brief: AgentGraph) -> None:
-    updated = apply_patch(brief, patch("set_model", node_id="n4", model="opus"))
-    assert updated.node("n4").config.model == "opus"  # ty: ignore[unresolved-attribute]
-    assert brief.node("n4").config.model == "sonnet"  # ty: ignore[unresolved-attribute]
+    before = brief.node("n4").config.model  # ty: ignore[unresolved-attribute]
+    updated = apply_patch(brief, patch("set_model", node_id="n4", model="somewhere-else"))
+    assert updated.node("n4").config.model == "somewhere-else"  # ty: ignore[unresolved-attribute]
+    assert brief.node("n4").config.model == before  # ty: ignore[unresolved-attribute]
 
 
 def test_set_max_iterations_never_drops_below_one(brief: AgentGraph) -> None:
@@ -51,22 +52,22 @@ def test_insert_llm_after_lands_between_the_node_and_its_targets(brief: AgentGra
 
 
 def test_a_patch_naming_a_missing_node_changes_nothing(brief: AgentGraph) -> None:
-    assert apply_patch(brief, patch("set_model", node_id="absent", model="opus")) == brief
+    assert apply_patch(brief, patch("set_model", node_id="absent", model="anything")) == brief
 
 
 def test_patches_apply_in_order(brief: AgentGraph) -> None:
     updated = apply_patches(
         brief,
         [
-            patch("set_model", node_id="n4", model="opus"),
-            patch("set_model", node_id="n4", model="haiku"),
+            patch("set_model", node_id="n4", model="first"),
+            patch("set_model", node_id="n4", model="second"),
         ],
     )
-    assert updated.node("n4").config.model == "haiku"  # ty: ignore[unresolved-attribute]
+    assert updated.node("n4").config.model == "second"  # ty: ignore[unresolved-attribute]
 
 
 def test_diff_reports_a_changed_node(brief: AgentGraph) -> None:
-    updated = apply_patch(brief, patch("set_model", node_id="n4", model="opus"))
+    updated = apply_patch(brief, patch("set_model", node_id="n4", model="somewhere-else"))
     assert diff(brief, updated) == {"added": [], "removed": [], "changed": ["n4"]}
 
 

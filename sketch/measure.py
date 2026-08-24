@@ -32,7 +32,7 @@ from pydantic_ai import Agent
 
 from sketch.estimate import estimate
 from sketch.graph import AgentGraph
-from sketch.models import ModelSpec, by_id
+from sketch.models import ModelSpec, by_id, driver_model
 from sketch.optimizer import Patch, apply_patch
 from sketch.runner import run_graph
 from sketch.settings import settings
@@ -232,7 +232,7 @@ class JudgePass(BaseModel):
 
 async def _judge_pass(request: str, first: str, second: str) -> JudgePass:
     agent = Agent[None, JudgePass](
-        settings.judge_model,
+        driver_model(settings.judge_model),
         output_type=JudgePass,
         instructions=JUDGE_INSTRUCTIONS,
         model_settings={"max_tokens": 1024},
@@ -400,7 +400,7 @@ async def propose_sample(graph: AgentGraph, count: int = 3) -> list[str]:
     is to give someone something to edit rather than a blank field."""
 
     agent = Agent[None, SampleProposal](
-        settings.compiler_model,
+        driver_model(settings.compiler_model),
         output_type=SampleProposal,
         instructions=SAMPLE_INSTRUCTIONS,
         model_settings={"max_tokens": 2048},

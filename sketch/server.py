@@ -134,8 +134,14 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
         )
 
     @app.post("/api/compile")
-    async def compile_endpoint(body: GraphRequest) -> compiler.CompileResult:
-        return await compiler.compile_graph(body.graph, workspace.models(), workspace.all_graphs())
+    async def compile_endpoint(body: GraphRequest) -> EventSourceResponse:
+        async def stream() -> AsyncIterator[dict[str, str]]:
+            async for event in compiler.compile_stream(
+                body.graph, workspace.models(), workspace.all_graphs()
+            ):
+                yield {"event": event.type, "data": event.model_dump_json()}
+
+        return EventSourceResponse(stream())
 
     @app.post("/api/optimize")
     async def optimize_endpoint(body: GraphRequest) -> optimizer.OptimizeResult:
@@ -155,7 +161,7 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
         if not settings.has_model_credentials:
             raise HTTPException(
                 status_code=400,
-                detail="Set ANTHROPIC_API_KEY to write a sample. It drives a model.",
+                detail="Set AWS_BEARER_TOKEN_BEDROCK to write a sample. It drives a model.",
             )
         return await measure.propose_sample(body.graph, body.count)
 
@@ -218,6 +224,7 @@ class Wire(BaseModel):
     graph_summary: GraphSummary
     graph_estimate: GraphEstimate
     compile_result: compiler.CompileResult
+    compile_event: compiler.CompileEvent
     optimize_result: optimizer.OptimizeResult
     patch: optimizer.Patch
     patch_response: PatchResponse

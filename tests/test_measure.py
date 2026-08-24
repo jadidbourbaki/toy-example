@@ -14,6 +14,7 @@ from sketch.measure import (
 )
 from sketch.models import ModelSpec
 from sketch.optimizer import Patch
+from tests.conftest import cheapest, dearest
 
 
 def run(request: str, usd: float, ms: int = 100, error: str = "") -> SampleRun:
@@ -77,8 +78,10 @@ def test_plan_counts_a_run_per_request_per_version(
 def test_plan_prices_a_cheaper_candidate_below_the_baseline(
     brief: AgentGraph, models: list[ModelSpec]
 ) -> None:
-    dearer = plan(brief, [patch("set_model", node_id="n3", model="opus")], ["one"], models)
-    cheaper = plan(brief, [patch("set_model", node_id="n3", model="haiku")], ["one"], models)
+    dearer = plan(brief, [patch("set_model", node_id="n3", model=dearest(models))], ["one"], models)
+    cheaper = plan(
+        brief, [patch("set_model", node_id="n3", model=cheapest(models))], ["one"], models
+    )
     assert cheaper.projected_usd < dearer.projected_usd
 
 

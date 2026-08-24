@@ -18,6 +18,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 load_dotenv(PROJECT_ROOT / ".env")
 
+# boto3 reads the region from the environment, and the registry ships models
+# that are only served in us-west-2. A region already set in the shell wins.
+os.environ.setdefault("AWS_REGION", "us-west-2")
+
 
 class Settings(BaseSettings):
     """The compiler and the optimizer both drive a model. compiler_model
@@ -25,8 +29,8 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="SKETCH_", extra="ignore")
 
-    compiler_model: str = "anthropic:claude-opus-5"
-    judge_model: str = "anthropic:claude-sonnet-5"
+    compiler_model: str = "qwen3-coder-480b"
+    judge_model: str = "glm-5"
     # A measurement runs the graph once per sample request per candidate, so a
     # careless click on a large sample can spend real money. The run refuses to
     # start when its own projection passes this line.
@@ -40,7 +44,7 @@ class Settings(BaseSettings):
 
     @property
     def has_model_credentials(self) -> bool:
-        return bool(os.environ.get("ANTHROPIC_API_KEY"))
+        return bool(os.environ.get("AWS_BEARER_TOKEN_BEDROCK"))
 
 
 settings = Settings()

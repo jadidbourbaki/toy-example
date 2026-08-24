@@ -10,29 +10,36 @@ retargeting a stage is a one line edit.
 from __future__ import annotations
 
 import asyncio
+import os
 from string import Template
 from typing import Any
 
 from pydantic_ai import Agent
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.usage import UsageLimits
 from pydantic_deep import BASE_PROMPT, create_deep_agent, create_default_deps
 
 MODELS: dict[str, str] = {
-    "haiku": "anthropic:claude-haiku-4-5-20251001",
-    "sonnet": "anthropic:claude-sonnet-5",
+    "glm-4.7-flash": "zai.glm-4.7-flash",
+    "qwen3-coder-30b": "qwen.qwen3-coder-30b-a3b-instruct",
 }
 
 STAGES: dict[str, str] = {
-    "answer": "sonnet",
-    "clarify": "haiku",
-    "research": "sonnet",
+    "answer": "qwen3-coder-30b",
+    "clarify": "glm-4.7-flash",
+    "research": "qwen3-coder-30b",
 }
 
+REGION = os.environ.get("AWS_REGION", "us-west-2")
+BASE_URL = "https://bedrock-mantle." + REGION + ".api.aws/v1"
 
-def model_for(stage: str) -> str:
-    """The provider model string serving a stage right now."""
 
-    return MODELS[STAGES[stage]]
+def model_for(stage: str) -> OpenAIChatModel:
+    """The model serving a stage right now."""
+
+    provider = OpenAIProvider(base_url=BASE_URL, api_key=os.environ["AWS_BEARER_TOKEN_BEDROCK"])
+    return OpenAIChatModel(MODELS[STAGES[stage]], provider=provider)
 
 
 def fill(template: str, values: dict[str, Any]) -> str:

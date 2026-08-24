@@ -27,7 +27,7 @@
       "config": {
         "kind": "router",
         "stage": "route",
-        "model": "haiku",
+        "model": "glm-4.7-flash",
         "question": "How much work does this message need?",
         "prompt": "${input}",
         "routes": [
@@ -53,7 +53,7 @@
       "config": {
         "kind": "llm",
         "stage": "answer",
-        "model": "haiku",
+        "model": "nemotron-super-120b",
         "instructions": "Answer in at most three sentences. Open with the answer.",
         "prompt": "${input}"
       }

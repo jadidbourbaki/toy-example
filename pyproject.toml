@@ -10,7 +10,7 @@ dependencies = [
     "fastapi>=0.115",
     "networkx==3.6.1",
     "pydantic==2.13.4",
-    "pydantic-ai-slim[anthropic,duckduckgo]==2.33.0",
+    "pydantic-ai-slim[anthropic,bedrock,duckduckgo,openai]==2.33.0",
     "pydantic-deep==0.3.43",
     "pydantic-settings==2.14.2",
     "python-dotenv==1.2.2",

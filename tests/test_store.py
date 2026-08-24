@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from sketch.graph import AgentGraph
+from sketch.models import DEFAULT_MODELS
 from sketch.store import Workspace
 
 
@@ -44,7 +45,7 @@ def test_deleting_a_missing_graph_is_quiet(workspace: Workspace) -> None:
 def test_the_registry_is_written_on_first_read(tmp_path: Path) -> None:
     space = Workspace(tmp_path / "w")
     assert not space.models_path.exists()
-    assert [m.id for m in space.models()] == ["haiku", "sonnet", "opus", "local-qwen"]
+    assert [m.id for m in space.models()] == [m.id for m in DEFAULT_MODELS]
     assert space.models_path.exists()
 
 

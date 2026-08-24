@@ -30,7 +30,7 @@ from sketch.graph import (
     render,
     topological_order,
 )
-from sketch.models import ModelSpec, by_id, provider_model_string
+from sketch.models import ModelSpec, build_model, by_id
 
 EventType = Literal["run_start", "node_start", "node_done", "node_skipped", "run_done", "run_error"]
 
@@ -88,11 +88,11 @@ class Runner:
         self.totals = RunTotals()
         self._deps = create_default_deps()
 
-    def _model_string(self, model_id: str) -> str:
+    def _model(self, model_id: str) -> Any:
         spec = by_id(self.models, model_id)
         if spec is None:
             raise ValueError(f"The model registry has no entry named {model_id!r}.")
-        return provider_model_string(spec)
+        return build_model(spec)
 
     def _charge(self, model_id: str, result: Any) -> tuple[float, int, int]:
         # pydantic-ai exposes run usage as a property on current versions and as
@@ -213,7 +213,7 @@ class Runner:
                     labels = [r.label for r in config.routes]
                     described = "\n".join(f"- {r.label}: {r.description}" for r in config.routes)
                     agent: Agent[None, str] = Agent(
-                        self._model_string(model_id),
+                        self._model(model_id),
                         output_type=Literal[tuple(labels)],  # ty: ignore[invalid-type-form]
                         instructions=f"{config.question}\n\nAnswer with exactly one label.\n\n{described}",
                     )
@@ -227,7 +227,7 @@ class Runner:
 
                 elif isinstance(config, ReactConfig):
                     agent_deep = create_deep_agent(
-                        model=self._model_string(model_id),
+                        model=self._model(model_id),
                         instructions=f"{BASE_PROMPT}\n\n{config.instructions}\n\n{tool_budget(config.max_iterations)}",
                         tools=self._tool_functions(config.tools),
                         web_search=False,
@@ -252,7 +252,7 @@ class Runner:
 
                 elif isinstance(config, LLMConfig):
                     plain: Agent[None, str] = Agent(
-                        self._model_string(model_id), instructions=config.instructions
+                        self._model(model_id), instructions=config.instructions
                     )
                     result = await plain.run(render(config.prompt, values))
                     text = str(result.output)

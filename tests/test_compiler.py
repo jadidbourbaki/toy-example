@@ -25,7 +25,9 @@ def test_entry_name_is_always_an_identifier(graph_id: str, expected: str) -> Non
 
 
 def test_stages_of_collects_every_bound_stage(brief: AgentGraph) -> None:
-    assert stages_of(brief) == {"clarify": "haiku", "research": "sonnet", "answer": "sonnet"}
+    bound = stages_of(brief)
+    assert set(bound) == {"clarify", "research", "answer"}
+    assert all(model for model in bound.values())
 
 
 def test_resolve_network_puts_dependencies_first(desk: AgentGraph, brief: AgentGraph) -> None:

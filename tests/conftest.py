@@ -17,6 +17,17 @@ def models() -> list[ModelSpec]:
     return list(DEFAULT_MODELS)
 
 
+def cheapest(models: list[ModelSpec]) -> str:
+    """The registry's cheapest entry by blended rate. Tests name a model this
+    way so that changing which models ship does not break them."""
+
+    return min(models, key=lambda m: m.input_usd_per_mtok + m.output_usd_per_mtok).id
+
+
+def dearest(models: list[ModelSpec]) -> str:
+    return max(models, key=lambda m: m.input_usd_per_mtok + m.output_usd_per_mtok).id
+
+
 @pytest.fixture
 def brief() -> AgentGraph:
     return AgentGraph.model_validate_json((ASSETS / "example_graph.json").read_text())

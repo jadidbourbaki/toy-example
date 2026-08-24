@@ -19,7 +19,7 @@ def client(tmp_path: Path) -> TestClient:
 def test_health_reports_the_compiler_model(client: TestClient) -> None:
     body = client.get("/api/health").json()
     assert body["ok"] is True
-    assert body["compiler_model"].startswith("anthropic:")
+    assert body["compiler_model"]
 
 
 def test_graphs_are_listed_after_seeding(client: TestClient) -> None:

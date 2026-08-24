@@ -113,9 +113,28 @@ just build            # generate types, build the frontend into the package
 just serve            # http://127.0.0.1:8000
 ```
 
-`ANTHROPIC_API_KEY` is what the compiler, the optimizer, and any graph
-bound to a Claude model use. Editing the canvas, validating a graph, and
-pricing one need no key at all.
+`AWS_BEARER_TOKEN_BEDROCK` is what every model call uses. Editing the
+canvas, validating a graph, and pricing one need no key at all.
+
+## Models
+
+Every model in the registry is open weight and served by Amazon Bedrock's
+`bedrock-mantle` endpoint, which speaks the OpenAI protocol. Bedrock has two
+inference endpoints with two different catalogues, and the current open-weight
+models live on the mantle one. `bedrock-runtime` carries the AWS-native
+Converse API and a different, older set.
+
+The ladder runs from Nemotron Nano 3 30B at $0.06 per million input tokens to
+GLM 5 at $1.00, through GLM 4.7 Flash, Qwen3 Coder 30B, Nemotron Super 3 120B,
+MiniMax M2.5, Qwen3 Coder 480B, and Kimi K2.5. Rates come from the AWS price
+list. The ladder is deliberately not a straight line: Nemotron Super 120B
+costs the same per input token as Qwen3 Coder 30B, and which model is cheapest
+for a stage depends on whether that stage reads a lot or writes a lot.
+
+Every entry is verified to call tools and to return structured output, which
+a ReAct stage and a router both need. Editing a rate or adding a model is a
+change to `DEFAULT_MODELS` in `sketch/models.py`, or an edit in the model
+picker for a workspace that already exists.
 
 For hot reload on both sides, `just dev` runs the API and the Vite dev
 server together and proxies `/api` from one to the other.

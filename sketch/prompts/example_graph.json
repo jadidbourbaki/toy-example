@@ -27,7 +27,7 @@
       "config": {
         "kind": "llm",
         "stage": "clarify",
-        "model": "haiku",
+        "model": "glm-4.7-flash",
         "instructions": "Rewrite a vague question into one precise question. Answer with the question alone.",
         "prompt": "${input}"
       }
@@ -43,7 +43,7 @@
       "config": {
         "kind": "react",
         "stage": "research",
-        "model": "sonnet",
+        "model": "qwen3-coder-30b",
         "instructions": "Search the notes before answering. Cite the topic tag of every note you use.",
         "prompt": "Gather what the notes say about: ${clarify}",
         "tools": [
@@ -63,7 +63,7 @@
       "config": {
         "kind": "llm",
         "stage": "answer",
-        "model": "sonnet",
+        "model": "qwen3-coder-30b",
         "instructions": "Write a brief of at most six sentences. Open with the answer.",
         "prompt": "Question: ${clarify}\n\nFindings: ${research}"
       }

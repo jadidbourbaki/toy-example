@@ -30,7 +30,7 @@ from sketch.graph import (
     SubagentConfig,
     validate_graph,
 )
-from sketch.models import TOOL_CATALOG, ModelSpec
+from sketch.models import TOOL_CATALOG, ModelSpec, driver_model
 from sketch.settings import settings
 
 Operation = Literal[
@@ -243,11 +243,11 @@ async def optimize(graph: AgentGraph, models: list[ModelSpec]) -> OptimizeResult
             summary="",
             baseline_usd=baseline,
             ok=False,
-            error="Set ANTHROPIC_API_KEY to run the optimizer. It drives a model.",
+            error="Set AWS_BEARER_TOKEN_BEDROCK to run the optimizer. It drives a model.",
         )
 
     agent = Agent[None, Proposal](
-        settings.compiler_model,
+        driver_model(settings.compiler_model),
         output_type=Proposal,
         instructions=INSTRUCTIONS,
         model_settings={"max_tokens": 8192},

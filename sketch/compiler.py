@@ -18,14 +18,16 @@ import json
 import re
 import subprocess
 import tempfile
+from collections.abc import AsyncIterator
 from importlib import resources
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
 from sketch.graph import AgentGraph, SubagentConfig
-from sketch.models import ModelSpec, by_id, provider_model_string
+from sketch.models import ModelSpec, by_id, driver_model, provider_model_string
 from sketch.settings import settings
 
 MAX_ATTEMPTS = 2
@@ -52,6 +54,17 @@ class CompileResult(BaseModel):
     attempts: int = 0
     problems: list[str] = Field(default_factory=list)
     ok: bool = True
+
+
+class CompileEvent(BaseModel):
+    """Progress from a compile. Writing the module takes long enough that
+    silence reads as a hang, and the checks it runs are worth watching."""
+
+    type: Literal["writing", "checking", "rejected", "done", "error"]
+    attempt: int = 0
+    problems: list[str] = Field(default_factory=list)
+    result: CompileResult | None = None
+    text: str = ""
 
 
 def _asset(name: str) -> str:
@@ -233,6 +246,25 @@ The module must satisfy all of these, and the result is rejected otherwise.
    the graph uses, a `MODELS` dict naming the provider model string for every
    model id, and `model_for(stage)`. Every model call resolves its model
    through `model_for`, so retargeting a stage is a one line edit.
+
+   These models are served by the Bedrock mantle endpoint, which speaks the
+   OpenAI protocol. So `model_for` returns a built model rather than a name:
+
+   ```python
+   REGION = os.environ.get("AWS_REGION", "us-west-2")
+   BASE_URL = "https://bedrock-mantle." + REGION + ".api.aws/v1"
+
+
+   def model_for(stage: str) -> OpenAIChatModel:
+       # The model serving a stage right now.
+       provider = OpenAIProvider(
+           base_url=BASE_URL, api_key=os.environ["AWS_BEARER_TOKEN_BEDROCK"]
+       )
+       return OpenAIChatModel(MODELS[STAGES[stage]], provider=provider)
+   ```
+
+   Import those two from `pydantic_ai.models.openai` and
+   `pydantic_ai.providers.openai`.
 4. Templates in prompts use `${{name}}` and are filled through a `fill`
    helper built on `string.Template.safe_substitute`, so a prompt that
    contains braces survives.
@@ -311,25 +343,25 @@ def _tool_sources() -> str:
     return path.read_text(encoding="utf-8")
 
 
-async def compile_graph(
+async def compile_stream(
     graph: AgentGraph,
     models: list[ModelSpec],
     workspace: list[AgentGraph] | None = None,
-) -> CompileResult:
-    """Ask the compiler model for the module, validate it, and retry once
-    with the problems quoted back."""
+) -> AsyncIterator[CompileEvent]:
+    """Ask the compiler model for the module, check it, and retry once with
+    the problems quoted back. Each step is reported as it happens."""
 
     network = resolve_network(graph, workspace or [])
 
     if not settings.has_model_credentials:
-        return CompileResult(
-            source="",
-            ok=False,
-            problems=["Set ANTHROPIC_API_KEY to compile a graph. The compiler drives a model."],
+        yield CompileEvent(
+            type="error",
+            text="Set AWS_BEARER_TOKEN_BEDROCK to compile a graph. The compiler drives a model.",
         )
+        return
 
     agent = Agent[None, CompiledModule](
-        settings.compiler_model,
+        driver_model(settings.compiler_model),
         output_type=CompiledModule,
         instructions=_system_prompt(),
         model_settings={"max_tokens": 16384},
@@ -337,7 +369,6 @@ async def compile_graph(
 
     prompt = _task_prompt(graph, network, models, _tool_sources())
     problems: list[str] = []
-    result = CompileResult(source="", ok=False)
 
     for attempt in range(1, MAX_ATTEMPTS + 1):
         message = prompt
@@ -345,12 +376,15 @@ async def compile_graph(
             quoted = "\n".join(f"- {p}" for p in problems)
             message = f"{prompt}\n\n## The previous attempt was rejected\n\nFix every problem:\n\n{quoted}"
 
+        yield CompileEvent(type="writing", attempt=attempt)
         run = await agent.run(message)
         source = run.output.source.strip()
         if source.startswith("```"):
             source = source.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
 
+        yield CompileEvent(type="checking", attempt=attempt)
         problems = validate(source, graph, network)
+
         result = CompileResult(
             source=source,
             notes=run.output.notes,
@@ -358,9 +392,33 @@ async def compile_graph(
             problems=problems,
             ok=not problems,
         )
-        if result.ok:
-            return result
 
+        if result.ok:
+            yield CompileEvent(type="done", attempt=attempt, result=result)
+            return
+
+        last = attempt == MAX_ATTEMPTS
+        yield CompileEvent(
+            type="done" if last else "rejected",
+            attempt=attempt,
+            problems=problems,
+            result=result if last else None,
+        )
+
+
+async def compile_graph(
+    graph: AgentGraph,
+    models: list[ModelSpec],
+    workspace: list[AgentGraph] | None = None,
+) -> CompileResult:
+    """The compiled module, with the progress along the way discarded."""
+
+    result = CompileResult(source="", ok=False)
+    async for event in compile_stream(graph, models, workspace):
+        if event.result is not None:
+            result = event.result
+        elif event.type == "error":
+            result = CompileResult(source="", ok=False, problems=[event.text])
     return result
 
 
