@@ -1,4 +1,4 @@
-import type { AgentGraph, Edge, Node } from "@/types/wire";
+import type { AgentGraph, Edge, ModelSpec, Node } from "@/types/wire";
 import type { NodeKind } from "./kinds";
 
 const uid = (prefix: string): string => `${prefix}${crypto.randomUUID().slice(0, 8)}`;
@@ -13,7 +13,22 @@ export function uniqueName(graph: AgentGraph, base: string): string {
   }
 }
 
-export function defaultConfig(kind: NodeKind): Node["config"] {
+/** The cheapest model in the registry that can do what this kind of stage
+ *  needs. A ReAct stage calls tools and a router returns one of a fixed set of
+ *  labels, so neither can be served by a model missing those. */
+export function defaultModel(kind: NodeKind, models: ModelSpec[]): string {
+  const capable = models.filter(
+    (m) => (kind !== "react" || m.tools) && (kind !== "router" || m.structured),
+  );
+  const cheapest = [...capable].sort(
+    (a, b) =>
+      a.input_usd_per_mtok + a.output_usd_per_mtok - (b.input_usd_per_mtok + b.output_usd_per_mtok),
+  );
+  return cheapest[0]?.id ?? "";
+}
+
+export function defaultConfig(kind: NodeKind, models: ModelSpec[]): Node["config"] {
+  const model = defaultModel(kind, models);
   switch (kind) {
     case "input":
       return { kind: "input", description: "The request the agent receives." };
@@ -25,7 +40,7 @@ export function defaultConfig(kind: NodeKind): Node["config"] {
       return {
         kind: "react",
         stage: "research",
-        model: "sonnet",
+        model,
         instructions: "Work step by step. Use the tools before answering.",
         prompt: "${input}",
         tools: ["search_notes"],
@@ -35,7 +50,7 @@ export function defaultConfig(kind: NodeKind): Node["config"] {
       return {
         kind: "router",
         stage: "route",
-        model: "haiku",
+        model,
         question: "Which branch handles this request best?",
         prompt: "${input}",
         routes: [
@@ -49,20 +64,26 @@ export function defaultConfig(kind: NodeKind): Node["config"] {
       return {
         kind: "llm",
         stage: "answer",
-        model: "haiku",
+        model,
         instructions: "You are a careful assistant.",
         prompt: "${input}",
       };
   }
 }
 
-export function makeNode(graph: AgentGraph, kind: NodeKind, x: number, y: number): Node {
+export function makeNode(
+  graph: AgentGraph,
+  kind: NodeKind,
+  x: number,
+  y: number,
+  models: ModelSpec[],
+): Node {
   return {
     id: uid("n"),
     name: uniqueName(graph, kind === "llm" ? "stage" : kind),
     position: { x, y },
     notes: "",
-    config: defaultConfig(kind),
+    config: defaultConfig(kind, models),
   };
 }
 
@@ -76,14 +97,14 @@ export function blankGraph(id: string, name: string): AgentGraph {
     name: "input",
     position: { x: 0, y: 180 },
     notes: "",
-    config: defaultConfig("input"),
+    config: defaultConfig("input", []),
   };
   const output: Node = {
     id: uid("n"),
     name: "output",
     position: { x: 640, y: 180 },
     notes: "",
-    config: defaultConfig("output"),
+    config: defaultConfig("output", []),
   };
   return { id, name, description: "", nodes: [input, output], edges: [], sample: [] };
 }

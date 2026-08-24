@@ -51,7 +51,7 @@ class Patch(BaseModel):
 
     id: str = Field(default_factory=lambda: uuid.uuid4().hex[:8])
     title: str = Field(
-        description="A short imperative summary, for example 'Serve clarify with haiku'."
+        description="A short imperative summary, for example 'Serve clarify with the cheapest model'."
     )
     rationale: str = Field(description="Two sentences at most on why the change helps.")
     op: Operation
@@ -119,7 +119,7 @@ def apply_patch(graph: AgentGraph, patch: Patch) -> AgentGraph:
             position=Position(x=node.position.x + 220, y=node.position.y + 90),
             config=LLMConfig(
                 stage=patch.stage or "review",
-                model=patch.model or "haiku",
+                model=patch.model,
                 instructions=patch.instructions
                 or "Check the input and correct anything wrong with it.",
                 prompt=patch.prompt or f"${{{node.name}}}",
@@ -223,8 +223,8 @@ Rules for a good proposal:
 - Every patch stands on its own. Someone accepts the second and rejects the
   first, so a patch must never depend on another patch having been applied.
 - Name a real mechanism in the rationale. "Cheaper model" is not a reason.
-  "The clarify stage rewrites one sentence, which haiku does as well as opus at
-  a fifth of the price" is a reason.
+  "The clarify stage rewrites one sentence, which the small model does as well
+  as the large one at a fifth of the price" is a reason.
 - Output tokens usually dominate a bill. A change to an output format is often
   worth more than a change to a prompt.
 - Leave the stage that carries the answer alone unless you have a specific

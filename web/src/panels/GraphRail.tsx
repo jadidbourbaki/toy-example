@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { KIND_LABELS, PALETTE_KINDS } from "@/lib/kinds";
@@ -9,7 +9,6 @@ export function GraphRail() {
   const graph = useStore((s) => s.graph);
   const openGraph = useStore((s) => s.openGraph);
   const createGraph = useStore((s) => s.createGraph);
-  const removeGraph = useStore((s) => s.removeGraph);
   const addNode = useStore((s) => s.addNode);
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState("");
@@ -21,23 +20,19 @@ export function GraphRail() {
   };
 
   return (
-    <aside className="flex w-48 shrink-0 flex-col border-r border-line bg-panel">
-      <div className="flex items-center justify-between px-3 pt-3 pb-1">
-        <span className="text-[13px] text-faint">Agents</span>
-        <button
-          className="text-faint hover:text-ink"
-          onClick={() => setNaming(true)}
-          title="New agent"
-        >
-          <Plus size={14} />
-        </button>
-      </div>
+    <aside className="flex w-60 shrink-0 flex-col gap-6 border-r border-line px-3 py-4">
+      <div>
+        <div className="mb-1 flex items-center justify-between pr-1">
+          <span className="section pb-0">Agents</span>
+          <button className="btn-quiet" onClick={() => setNaming(true)} title="New agent">
+            <Plus size={15} />
+          </button>
+        </div>
 
-      <div className="max-h-64 overflow-y-auto px-2 pb-2">
         {naming && (
           <input
             autoFocus
-            className="field mb-1 text-[12px]"
+            className="field mb-1 py-1.5"
             placeholder="Agent name"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -48,42 +43,27 @@ export function GraphRail() {
             }}
           />
         )}
+
         {graphs.map((summary) => (
-          <div
+          <button
             key={summary.id}
-            className={cn(
-              "group flex items-center rounded px-2 py-1",
-              graph?.id === summary.id ? "bg-sunk" : "hover:bg-sunk",
-            )}
+            className={cn("row", graph?.id === summary.id && "row-on")}
+            onClick={() => void openGraph(summary.id)}
           >
-            <button
-              className="min-w-0 flex-1 truncate text-left text-[12px]"
-              onClick={() => void openGraph(summary.id)}
-            >
-              {summary.name}
-            </button>
-            <button
-              className="shrink-0 text-faint opacity-0 group-hover:opacity-100 hover:text-bad"
-              onClick={() => void removeGraph(summary.id)}
-              title={`Delete ${summary.name}`}
-            >
-              <Trash2 size={12} />
-            </button>
-          </div>
+            <span className="truncate">{summary.name}</span>
+          </button>
         ))}
       </div>
 
-      <div className="border-t border-line px-3 pt-3 pb-1">
-        <span className="text-[13px] text-faint">Stages</span>
-      </div>
-      <div className="flex-1 overflow-y-auto px-2 pb-3">
+      <div>
+        <div className="section">Add a stage</div>
         {PALETTE_KINDS.map((kind) => (
           <button
             key={kind}
-            onClick={() => addNode(kind, 220 + Math.random() * 160, 80 + Math.random() * 200)}
+            onClick={() => addNode(kind, 260 + Math.random() * 140, 90 + Math.random() * 180)}
             draggable
             onDragStart={(e) => e.dataTransfer.setData("application/orla-kind", kind)}
-            className="block w-full rounded px-2 py-1 text-left text-[12px] hover:bg-sunk"
+            className="row cursor-grab active:cursor-grabbing"
           >
             {KIND_LABELS[kind]}
           </button>

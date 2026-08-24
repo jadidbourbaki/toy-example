@@ -39,19 +39,24 @@ export function App() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      <header className="flex h-14 shrink-0 items-center gap-4 border-b border-line px-4">
-        <span className="font-medium">Orla</span>
-        <span className="text-mute">Agent Platform</span>
+      <header className="flex h-14 shrink-0 items-center gap-5 border-b border-line px-4">
+        <span className="text-[17px] font-semibold tracking-[-0.02em]">Orla</span>
+
+        {graph && (
+          <span className="max-w-[200px] truncate text-[14px] text-mute">{graph.name}</span>
+        )}
 
         <Tabs.Root value={tab} onValueChange={(value) => setTab(value as Tab)}>
-          <Tabs.List className="flex gap-1">
+          <Tabs.List className="flex items-center gap-0.5 rounded-lg bg-sunk p-0.5">
             {TABS.map((entry) => (
               <Tabs.Trigger
                 key={entry.id}
                 value={entry.id}
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-[14px] transition-colors",
-                  tab === entry.id ? "bg-sunk text-ink" : "text-mute hover:text-ink",
+                  "rounded-md px-3 py-1 text-[14px] transition-colors",
+                  tab === entry.id
+                    ? "bg-raised text-ink shadow-[0_1px_2px_rgb(27_26_23/0.08)]"
+                    : "text-mute hover:text-ink",
                 )}
               >
                 {entry.label}

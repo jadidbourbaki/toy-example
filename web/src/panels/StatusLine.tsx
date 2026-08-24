@@ -14,7 +14,7 @@ export function StatusLine() {
   return (
     <div className="flex h-10 shrink-0 items-center gap-6 border-t border-line px-4 text-[13px] text-mute">
       <span>
-        Estimated <span className="num text-ink">{usd(estimate.usd)}</span> a request
+        Estimated <span className="num text-ink">{usd(estimate.usd)}</span> per request
       </span>
       <span className="num text-faint">
         {estimate.input_tokens.toLocaleString()} tokens in,{" "}

@@ -384,7 +384,7 @@ export interface PricedPatch {
 export interface Patch {
   id: string;
   /**
-   * A short imperative summary, for example 'Serve clarify with haiku'.
+   * A short imperative summary, for example 'Serve clarify with the cheapest model'.
    */
   title: string;
   /**

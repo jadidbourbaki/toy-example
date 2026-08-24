@@ -215,7 +215,7 @@ export const useStore = create<State & Actions>((set, get) => {
     addNode: (kind, x, y) => {
       const graph = get().graph;
       if (!graph) return;
-      const node = makeNode(graph, kind, x, y);
+      const node = makeNode(graph, kind, x, y, get().models);
       mutate({ ...graph, nodes: [...graph.nodes, node] });
       set({ selectedId: node.id });
     },

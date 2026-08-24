@@ -1,7 +1,8 @@
 import { Handle, Position } from "@xyflow/react";
+import { X } from "lucide-react";
 import { memo } from "react";
 import { cn } from "@/lib/cn";
-import { BILLED, KIND_ICONS, KIND_LABELS, usd } from "@/lib/kinds";
+import { BILLED, usd } from "@/lib/kinds";
 import type { Node, NodeEstimate, RunEvent } from "@/types/wire";
 
 export type StageNodeData = {
@@ -11,27 +12,30 @@ export type StageNodeData = {
   running: boolean;
   skipped: boolean;
   invalid: boolean;
+  onRemove: (id: string) => void;
 };
 
 type StageNodeProps = { data: StageNodeData; selected?: boolean };
 
+/** A stage. Its shape says what kind it is, so nothing here carries an icon:
+ *  a router lists its routes, a ReAct loop shows its tool budget, a tool shows
+ *  the function it calls. Name, model, and cost are the three things every
+ *  stage has, and they always sit in the same three places. */
 function StageNodeImpl({ data, selected }: StageNodeProps) {
-  const { node, estimate, measured, running, skipped, invalid } = data;
+  const { node, estimate, measured, running, skipped, invalid, onRemove } = data;
   const config = node.config;
   const kind = config.kind;
-  const Icon = KIND_ICONS[kind];
 
   if (kind === "input" || kind === "output") {
     return (
       <div
         className={cn(
-          "flex items-center gap-2 rounded-full border bg-page px-3.5 py-2 text-mute",
+          "rounded-full border bg-raised px-4 py-2 text-[14px] text-mute",
           selected ? "border-accent" : "border-line-strong",
           skipped && "opacity-40",
         )}
       >
         {kind === "output" && <Handle type="target" position={Position.Left} />}
-        <Icon size={14} className="text-faint" />
         {node.name}
         {kind === "input" && <Handle type="source" position={Position.Right} />}
       </div>
@@ -39,20 +43,25 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
   }
 
   const routes = kind === "router" ? config.routes : [];
-  const subtitle =
-    kind === "tool"
-      ? config.tool
-      : kind === "subagent"
-        ? config.graph_id || "Pick a graph"
-        : "model" in config
-          ? config.model
+
+  // Two rows on every stage, so a row of them lines up. The chips carry
+  // whatever that kind of stage is configured by.
+  const primary = "model" in config ? config.model || "no model" : "";
+  const secondary =
+    kind === "react"
+      ? `${config.max_iterations} turns`
+      : kind === "tool"
+        ? config.tool
+        : kind === "subagent"
+          ? config.graph_id || "no agent chosen"
           : "";
 
   return (
     <div
       className={cn(
-        "w-[212px] rounded-lg border bg-page shadow-[0_1px_3px_rgba(20,20,30,0.06)]",
-        selected ? "border-accent" : "border-line-strong",
+        "group w-[268px] rounded-xl border bg-raised",
+        "shadow-[0_1px_2px_rgb(27_26_23/0.04),0_8px_20px_-12px_rgb(27_26_23/0.14)]",
+        selected ? "border-accent" : "border-line",
         invalid && "border-bad",
         running && "stage-running",
         skipped && "opacity-40",
@@ -60,31 +69,45 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
     >
       <Handle type="target" position={Position.Left} />
 
-      <div className="px-3.5 py-3">
-        <div className="flex items-center gap-2">
-          <Icon size={14} className="shrink-0 text-faint" aria-label={KIND_LABELS[kind]} />
-          <span className="min-w-0 flex-1 truncate">{node.name}</span>
+      <div className="px-4 pt-3.5 pb-3">
+        <div className="flex items-start gap-2">
+          <span className="min-w-0 flex-1 truncate font-medium">{node.name}</span>
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onRemove(node.id);
+            }}
+            title="Remove this stage"
+            className="-mr-1 -mt-0.5 shrink-0 rounded p-0.5 text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:bg-sunk hover:text-bad"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            {primary && (
+              <span className="truncate rounded-md bg-sunk px-2 py-0.5 text-[12px] text-mute">
+                {primary}
+              </span>
+            )}
+            {secondary && <span className="shrink-0 text-[12px] text-faint">{secondary}</span>}
+          </div>
           {BILLED[kind] && (
             <span
-              className={cn("num shrink-0 text-[13px]", measured ? "text-good" : "text-faint")}
+              className={cn("num shrink-0 text-[13px]", measured ? "text-accent" : "text-faint")}
               title={measured ? "Measured on the last run" : "Estimated"}
             >
               {usd(measured ? (measured.usd ?? 0) : (estimate?.usd ?? 0))}
             </span>
           )}
         </div>
-        {subtitle && (
-          <div className="mt-1 truncate pl-[22px] text-[13px] text-faint">{subtitle}</div>
-        )}
       </div>
 
       {routes.length > 0 ? (
-        <div className="border-t border-line">
+        <div className="border-t border-line px-4 py-2">
           {routes.map((route) => (
-            <div
-              key={route.label}
-              className="relative border-b border-line px-3.5 py-1.5 text-right text-[13px] text-mute last:border-b-0"
-            >
+            <div key={route.label} className="relative py-1 text-right text-[13px] text-mute">
               {route.label}
               <Handle type="source" id={route.label} position={Position.Right} />
             </div>

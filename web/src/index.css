@@ -1,24 +1,35 @@
-@import "@fontsource-variable/inter";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
 @import "tailwindcss";
 @import "@xyflow/react/dist/style.css";
 
 @theme {
-  --color-page: #ffffff;
-  --color-panel: #fbfbfc;
-  --color-sunk: #f2f2f4;
-  --color-line: #e6e6e9;
-  --color-line-strong: #d3d3d8;
-  --color-ink: #16161a;
-  --color-mute: #62626c;
-  --color-faint: #97979f;
+  /* Warm paper rather than pure white, which is what makes a grey-on-white
+     interface read as lifeless. */
+  --color-page: #fdfcfa;
+  --color-raised: #ffffff;
+  --color-sunk: #f2f0ec;
+  --color-line: #e7e4dd;
+  --color-line-strong: #d6d2c8;
+  --color-ink: #1b1a17;
+  --color-mute: #6b6860;
+  --color-faint: #9c988e;
 
-  --color-accent: #3057e5;
-  --color-good: #157347;
-  --color-bad: #c2333a;
-  --color-warn: #96690a;
+  /* The accent is the cat's eye green, darkened until it holds its own on
+     paper. Nothing else on screen is coloured. */
+  --color-accent: #3f7d20;
+  --color-accent-soft: #eef4e8;
+  --color-good: #3f7d20;
+  --color-bad: #a32f28;
+  --color-warn: #8a6212;
 
-  --font-sans: "Inter Variable", Inter, system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  --font-sans: "Geist Variable", Geist, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
+
+  --text-micro: 11px;
+  --text-small: 13px;
+  --text-base: 15px;
+  --text-title: 17px;
 }
 
 @layer base {
@@ -28,13 +39,15 @@
 
   body {
     @apply bg-page text-ink font-sans antialiased;
-    font-size: 14px;
-    line-height: 1.5;
+    font-size: var(--text-base);
+    line-height: 1.45;
+    letter-spacing: -0.006em;
   }
 
-  /* Costs and token counts sit in columns, so their digits share one width. */
   .num {
+    @apply font-mono;
     font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
   }
 
   input,
@@ -42,53 +55,74 @@
   select,
   button {
     font: inherit;
+    letter-spacing: inherit;
   }
 
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-line-strong rounded-full;
+    @apply rounded-full bg-line-strong;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
 
   :focus-visible {
-    @apply outline-2 outline-offset-1 outline-accent;
+    @apply outline-2 outline-offset-2 outline-accent;
   }
 }
 
 @layer components {
   .field {
-    @apply w-full rounded-md border border-line bg-page px-2.5 py-1.5 text-[14px]
+    @apply w-full rounded-lg border border-line bg-raised px-3 py-2 text-[15px]
       placeholder:text-faint focus:border-accent focus:outline-none;
   }
 
   .btn {
-    @apply inline-flex items-center gap-1.5 rounded-md border border-line bg-page px-3 py-1.5
-      text-[14px] hover:bg-sunk disabled:opacity-40 disabled:pointer-events-none transition-colors;
+    @apply inline-flex items-center gap-2 rounded-lg border border-line bg-raised px-3.5 py-2
+      hover:border-line-strong hover:bg-sunk disabled:pointer-events-none disabled:opacity-40
+      transition-colors;
   }
 
   .btn-primary {
-    @apply border-accent bg-accent text-white hover:bg-accent/90;
+    @apply border-accent bg-accent text-white hover:border-accent hover:bg-accent/90;
   }
 
   .btn-quiet {
-    @apply rounded-md border-0 bg-transparent px-2 py-1 text-mute hover:bg-sunk hover:text-ink;
+    @apply rounded-lg border-0 bg-transparent px-2 py-1.5 text-mute hover:bg-sunk hover:text-ink;
+  }
+
+  /* A row in either sidebar. One rhythm for every list in the app. */
+  .row {
+    @apply flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[14px]
+      text-mute transition-colors hover:bg-sunk hover:text-ink;
+  }
+
+  .row-on {
+    @apply bg-sunk font-medium text-ink;
+  }
+
+  .section {
+    @apply px-2.5 pb-1.5 text-[13px] text-faint;
   }
 }
 
 .react-flow {
-  --xy-background-color: var(--color-panel);
+  --xy-background-color: var(--color-page);
   --xy-edge-stroke: var(--color-line-strong);
   --xy-edge-stroke-selected: var(--color-accent);
   --xy-connectionline-stroke: var(--color-accent);
 }
 
 .react-flow__handle {
-  @apply h-3 w-1.5 rounded-sm border-0 bg-line-strong;
+  @apply h-4 w-1.5 rounded-full border-0 bg-line-strong opacity-0 transition-opacity;
+}
+
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node.selected .react-flow__handle {
+  @apply opacity-100;
 }
 
 .react-flow__handle:hover {
@@ -97,11 +131,11 @@
 
 .react-flow__edge-text {
   @apply fill-mute font-sans;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .react-flow__edge-textbg {
-  fill: var(--color-panel);
+  fill: var(--color-page);
 }
 
 .react-flow__attribution {
@@ -109,11 +143,11 @@
 }
 
 .react-flow__controls {
-  @apply overflow-hidden rounded-md border border-line shadow-none;
+  @apply overflow-hidden rounded-lg border border-line shadow-none;
 }
 
 .react-flow__controls-button {
-  @apply border-line bg-page fill-mute hover:bg-sunk;
+  @apply border-line bg-raised fill-mute hover:bg-sunk;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -125,16 +159,24 @@
   }
 }
 
-/* The cat's eyes are their own rects, so a blink is a fill swap to the face
-   colour rather than a second image. It blinks on its own occasionally, and
-   again whenever someone points at it. */
+/* The cat sits on the page with no container. A ring would cut its tail and
+   its ears off, which is what made the circle look wrong. */
+.orla-cat {
+  filter: drop-shadow(0 3px 6px rgb(27 26 23 / 0.18));
+  transition: transform 140ms ease;
+}
+
+.orla-cat:hover {
+  transform: translateY(-3px) scale(1.04);
+}
+
 .orla-cat-eyes rect {
   fill: #5faf00;
   animation: orla-blink 7s infinite;
 }
 
 .orla-cat:hover .orla-cat-eyes rect {
-  animation: orla-blink 0.9s infinite;
+  animation: orla-blink 1s infinite;
 }
 
 @keyframes orla-blink {
@@ -149,15 +191,8 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .orla-cat-eyes rect,
-  .orla-cat:hover .orla-cat-eyes rect {
-    animation: none;
-  }
-}
-
 .stage-running {
-  animation: stage-running 1.2s ease-in-out infinite;
+  animation: stage-running 1.3s ease-in-out infinite;
 }
 
 @keyframes stage-running {
@@ -167,5 +202,13 @@
   }
   50% {
     border-color: var(--color-accent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orla-cat-eyes rect,
+  .orla-cat:hover .orla-cat-eyes rect,
+  .stage-running {
+    animation: none;
   }
 }

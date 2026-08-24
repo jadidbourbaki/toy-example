@@ -1,11 +1,8 @@
-import { Box, GitBranch, LogIn, LogOut, MessageSquare, RefreshCw, Wrench } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import type { Node } from "@/types/wire";
 
 export type NodeKind = Node["config"]["kind"];
 
-/** What a stage of each kind is called, and the mark that stands for it on the
- *  canvas. An icon says the kind without spending a line of text on it. */
+/** What a stage of each kind is called. */
 export const KIND_LABELS: Record<NodeKind, string> = {
   input: "Input",
   output: "Output",
@@ -14,16 +11,6 @@ export const KIND_LABELS: Record<NodeKind, string> = {
   react: "ReAct loop",
   router: "Router",
   subagent: "Subagent",
-};
-
-export const KIND_ICONS: Record<NodeKind, LucideIcon> = {
-  input: LogIn,
-  output: LogOut,
-  llm: MessageSquare,
-  tool: Wrench,
-  react: RefreshCw,
-  router: GitBranch,
-  subagent: Box,
 };
 
 export const PALETTE_KINDS: NodeKind[] = ["llm", "tool", "react", "router", "subagent"];

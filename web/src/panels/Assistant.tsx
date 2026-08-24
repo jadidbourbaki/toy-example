@@ -9,7 +9,9 @@ type Point = { x: number; y: number };
 type Turn = { role: "user" | "assistant"; text: string };
 
 const SPOT_KEY = "orla.assistant.spot";
-const SIZE = 64;
+const BLOCK = 6;
+const WIDTH = 16 * BLOCK;
+const HEIGHT = 12 * BLOCK;
 
 function readSpot(): Point {
   try {
@@ -18,7 +20,7 @@ function readSpot(): Point {
   } catch {
     // A private window or blocked storage just means the default corner.
   }
-  return { x: window.innerWidth - SIZE - 24, y: window.innerHeight - SIZE - 24 };
+  return { x: window.innerWidth - WIDTH - 28, y: window.innerHeight - HEIGHT - 28 };
 }
 
 /** A cat that waits in a corner and answers questions about the open graph.
@@ -47,8 +49,8 @@ export function Assistant() {
     if (!drag.current) return;
     drag.current.moved = true;
     setSpot({
-      x: Math.min(Math.max(0, event.clientX - drag.current.dx), window.innerWidth - SIZE),
-      y: Math.min(Math.max(0, event.clientY - drag.current.dy), window.innerHeight - SIZE),
+      x: Math.min(Math.max(0, event.clientX - drag.current.dx), window.innerWidth - WIDTH),
+      y: Math.min(Math.max(0, event.clientY - drag.current.dy), window.innerHeight - HEIGHT),
     });
   };
 
@@ -103,7 +105,7 @@ export function Assistant() {
   const below = spot.y < 300;
   const panelStyle = {
     left: Math.min(spot.x, window.innerWidth - 400),
-    ...(below ? { top: spot.y + SIZE + 12 } : { bottom: window.innerHeight - spot.y + 12 }),
+    ...(below ? { top: spot.y + HEIGHT + 14 } : { bottom: window.innerHeight - spot.y + 12 }),
   };
 
   return (
@@ -158,12 +160,12 @@ export function Assistant() {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        style={{ left: spot.x, top: spot.y, width: SIZE, height: SIZE }}
+        style={{ left: spot.x, top: spot.y, width: WIDTH, height: HEIGHT }}
         title="Ask about this agent"
         aria-label="Ask about this agent"
-        className="orla-cat fixed z-50 flex touch-none items-center justify-center rounded-full border border-line bg-page shadow-md transition-shadow hover:shadow-lg active:cursor-grabbing"
+        className="orla-cat fixed z-50 flex touch-none cursor-grab items-end justify-center bg-transparent active:cursor-grabbing"
       >
-        <OrlaCat className="h-[42px] w-[50px]" />
+        <OrlaCat className="h-full w-full" />
       </button>
     </>
   );

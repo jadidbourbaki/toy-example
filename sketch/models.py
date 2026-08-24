@@ -15,7 +15,7 @@ from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
-from sketch.graph import AgentGraph, Problem, ReactConfig, RouterConfig
+from sketch.graph import AgentGraph, LLMConfig, Problem, ReactConfig, RouterConfig
 from sketch.settings import settings
 
 Provider = Literal["bedrock-mantle", "bedrock-runtime", "anthropic", "openai", "ollama"]
@@ -237,8 +237,18 @@ def capability_problems(graph: AgentGraph, models: list[ModelSpec]) -> list[Prob
 
     problems: list[Problem] = []
     for node in graph.nodes:
-        model_id = getattr(node.config, "model", "")
+        config = node.config
+        if not isinstance(config, LLMConfig | ReactConfig | RouterConfig):
+            continue
+        model_id = config.model
         if not model_id:
+            problems.append(
+                Problem(
+                    severity="error",
+                    node_id=node.id,
+                    message=f"{node.name} has no model. Pick one from the registry.",
+                )
+            )
             continue
         spec = by_id(models, model_id)
         if spec is None:
@@ -250,7 +260,7 @@ def capability_problems(graph: AgentGraph, models: list[ModelSpec]) -> list[Prob
                 )
             )
             continue
-        if isinstance(node.config, ReactConfig) and not spec.tools:
+        if isinstance(config, ReactConfig) and not spec.tools:
             problems.append(
                 Problem(
                     severity="error",
@@ -258,7 +268,7 @@ def capability_problems(graph: AgentGraph, models: list[ModelSpec]) -> list[Prob
                     message=f"{node.name} is a ReAct loop, and {spec.label} cannot call tools. Bind it to a model that can, or make this a plain model call.",
                 )
             )
-        if isinstance(node.config, RouterConfig) and not spec.structured:
+        if isinstance(config, RouterConfig) and not spec.structured:
             problems.append(
                 Problem(
                     severity="error",

@@ -33,6 +33,7 @@ export function Canvas({ running, skipped }: CanvasProps) {
   const moveNodes = useStore((s) => s.moveNodes);
   const connect = useStore((s) => s.connect);
   const disconnect = useStore((s) => s.disconnect);
+  const removeNode = useStore((s) => s.removeNode);
   const addNode = useStore((s) => s.addNode);
   const wrapper = useRef<HTMLDivElement>(null);
 
@@ -56,9 +57,10 @@ export function Canvas({ running, skipped }: CanvasProps) {
         running: running.has(node.id),
         skipped: skipped.has(node.id),
         invalid: invalid.has(node.id),
+        onRemove: removeNode,
       },
     }));
-  }, [graph, estimate, measured, running, skipped, invalid]);
+  }, [graph, estimate, measured, running, skipped, invalid, removeNode]);
 
   // React Flow owns node state while a drag is in flight, so a pointer move
   // touches local state and nothing else. Positions reach the store on drag
@@ -145,6 +147,8 @@ export function Canvas({ running, skipped }: CanvasProps) {
         onNodeClick={onNodeClick}
         onPaneClick={() => select(null)}
         onEdgesDelete={(edges) => edges.forEach((edge) => disconnect(edge.id))}
+        onNodesDelete={(deleted) => deleted.forEach((node) => removeNode(node.id))}
+        deleteKeyCode={["Backspace", "Delete"]}
         proOptions={{ hideAttribution: true }}
         fitView
         fitViewOptions={{ padding: 0.2, maxZoom: 1 }}

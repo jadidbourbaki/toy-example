@@ -270,7 +270,7 @@
           "type": "string"
         },
         "model": {
-          "default": "haiku",
+          "default": "",
           "type": "string"
         },
         "instructions": {
@@ -677,7 +677,7 @@
           "type": "string"
         },
         "title": {
-          "description": "A short imperative summary, for example 'Serve clarify with haiku'.",
+          "description": "A short imperative summary, for example 'Serve clarify with the cheapest model'.",
           "type": "string"
         },
         "rationale": {
@@ -927,7 +927,7 @@
           "type": "string"
         },
         "model": {
-          "default": "sonnet",
+          "default": "",
           "type": "string"
         },
         "instructions": {
@@ -994,7 +994,7 @@
           "type": "string"
         },
         "model": {
-          "default": "haiku",
+          "default": "",
           "type": "string"
         },
         "question": {

@@ -8,7 +8,7 @@
       "name": "input",
       "position": {
         "x": 0,
-        "y": 200
+        "y": 212
       },
       "notes": "",
       "config": {
@@ -20,8 +20,8 @@
       "id": "n2",
       "name": "clarify",
       "position": {
-        "x": 250,
-        "y": 195
+        "x": 280,
+        "y": 190
       },
       "notes": "",
       "config": {
@@ -36,8 +36,8 @@
       "id": "n3",
       "name": "research",
       "position": {
-        "x": 520,
-        "y": 195
+        "x": 580,
+        "y": 190
       },
       "notes": "",
       "config": {
@@ -56,8 +56,8 @@
       "id": "n4",
       "name": "brief",
       "position": {
-        "x": 790,
-        "y": 195
+        "x": 880,
+        "y": 190
       },
       "notes": "",
       "config": {
@@ -72,8 +72,8 @@
       "id": "n5",
       "name": "output",
       "position": {
-        "x": 1060,
-        "y": 200
+        "x": 1180,
+        "y": 212
       },
       "notes": "",
       "config": {

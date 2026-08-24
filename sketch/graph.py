@@ -41,7 +41,7 @@ class LLMConfig(BaseModel):
 
     kind: Literal["llm"] = "llm"
     stage: str = "answer"
-    model: str = "haiku"
+    model: str = ""
     instructions: str = "You are a careful assistant."
     prompt: str = "${input}"
 
@@ -60,7 +60,7 @@ class ReactConfig(BaseModel):
 
     kind: Literal["react"] = "react"
     stage: str = "research"
-    model: str = "sonnet"
+    model: str = ""
     instructions: str = "Work step by step. Use the tools before answering."
     prompt: str = "${input}"
     tools: list[str] = Field(default_factory=list)
@@ -81,7 +81,7 @@ class RouterConfig(BaseModel):
 
     kind: Literal["router"] = "router"
     stage: str = "route"
-    model: str = "haiku"
+    model: str = ""
     question: str = "Which branch handles this request best?"
     prompt: str = "${input}"
     routes: list[Route] = Field(default_factory=list)
