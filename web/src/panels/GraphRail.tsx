@@ -1,8 +1,10 @@
 import { Plus, Settings2 } from "lucide-react";
-import { AgentModal } from "@/panels/AgentModal";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
-import { KIND_LABELS, PALETTE_KINDS } from "@/lib/kinds";
+import { KIND_LABELS, KIND_TINT, PALETTE_KINDS } from "@/lib/kinds";
+import { AgentModal } from "@/panels/AgentModal";
 import { useStore } from "@/store";
 
 export function GraphRail() {
@@ -12,8 +14,8 @@ export function GraphRail() {
   const createGraph = useStore((s) => s.createGraph);
   const addNode = useStore((s) => s.addNode);
   const [naming, setNaming] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [name, setName] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const submit = async () => {
     if (name.trim()) await createGraph(name.trim());
@@ -22,19 +24,24 @@ export function GraphRail() {
   };
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col gap-6 border-r border-line px-3 py-4">
+    <aside className="flex w-64 shrink-0 flex-col gap-7 border-r px-3 py-4">
       <div>
-        <div className="mb-1 flex items-center justify-between pr-1">
-          <span className="section pb-0">Agents</span>
-          <button className="btn-quiet" onClick={() => setNaming(true)} title="New agent">
-            <Plus size={15} />
-          </button>
+        <div className="mb-1 flex items-center justify-between pl-2.5">
+          <span className="text-muted-foreground">Agents</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setNaming(true)}
+            aria-label="New agent"
+          >
+            <Plus />
+          </Button>
         </div>
 
         {naming && (
-          <input
+          <Input
             autoFocus
-            className="field mb-1 py-1.5"
+            className="mb-1"
             placeholder="Agent name"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -49,21 +56,29 @@ export function GraphRail() {
         {graphs.map((summary) => {
           const active = graph?.id === summary.id;
           return (
-            <div key={summary.id} className={cn("row group", active && "row-on")}>
+            <div
+              key={summary.id}
+              className={cn(
+                "group flex items-center gap-1 rounded-lg pr-1 pl-2.5 transition-colors",
+                active ? "bg-muted font-medium" : "hover:bg-accent",
+              )}
+            >
               <button
-                className="min-w-0 flex-1 text-left"
+                className="min-w-0 flex-1 truncate py-2 text-left"
                 onClick={() => void openGraph(summary.id)}
               >
-                <span className="block truncate">{summary.name}</span>
+                {summary.name}
               </button>
               {active && (
-                <button
-                  className="shrink-0 text-faint opacity-0 group-hover:opacity-100 hover:text-ink"
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100"
                   onClick={() => setSettingsOpen(true)}
-                  title="Agent settings"
+                  aria-label="Agent settings"
                 >
-                  <Settings2 size={15} />
-                </button>
+                  <Settings2 />
+                </Button>
               )}
             </div>
           );
@@ -73,15 +88,19 @@ export function GraphRail() {
       </div>
 
       <div>
-        <div className="section">Add a stage</div>
+        <div className="mb-1 pl-2.5 text-muted-foreground">Add a stage</div>
         {PALETTE_KINDS.map((kind) => (
           <button
             key={kind}
             onClick={() => addNode(kind, 260 + Math.random() * 140, 90 + Math.random() * 180)}
             draggable
             onDragStart={(e) => e.dataTransfer.setData("application/orla-kind", kind)}
-            className="row cursor-grab active:cursor-grabbing"
+            className="flex w-full cursor-grab items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent active:cursor-grabbing"
           >
+            <span
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{ background: KIND_TINT[kind] }}
+            />
             {KIND_LABELS[kind]}
           </button>
         ))}

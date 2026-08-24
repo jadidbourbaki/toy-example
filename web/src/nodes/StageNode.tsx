@@ -1,5 +1,5 @@
 import { Handle, Position } from "@xyflow/react";
-import { X } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import { memo } from "react";
 import { cn } from "@/lib/cn";
 import { BILLED, KIND_LABELS, KIND_TINT, usd } from "@/lib/kinds";
@@ -13,6 +13,7 @@ export type StageNodeData = {
   skipped: boolean;
   invalid: boolean;
   onRemove: (id: string) => void;
+  onEdit: (id: string) => void;
 };
 
 type StageNodeProps = { data: StageNodeData; selected?: boolean };
@@ -22,7 +23,7 @@ type StageNodeProps = { data: StageNodeData; selected?: boolean };
  *  drawn as an icon, so two stages of the same kind are recognisable from
  *  across the canvas without anything to decode. */
 function StageNodeImpl({ data, selected }: StageNodeProps) {
-  const { node, estimate, measured, running, skipped, invalid, onRemove } = data;
+  const { node, estimate, measured, running, skipped, invalid, onRemove, onEdit } = data;
   const config = node.config;
   const kind = config.kind;
   const tint = KIND_TINT[kind];
@@ -31,8 +32,8 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
     return (
       <div
         className={cn(
-          "rounded-full border border-dashed bg-page px-4 py-2 text-[14px] text-mute",
-          selected ? "border-accent" : "border-line-strong",
+          "rounded-full border border-dashed bg-card px-4 py-2 text-muted-foregroundd-foreground",
+          selected ? "border-primary" : "border-border",
           skipped && "opacity-40",
         )}
       >
@@ -53,10 +54,10 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
   return (
     <div
       className={cn(
-        "group relative w-[264px] overflow-hidden rounded-xl border bg-raised",
-        "shadow-[0_1px_2px_rgb(27_26_23/0.05),0_10px_24px_-16px_rgb(27_26_23/0.2)]",
-        selected ? "border-accent" : "border-line",
-        invalid && "border-bad",
+        "group relative w-[264px] overflow-hidden rounded-xl border bg-card",
+        "shadow-[0_1px_2px_rgb(20_20_20/0.05),0_10px_24px_-16px_rgb(20_20_20/0.2)]",
+        selected ? "border-primary" : "border-border",
+        invalid && "border-destructive",
         running && "stage-running",
         skipped && "opacity-40",
       )}
@@ -66,13 +67,13 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
 
       <div className="py-3 pr-3 pl-4">
         <div className="flex items-baseline gap-2">
-          <span className="text-[13px] font-medium" style={{ color: tint }}>
+          <span className="font-medium" style={{ color: tint }}>
             {KIND_LABELS[kind]}
           </span>
           <span className="flex-1" />
           {BILLED[kind] && (
             <span
-              className={cn("num text-[13px]", measured ? "text-accent" : "text-faint")}
+              className={cn("num", measured ? "text-primary" : "text-muted-foregroundd-foreground")}
               title={measured ? "Measured on the last run" : "Estimated"}
             >
               {usd(measured ? (measured.usd ?? 0) : (estimate?.usd ?? 0))}
@@ -81,10 +82,20 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
           <button
             onClick={(event) => {
               event.stopPropagation();
+              onEdit(node.id);
+            }}
+            title="Edit this stage"
+            className="shrink-0 rounded p-1 text-muted-foregroundd-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent hover:text-foreground"
+          >
+            <Pencil size={15} />
+          </button>
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
               onRemove(node.id);
             }}
             title="Remove this stage"
-            className="-mr-1 shrink-0 rounded p-0.5 text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:bg-sunk hover:text-bad"
+            className="-mr-1 shrink-0 rounded p-1 text-muted-foregroundd-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent hover:text-destructive"
           >
             <X size={15} />
           </button>
@@ -96,7 +107,7 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
           {settings.map((setting) => (
             <span
               key={setting}
-              className="truncate rounded-md bg-sunk px-2 py-0.5 text-[13px] text-mute"
+              className="truncate rounded-md bg-muted px-2 py-0.5 text-muted-foregroundd-foreground"
             >
               {setting}
             </span>
@@ -105,11 +116,11 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
       </div>
 
       {routes.length > 0 && (
-        <div className="border-t border-line">
+        <div className="border-t">
           {routes.map((route) => (
             <div
               key={route.label}
-              className="relative border-b border-line py-1.5 pr-4 text-right text-[14px] text-mute last:border-b-0"
+              className="relative border-b py-2 pr-4 text-right text-muted-foregroundd-foreground last:border-b-0"
             >
               {route.label}
               <Handle type="source" id={route.label} position={Position.Right} />

@@ -113,18 +113,22 @@ export function Assistant() {
       {open && (
         <div
           style={panelStyle}
-          className="fixed z-50 flex h-[440px] w-[380px] flex-col rounded-xl border border-line bg-page shadow-xl"
+          className="fixed z-50 flex h-[440px] w-[380px] flex-col rounded-xl border border-border bg-background shadow-xl"
         >
-          <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-            <span className="flex-1 text-mute">Ask about this agent</span>
-            <button className="btn-quiet" onClick={() => setOpen(false)} aria-label="Close">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+            <span className="flex-1 text-muted-foreground">Ask about this agent</span>
+            <button
+              className="rounded-lg px-2 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+              onClick={() => setOpen(false)}
+              aria-label="Close"
+            >
               <X size={16} />
             </button>
           </div>
 
           <div ref={scroller} className="flex-1 overflow-y-auto px-4 py-3">
             {turns.length === 0 && (
-              <p className="text-[13px] leading-relaxed text-faint">
+              <p className="text-[14px] leading-relaxed text-muted-foreground">
                 Which stage costs the most? What does the router do here?
               </p>
             )}
@@ -133,7 +137,7 @@ export function Assistant() {
                 key={index}
                 className={cn(
                   "mb-4 text-[14px] leading-relaxed",
-                  turn.role === "user" ? "text-ink" : "text-mute",
+                  turn.role === "user" ? "text-foreground" : "text-muted-foreground",
                 )}
               >
                 {turn.text || (busy && index === turns.length - 1 ? "Thinking" : "")}
@@ -141,9 +145,9 @@ export function Assistant() {
             ))}
           </div>
 
-          <div className="border-t border-line p-3">
+          <div className="border-t border-border p-3">
             <input
-              className="field"
+              className="w-full rounded-lg border bg-card px-3 py-2"
               placeholder="Ask a question"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}

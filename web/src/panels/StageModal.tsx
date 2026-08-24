@@ -1,4 +1,22 @@
-import * as Dialog from "@radix-ui/react-dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { upstreamNames } from "@/lib/graph";
@@ -6,19 +24,21 @@ import { KIND_LABELS, KIND_TINT } from "@/lib/kinds";
 import { useStore } from "@/store";
 import type { Route } from "@/types/wire";
 
+/** Label and control on one line, both at the library's own size so they sit
+ *  on a shared baseline. */
 function Prop({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex items-center gap-4">
-      <span className="w-24 shrink-0 text-[14px] text-mute">{label}</span>
-      <div className="min-w-0 flex-1">{children}</div>
-    </label>
+    <div className="grid grid-cols-[7rem_1fr] items-center gap-4">
+      <Label className="text-muted-foregroundd-foreground">{label}</Label>
+      <div className="min-w-0">{children}</div>
+    </div>
   );
 }
 
 function Block({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <div className="mb-1.5 text-[14px] text-mute">{label}</div>
+    <div className="grid gap-2">
+      <Label className="text-muted-foregroundd-foreground">{label}</Label>
       {children}
     </div>
   );
@@ -47,282 +67,271 @@ export function StageModal() {
   const available = ["input", ...upstreamNames(graph, node.id)];
 
   return (
-    <Dialog.Root open onOpenChange={(open) => !open && setEditing(null)}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-ink/25" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 flex max-h-[82vh] w-[600px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-line bg-raised shadow-2xl">
-          <div className="flex items-center gap-3 border-b border-line px-6 py-4">
-            <span className="text-[14px] font-medium" style={{ color: KIND_TINT[config.kind] }}>
-              {KIND_LABELS[config.kind]}
-            </span>
-            <Dialog.Title className="flex-1 truncate text-[17px] font-medium">
-              {node.name}
-            </Dialog.Title>
-            <Dialog.Close asChild>
-              <button className="btn-quiet" aria-label="Close">
-                <X size={17} />
-              </button>
-            </Dialog.Close>
-          </div>
+    <Dialog open onOpenChange={(open) => !open && setEditing(null)}>
+      <DialogContent className="flex max-h-[82vh] flex-col gap-0 p-0 sm:max-w-[620px]">
+        <DialogHeader className="flex-row items-center gap-3 border-b px-6 py-4">
+          <span className="font-medium" style={{ color: KIND_TINT[config.kind] }}>
+            {KIND_LABELS[config.kind]}
+          </span>
+          <DialogTitle className="flex-1 truncate text-lg">{node.name}</DialogTitle>
+        </DialogHeader>
 
-          <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
-            <Prop label="Name">
-              <input
-                className="field"
-                value={node.name}
-                onChange={(e) => updateNode(node.id, { name: e.target.value })}
+        <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
+          <Prop label="Name">
+            <Input
+              value={node.name}
+              onChange={(e) => updateNode(node.id, { name: e.target.value })}
+            />
+          </Prop>
+
+          {"stage" in config && (
+            <Prop label="Stage">
+              <Input
+                value={config.stage}
+                onChange={(e) => updateConfig(node.id, { stage: e.target.value })}
               />
             </Prop>
+          )}
 
-            {"stage" in config && (
-              <Prop label="Stage">
-                <input
-                  className="field"
-                  value={config.stage}
-                  onChange={(e) => updateConfig(node.id, { stage: e.target.value })}
-                />
-              </Prop>
-            )}
-
-            {"model" in config && (
-              <Prop label="Model">
-                <select
-                  className="field"
-                  value={config.model}
-                  onChange={(e) => updateConfig(node.id, { model: e.target.value })}
-                >
-                  {!config.model && <option value="">Pick a model</option>}
+          {"model" in config && (
+            <Prop label="Model">
+              <Select
+                value={config.model}
+                onValueChange={(value) => updateConfig(node.id, { model: value })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Pick a model" />
+                </SelectTrigger>
+                <SelectContent>
                   {models.map((model) => (
-                    <option key={model.id} value={model.id}>
+                    <SelectItem key={model.id} value={model.id}>
                       {model.label}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
-              </Prop>
-            )}
+                </SelectContent>
+              </Select>
+            </Prop>
+          )}
 
-            {config.kind === "tool" && (
-              <Prop label="Function">
-                <select
-                  className="field"
-                  value={config.tool}
-                  onChange={(e) => updateConfig(node.id, { tool: e.target.value })}
-                >
+          {config.kind === "tool" && (
+            <Prop label="Function">
+              <Select
+                value={config.tool}
+                onValueChange={(value) => updateConfig(node.id, { tool: value })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
                   {tools.map((tool) => (
-                    <option key={tool.id} value={tool.id}>
+                    <SelectItem key={tool.id} value={tool.id}>
                       {tool.id}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
-              </Prop>
-            )}
+                </SelectContent>
+              </Select>
+            </Prop>
+          )}
 
-            {config.kind === "tool" &&
-              tools
-                .filter((t) => t.id === config.tool)
-                .map((tool) => (
-                  <p key={tool.id} className="pl-28 text-[13px] text-faint">
-                    {tool.description}
-                  </p>
-                ))}
+          {config.kind === "react" && (
+            <Prop label="Tool budget">
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                className="num w-28"
+                value={config.max_iterations}
+                onChange={(e) =>
+                  updateConfig(node.id, { max_iterations: Number(e.target.value) || 1 })
+                }
+              />
+            </Prop>
+          )}
 
-            {config.kind === "react" && (
-              <Prop label="Tool budget">
-                <input
-                  type="number"
-                  min={1}
-                  max={20}
-                  className="field num w-28"
-                  value={config.max_iterations}
-                  onChange={(e) =>
-                    updateConfig(node.id, { max_iterations: Number(e.target.value) || 1 })
-                  }
-                />
-              </Prop>
-            )}
-
-            {config.kind === "subagent" && (
-              <Prop label="Agent">
-                <select
-                  className="field"
-                  value={config.graph_id}
-                  onChange={(e) => updateConfig(node.id, { graph_id: e.target.value })}
-                >
-                  <option value="">Pick an agent</option>
+          {config.kind === "subagent" && (
+            <Prop label="Agent">
+              <Select
+                value={config.graph_id}
+                onValueChange={(value) => updateConfig(node.id, { graph_id: value })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Pick an agent" />
+                </SelectTrigger>
+                <SelectContent>
                   {graphs
                     .filter((g) => g.id !== graph.id)
                     .map((g) => (
-                      <option key={g.id} value={g.id}>
+                      <SelectItem key={g.id} value={g.id}>
                         {g.name}
-                      </option>
+                      </SelectItem>
                     ))}
-                </select>
-              </Prop>
-            )}
+                </SelectContent>
+              </Select>
+            </Prop>
+          )}
 
-            {config.kind === "react" && (
-              <Block label="Tools">
-                <div className="flex flex-wrap gap-x-5 gap-y-1.5">
-                  {tools.map((tool) => {
-                    const on = config.tools.includes(tool.id);
-                    return (
-                      <label key={tool.id} className="flex cursor-pointer items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={on}
-                          onChange={() =>
-                            updateConfig(node.id, {
-                              tools: on
-                                ? config.tools.filter((t) => t !== tool.id)
-                                : [...config.tools, tool.id],
-                            })
-                          }
-                        />
-                        <span className="font-mono text-[13px]">{tool.id}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </Block>
-            )}
-
-            {config.kind === "router" && (
-              <Block label="Question">
-                <textarea
-                  className="field h-16 resize-none"
-                  value={config.question}
-                  onChange={(e) => updateConfig(node.id, { question: e.target.value })}
-                />
-              </Block>
-            )}
-
-            {"instructions" in config && (
-              <Block label="Instructions">
-                <textarea
-                  className="field h-24 resize-none leading-relaxed"
-                  value={config.instructions}
-                  onChange={(e) => updateConfig(node.id, { instructions: e.target.value })}
-                />
-              </Block>
-            )}
-
-            {"prompt" in config && (
-              <Block label="Prompt">
-                <textarea
-                  className="field h-20 resize-none font-mono text-[13px] leading-relaxed"
-                  value={config.prompt}
-                  onChange={(e) => updateConfig(node.id, { prompt: e.target.value })}
-                />
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {available.map((name) => (
-                    <button
-                      key={name}
-                      className="rounded-md border border-line px-2 py-0.5 font-mono text-[12px] text-mute hover:border-accent hover:text-accent"
-                      onClick={() =>
-                        updateConfig(node.id, { prompt: `${config.prompt}\${${name}}` })
-                      }
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </div>
-              </Block>
-            )}
-
-            {config.kind === "router" && (
-              <Block label="Routes">
-                {config.routes.map((route: Route, index: number) => (
-                  <div key={index} className="mb-2 flex items-center gap-2">
-                    <input
-                      className="field w-32 shrink-0"
-                      value={route.label}
-                      onChange={(e) => {
-                        const routes = [...config.routes];
-                        routes[index] = { ...route, label: e.target.value };
-                        updateConfig(node.id, { routes });
-                      }}
-                    />
-                    <input
-                      className="field"
-                      placeholder="When it applies"
-                      value={route.description}
-                      onChange={(e) => {
-                        const routes = [...config.routes];
-                        routes[index] = { ...route, description: e.target.value };
-                        updateConfig(node.id, { routes });
-                      }}
-                    />
-                    <button
-                      className="btn-quiet shrink-0"
-                      onClick={() =>
+          {config.kind === "react" && (
+            <Block label="Tools">
+              <div className="flex flex-wrap gap-x-6 gap-y-2.5">
+                {tools.map((tool) => (
+                  <Label key={tool.id} className="font-mono font-normal">
+                    <Checkbox
+                      checked={config.tools.includes(tool.id)}
+                      onCheckedChange={(on) =>
                         updateConfig(node.id, {
-                          routes: config.routes.filter((_, i) => i !== index),
+                          tools: on
+                            ? [...config.tools, tool.id]
+                            : config.tools.filter((t) => t !== tool.id),
                         })
                       }
-                      title="Remove this route"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
+                    />
+                    {tool.id}
+                  </Label>
                 ))}
-                <button
-                  className="text-[14px] text-mute hover:text-accent"
-                  onClick={() =>
-                    updateConfig(node.id, {
-                      routes: [
-                        ...config.routes,
-                        { label: `route_${config.routes.length + 1}`, description: "" },
-                      ],
-                    })
-                  }
-                >
-                  Add a route
-                </button>
-              </Block>
-            )}
+              </div>
+            </Block>
+          )}
 
-            {boundary && (
-              <Block label="Description">
-                <textarea
-                  className="field h-16 resize-none"
-                  value={config.description}
-                  onChange={(e) => updateConfig(node.id, { description: e.target.value })}
-                />
-              </Block>
-            )}
+          {config.kind === "router" && (
+            <Block label="Question">
+              <Textarea
+                className="h-16 resize-none"
+                value={config.question}
+                onChange={(e) => updateConfig(node.id, { question: e.target.value })}
+              />
+            </Block>
+          )}
 
-            {nodeProblems.map((problem, index) => (
-              <p
-                key={index}
-                className={cn(
-                  "text-[14px] leading-snug",
-                  problem.severity === "error" ? "text-bad" : "text-warn",
-                )}
+          {"instructions" in config && (
+            <Block label="Instructions">
+              <Textarea
+                className="h-24 resize-none"
+                value={config.instructions}
+                onChange={(e) => updateConfig(node.id, { instructions: e.target.value })}
+              />
+            </Block>
+          )}
+
+          {"prompt" in config && (
+            <Block label="Prompt">
+              <Textarea
+                className="h-24 resize-none font-mono"
+                value={config.prompt}
+                onChange={(e) => updateConfig(node.id, { prompt: e.target.value })}
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {available.map((name) => (
+                  <Button
+                    key={name}
+                    variant="outline"
+                    size="sm"
+                    className="font-mono"
+                    onClick={() => updateConfig(node.id, { prompt: `${config.prompt}\${${name}}` })}
+                  >
+                    {name}
+                  </Button>
+                ))}
+              </div>
+            </Block>
+          )}
+
+          {config.kind === "router" && (
+            <Block label="Routes">
+              {config.routes.map((route: Route, index: number) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    className="w-36 shrink-0"
+                    value={route.label}
+                    onChange={(e) => {
+                      const routes = [...config.routes];
+                      routes[index] = { ...route, label: e.target.value };
+                      updateConfig(node.id, { routes });
+                    }}
+                  />
+                  <Input
+                    placeholder="When it applies"
+                    value={route.description}
+                    onChange={(e) => {
+                      const routes = [...config.routes];
+                      routes[index] = { ...route, description: e.target.value };
+                      updateConfig(node.id, { routes });
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() =>
+                      updateConfig(node.id, {
+                        routes: config.routes.filter((_, i) => i !== index),
+                      })
+                    }
+                    aria-label="Remove this route"
+                  >
+                    <X />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                className="self-start"
+                onClick={() =>
+                  updateConfig(node.id, {
+                    routes: [
+                      ...config.routes,
+                      { label: `route_${config.routes.length + 1}`, description: "" },
+                    ],
+                  })
+                }
               >
-                {problem.message}
-              </p>
-            ))}
-          </div>
+                Add a route
+              </Button>
+            </Block>
+          )}
 
-          <div className="flex items-center border-t border-line px-6 py-3.5">
-            {!boundary && (
-              <button
-                className="text-[14px] text-mute hover:text-bad"
-                onClick={() => {
-                  removeNode(node.id);
-                  setEditing(null);
-                }}
-              >
-                Remove stage
-              </button>
-            )}
-            <div className="flex-1" />
-            <Dialog.Close asChild>
-              <button className="btn btn-primary">Done</button>
-            </Dialog.Close>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+          {boundary && (
+            <Block label="Description">
+              <Textarea
+                className="h-16 resize-none"
+                value={config.description}
+                onChange={(e) => updateConfig(node.id, { description: e.target.value })}
+              />
+            </Block>
+          )}
+
+          {nodeProblems.map((problem, index) => (
+            <p
+              key={index}
+              className={cn(
+                "leading-snug",
+                problem.severity === "error"
+                  ? "text-destructive"
+                  : "text-muted-foregroundd-foreground",
+              )}
+            >
+              {problem.message}
+            </p>
+          ))}
+        </div>
+
+        <DialogFooter className="border-t px-6 py-4 sm:justify-between">
+          {!boundary ? (
+            <Button
+              variant="ghost"
+              className="text-muted-foregroundd-foreground hover:text-destructive"
+              onClick={() => {
+                removeNode(node.id);
+                setEditing(null);
+              }}
+            >
+              Remove stage
+            </Button>
+          ) : (
+            <span />
+          )}
+          <Button onClick={() => setEditing(null)}>Done</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -60,9 +60,10 @@ export function Canvas({ running, skipped }: CanvasProps) {
         skipped: skipped.has(node.id),
         invalid: invalid.has(node.id),
         onRemove: removeNode,
+        onEdit: setEditing,
       },
     }));
-  }, [graph, estimate, measured, running, skipped, invalid, removeNode]);
+  }, [graph, estimate, measured, running, skipped, invalid, removeNode, setEditing]);
 
   // React Flow owns node state while a drag is in flight, so a pointer move
   // touches local state and nothing else. Positions reach the store on drag
@@ -102,10 +103,10 @@ export function Canvas({ running, skipped }: CanvasProps) {
         type: MarkerType.ArrowClosed,
         width: 20,
         height: 20,
-        color: running.has(edge.target) ? "var(--color-accent)" : "var(--color-line-strong)",
+        color: running.has(edge.target) ? "var(--primary)" : "oklch(0.74 0.01 80)",
       },
       style: {
-        stroke: running.has(edge.target) ? "var(--color-accent)" : "var(--color-line-strong)",
+        stroke: running.has(edge.target) ? "var(--primary)" : "oklch(0.74 0.01 80)",
         strokeWidth: 1.75,
       },
     }));
@@ -142,7 +143,11 @@ export function Canvas({ running, skipped }: CanvasProps) {
   );
 
   if (!graph) {
-    return <div className="flex flex-1 items-center justify-center text-mute">No agent open.</div>;
+    return (
+      <div className="flex flex-1 items-center justify-center text-muted-foregroundd-foreground">
+        No agent open.
+      </div>
+    );
   }
 
   return (
@@ -172,7 +177,7 @@ export function Canvas({ running, skipped }: CanvasProps) {
         maxZoom={1.6}
         defaultEdgeOptions={{ type: "bezier" }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e2e2e6" />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="var(--border)" />
         <Controls showInteractive={false} position="bottom-left" />
       </ReactFlow>
     </div>

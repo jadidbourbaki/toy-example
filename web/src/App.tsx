@@ -1,4 +1,5 @@
-import * as Tabs from "@radix-ui/react-tabs";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
 import { Canvas } from "@/Canvas";
 import { cn } from "@/lib/cn";
@@ -38,57 +39,40 @@ export function App() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      <header className="flex h-14 shrink-0 items-center gap-5 border-b border-line px-4">
+      <header className="flex h-14 shrink-0 items-center gap-5 border-b border-border px-4">
         <span className="text-[17px] font-semibold tracking-[-0.02em]">Orla Dashboard</span>
 
-        <Tabs.Root value={tab} onValueChange={(value) => setTab(value as Tab)}>
-          <Tabs.List className="flex items-center gap-0.5 rounded-lg bg-sunk p-0.5">
+        <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)}>
+          <TabsList>
             {WORK_TABS.map((entry) => (
-              <Tabs.Trigger
-                key={entry.id}
-                value={entry.id}
-                className={cn(
-                  "rounded-md px-3.5 py-1 text-[14px] transition-colors",
-                  tab === entry.id
-                    ? "bg-raised text-ink shadow-[0_1px_2px_rgb(27_26_23/0.08)]"
-                    : "text-mute hover:text-ink",
-                )}
-              >
+              <TabsTrigger key={entry.id} value={entry.id}>
                 {entry.label}
-              </Tabs.Trigger>
+              </TabsTrigger>
             ))}
-          </Tabs.List>
-        </Tabs.Root>
+          </TabsList>
+        </Tabs>
 
         {/* Optimizing an agent is the product, so it stands apart from the
             working tabs rather than hiding among them. */}
-        <button
+        <Button
+          variant={tab === "optimize" ? "default" : "outline"}
+          className={cn(tab !== "optimize" && "border-primary/50 text-primary")}
           onClick={() => setTab("optimize")}
-          className={cn(
-            "rounded-lg px-4 py-1.5 text-[14px] font-medium transition-colors",
-            tab === "optimize"
-              ? "bg-accent text-white"
-              : "border border-accent/40 text-accent hover:bg-accent-soft",
-          )}
         >
           Optimize
-        </button>
+        </Button>
 
         <div className="flex-1" />
 
         {errors > 0 && (
-          <span className="text-[14px] text-bad">
+          <span className="text-destructive">
             {errors} {errors === 1 ? "problem" : "problems"}
           </span>
         )}
-        {error && <span className="text-[14px] text-bad">{error}</span>}
+        {error && <span className="text-destructive">{error}</span>}
 
         <ModelPicker />
-        {dirty && (
-          <button className="btn" onClick={() => void save()}>
-            Save
-          </button>
-        )}
+        {dirty && <Button onClick={() => void save()}>Save</Button>}
       </header>
 
       <div className="flex min-h-0 flex-1">

@@ -2,122 +2,147 @@
 @import "@fontsource-variable/geist-mono";
 @import "tailwindcss";
 @import "@xyflow/react/dist/style.css";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-@theme {
-  /* Warm paper rather than pure white, which is what makes a grey-on-white
-     interface read as lifeless. */
-  --color-page: #fdfcfa;
-  --color-raised: #ffffff;
-  --color-sunk: #f2f0ec;
-  --color-line: #e7e4dd;
-  --color-line-strong: #d6d2c8;
-  --color-ink: #1b1a17;
-  --color-mute: #6b6860;
-  --color-faint: #9c988e;
+@custom-variant dark (&:is(.dark *));
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "Geist Variable", sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
 
-  /* The accent is the cat's eye green, darkened until it holds its own on
-     paper. Nothing else on screen is coloured. */
-  --color-accent: #3f7d20;
-  --color-accent-soft: #eef4e8;
-  --color-good: #3f7d20;
-  --color-bad: #a32f28;
-  --color-warn: #8a6212;
+:root {
+  --background: oklch(0.992 0.004 85);
+  --foreground: oklch(0.22 0.008 60);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.008 60);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.008 60);
+  --primary: oklch(0.52 0.13 140);
+  --primary-foreground: oklch(0.99 0.004 85);
+  --secondary: oklch(0.96 0.006 85);
+  --secondary-foreground: oklch(0.22 0.008 60);
+  --muted: oklch(0.96 0.006 85);
+  --muted-foreground: oklch(0.52 0.01 70);
+  --accent: oklch(0.96 0.006 85);
+  --accent-foreground: oklch(0.22 0.008 60);
+  --destructive: oklch(0.53 0.17 25);
+  --border: oklch(0.91 0.006 80);
+  --input: oklch(0.91 0.006 80);
+  --ring: oklch(0.52 0.13 140);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
 
-  --font-sans: "Geist Variable", Geist, system-ui, sans-serif;
-  --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
-
-  --text-micro: 11px;
-  --text-small: 13px;
-  --text-base: 15px;
-  --text-title: 17px;
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
 }
 
 @layer base {
-  html {
-    color-scheme: light;
-  }
-
   body {
-    @apply bg-page text-ink font-sans antialiased;
-    font-size: var(--text-base);
-    line-height: 1.45;
-    letter-spacing: -0.006em;
+    @apply bg-background text-foreground antialiased;
   }
 
+  /* Costs and token counts sit in columns, so their digits share one width. */
   .num {
-    @apply font-mono;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
-  }
-
-  input,
-  textarea,
-  select,
-  button {
-    font: inherit;
-    letter-spacing: inherit;
-  }
-
-  ::-webkit-scrollbar {
-    width: 11px;
-    height: 11px;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply rounded-full bg-line-strong;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  :focus-visible {
-    @apply outline-2 outline-offset-2 outline-accent;
+    letter-spacing: -0.01em;
   }
 }
 
-@layer components {
-  .field {
-    @apply w-full rounded-lg border border-line bg-raised px-3 py-2 text-[15px]
-      placeholder:text-faint focus:border-accent focus:outline-none;
-  }
-
-  .btn {
-    @apply inline-flex items-center gap-2 rounded-lg border border-line bg-raised px-3.5 py-2
-      hover:border-line-strong hover:bg-sunk disabled:pointer-events-none disabled:opacity-40
-      transition-colors;
-  }
-
-  .btn-primary {
-    @apply border-accent bg-accent text-white hover:border-accent hover:bg-accent/90;
-  }
-
-  .btn-quiet {
-    @apply rounded-lg border-0 bg-transparent px-2 py-1.5 text-mute hover:bg-sunk hover:text-ink;
-  }
-
-  /* A row in either sidebar. One rhythm for every list in the app. */
-  .row {
-    @apply flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[14px]
-      text-mute transition-colors hover:bg-sunk hover:text-ink;
-  }
-
-  .row-on {
-    @apply bg-sunk font-medium text-ink;
-  }
-
-  .section {
-    @apply px-2.5 pb-1.5 text-[13px] text-faint;
-  }
-}
-
+/* The canvas takes its colours from the same tokens as everything else. */
 .react-flow {
-  --xy-background-color: var(--color-page);
-  --xy-edge-stroke: var(--color-line-strong);
-  --xy-edge-stroke-selected: var(--color-accent);
-  --xy-connectionline-stroke: var(--color-accent);
+  --xy-background-color: var(--background);
+  /* An edge has to stay legible across a wide canvas, so it is darker than the
+     borders that only separate adjacent surfaces. */
+  --xy-edge-stroke: oklch(0.74 0.01 80);
+  --xy-edge-stroke-selected: var(--primary);
+  --xy-connectionline-stroke: var(--primary);
 }
 
 .react-flow__handle {
-  @apply h-4 w-1.5 rounded-full border-0 bg-line-strong opacity-0 transition-opacity;
+  @apply h-4 w-1.5 rounded-full border-0 opacity-0 transition-opacity;
+  background: var(--border);
 }
 
 .react-flow__node:hover .react-flow__handle,
@@ -126,16 +151,16 @@
 }
 
 .react-flow__handle:hover {
-  @apply bg-accent;
+  background: var(--primary);
 }
 
 .react-flow__edge-text {
-  @apply fill-mute font-sans;
-  font-size: 13px;
+  fill: var(--muted-foreground);
+  font-size: 14px;
 }
 
 .react-flow__edge-textbg {
-  fill: var(--color-page);
+  fill: var(--background);
 }
 
 .react-flow__attribution {
@@ -143,26 +168,17 @@
 }
 
 .react-flow__controls {
-  @apply overflow-hidden rounded-lg border border-line shadow-none;
+  @apply overflow-hidden rounded-lg border shadow-none;
 }
 
 .react-flow__controls-button {
-  @apply border-line bg-raised fill-mute hover:bg-sunk;
+  @apply border-border bg-background hover:bg-accent;
+  fill: var(--muted-foreground);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* The cat sits on the page with no container. A ring would cut its tail and
-   its ears off, which is what made the circle look wrong. */
+/* The cat sits on the page with no container, so nothing clips its ears. */
 .orla-cat {
-  filter: drop-shadow(0 3px 6px rgb(27 26 23 / 0.18));
+  filter: drop-shadow(0 3px 6px rgb(20 20 20 / 0.18));
   transition: transform 140ms ease;
 }
 
@@ -198,17 +214,18 @@
 @keyframes stage-running {
   0%,
   100% {
-    border-color: var(--color-line-strong);
+    border-color: var(--border);
   }
   50% {
-    border-color: var(--color-accent);
+    border-color: var(--primary);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .orla-cat-eyes rect,
-  .orla-cat:hover .orla-cat-eyes rect,
-  .stage-running {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

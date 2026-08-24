@@ -11,7 +11,8 @@ function Record({ measured }: { measured: PatchMeasurement }) {
   const { wins, losses, ties } = measured;
   const verdict =
     losses > wins ? "worse" : wins > losses ? "better" : ties > 0 ? "no difference" : "unjudged";
-  const tone = losses > wins ? "text-bad" : wins > losses ? "text-good" : "text-mute";
+  const tone =
+    losses > wins ? "text-destructive" : wins > losses ? "text-primary" : "text-muted-foreground";
   return <span className={cn("num", tone)}>{verdict}</span>;
 }
 
@@ -21,40 +22,42 @@ function Measured({ measured }: { measured: PatchMeasurement }) {
     <div
       className={cn(
         "mt-2 rounded-[3px] border px-2.5 py-2",
-        measured.losses > measured.wins ? "border-bad/40 bg-bad/5" : "border-line bg-panel",
+        measured.losses > measured.wins ? "border-bad/40 bg-bad/5" : "border-border bg-panel",
       )}
     >
       <div className="mb-1.5 flex items-center gap-3">
-        <span className="text-[13px] text-faint">Measured</span>
-        <span className={cn("num text-[13px]", cheaper ? "text-good" : "text-warn")}>
+        <span className="text-[14px] text-muted-foreground">Measured</span>
+        <span className={cn("num text-[14px]", cheaper ? "text-primary" : "text-muted-foreground")}>
           {signedUsd(measured.usd_delta)} per request
         </span>
-        <span className="num text-[13px] text-mute">
+        <span className="num text-[14px] text-muted-foreground">
           {measured.ms_delta >= 0 ? "+" : "−"}
           {ms(Math.abs(measured.ms_delta))}
         </span>
         <Record measured={measured} />
         <div className="flex-1" />
         <span
-          className="num text-[13px] text-mute"
+          className="num text-[14px] text-muted-foreground"
           title="How many sample requests both versions completed. A small n on a loop is noisy."
         >
           n={measured.paired}
         </span>
       </div>
 
-      {measured.error && <div className="mb-1.5 text-[13px] text-bad">{measured.error}</div>}
+      {measured.error && (
+        <div className="mb-1.5 text-[14px] text-destructive">{measured.error}</div>
+      )}
 
       {measured.verdicts.map((verdict, index) => (
         <div key={index} className="mb-1 flex items-start gap-2">
           <span
             className={cn(
-              "font-mono mt-px w-16 shrink-0 text-[13px]",
+              "font-mono mt-px w-16 shrink-0 text-[14px]",
               verdict.winner === "candidate"
-                ? "text-good"
+                ? "text-primary"
                 : verdict.winner === "baseline"
-                  ? "text-bad"
-                  : "text-faint",
+                  ? "text-destructive"
+                  : "text-muted-foreground",
             )}
           >
             {verdict.winner === "candidate"
@@ -63,10 +66,13 @@ function Measured({ measured }: { measured: PatchMeasurement }) {
                 ? "worse"
                 : "tie"}
           </span>
-          <span className="text-[13px] leading-snug text-mute">
+          <span className="text-[14px] leading-snug text-muted-foreground">
             {verdict.reason}
             {!verdict.agreed && (
-              <span className="text-faint"> (the two orderings disagreed, so it scores a tie)</span>
+              <span className="text-muted-foreground">
+                {" "}
+                (the two orderings disagreed, so it scores a tie)
+              </span>
             )}
           </span>
         </div>
@@ -167,8 +173,12 @@ export function OptimizePanel() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-line px-4 py-2.5">
-        <button className="btn btn-primary" onClick={() => void review()} disabled={busy || !graph}>
+      <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
+        <button
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
+          onClick={() => void review()}
+          disabled={busy || !graph}
+        >
           <Sparkles size={12} />
           {busy ? "Reviewing" : "Review this agent"}
         </button>
@@ -176,12 +186,15 @@ export function OptimizePanel() {
         {accepted.size > 0 && (
           <>
             {measuring ? (
-              <button className="btn" onClick={() => abort.current?.abort()}>
+              <button
+                className="inline-flex items-center gap-2 rounded-lg border bg-card px-3.5 py-2 hover:bg-accent disabled:opacity-40"
+                onClick={() => abort.current?.abort()}
+              >
                 <Square size={11} /> Stop
               </button>
             ) : (
               <button
-                className="btn"
+                className="inline-flex items-center gap-2 rounded-lg border bg-card px-3.5 py-2 hover:bg-accent disabled:opacity-40"
                 onClick={() => void measure()}
                 disabled={!graph?.sample.length}
                 title={
@@ -196,10 +209,15 @@ export function OptimizePanel() {
             )}
             <div className="flex-1" />
             {regressions > 0 && (
-              <span className="mr-1 text-[13px] text-bad">{regressions} measured worse</span>
+              <span className="mr-1 text-[14px] text-destructive">
+                {regressions} measured worse
+              </span>
             )}
-            <span className="num text-[13px] text-mute">{accepted.size} selected</span>
-            <button className="btn btn-primary" onClick={() => void applyChosen()}>
+            <span className="num text-[14px] text-muted-foreground">{accepted.size} selected</span>
+            <button
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
+              onClick={() => void applyChosen()}
+            >
               Apply to the canvas
             </button>
           </>
@@ -208,10 +226,12 @@ export function OptimizePanel() {
       </div>
 
       {error && (
-        <div className="border-b border-line bg-bad/10 px-4 py-2 text-[13px] text-bad">{error}</div>
+        <div className="border-b border-border bg-bad/10 px-4 py-2 text-[14px] text-destructive">
+          {error}
+        </div>
       )}
       {result && !result.ok && (
-        <div className="border-b border-line bg-bad/10 px-4 py-2 text-[13px] text-bad">
+        <div className="border-b border-border bg-bad/10 px-4 py-2 text-[14px] text-destructive">
           {result.error}
         </div>
       )}
@@ -220,13 +240,17 @@ export function OptimizePanel() {
         <SampleEditor />
 
         {result?.summary && (
-          <div className="border-b border-line bg-panel px-4 py-3">
-            <div className="mb-1.5 text-[13px] text-faint">What it found</div>
-            <p className="max-w-3xl text-[13px] leading-relaxed text-ink">{result.summary}</p>
-            <div className="num mt-2 flex gap-4 text-[13px] text-faint">
+          <div className="border-b border-border bg-panel px-4 py-3">
+            <div className="mb-1.5 text-[14px] text-muted-foreground">What it found</div>
+            <p className="max-w-3xl text-[14px] leading-relaxed text-foreground">
+              {result.summary}
+            </p>
+            <div className="num mt-2 flex gap-4 text-[14px] text-muted-foreground">
               <span>estimated {usd(result.baseline_usd)} per request</span>
               {baselineUsd !== null && (
-                <span className="text-mute">measured {usd(baselineUsd)} per request</span>
+                <span className="text-muted-foreground">
+                  measured {usd(baselineUsd)} per request
+                </span>
               )}
             </div>
           </div>
@@ -240,7 +264,7 @@ export function OptimizePanel() {
             <div
               key={id}
               className={cn(
-                "border-b border-line px-4 py-3",
+                "border-b border-border px-4 py-3",
                 on ? "bg-accent/5" : "",
                 !priced.applies && "opacity-50",
               )}
@@ -257,14 +281,18 @@ export function OptimizePanel() {
                   <span
                     className={cn(
                       "mt-0.5 h-3 w-3 shrink-0 rounded-[2px] border",
-                      on ? "border-accent bg-accent" : "border-faint",
+                      on ? "border-primary bg-accent" : "border-faint",
                     )}
                   />
-                  <span className="flex-1 text-[13px] text-ink">{priced.patch.title}</span>
+                  <span className="flex-1 text-[14px] text-foreground">{priced.patch.title}</span>
                   <span
                     className={cn(
-                      "num shrink-0 text-[13px]",
-                      record ? "text-mute" : priced.usd_delta < 0 ? "text-good" : "text-faint",
+                      "num shrink-0 text-[14px]",
+                      record
+                        ? "text-muted-foreground"
+                        : priced.usd_delta < 0
+                          ? "text-primary"
+                          : "text-muted-foreground",
                     )}
                     title={
                       record
@@ -272,19 +300,19 @@ export function OptimizePanel() {
                         : "Static estimate"
                     }
                   >
-                    <span className="text-[13px] text-faint">est </span>
+                    <span className="text-[14px] text-muted-foreground">est </span>
                     {signedUsd(priced.usd_delta)}
                   </span>
                 </div>
                 <div className="mt-1.5 pl-6">
-                  <p className="max-w-2xl text-[13px] leading-relaxed text-mute">
+                  <p className="max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
                     {priced.patch.rationale}
                   </p>
-                  <div className="font-mono mt-1.5 text-[13px] text-faint">
+                  <div className="font-mono mt-1.5 text-[14px] text-muted-foreground">
                     {priced.patch.op.replace(/_/g, " ")}
                   </div>
                   {priced.problems.map((problem, i) => (
-                    <div key={i} className="mt-1 text-[13px] text-bad">
+                    <div key={i} className="mt-1 text-[14px] text-destructive">
                       {problem}
                     </div>
                   ))}
@@ -297,14 +325,16 @@ export function OptimizePanel() {
                 </div>
               )}
               {measuring && on && !record && (
-                <div className="pl-6 pt-2 text-[13px] text-faint">Running the sample…</div>
+                <div className="pl-6 pt-2 text-[14px] text-muted-foreground">
+                  Running the sample…
+                </div>
               )}
             </div>
           );
         })}
 
         {!result && !busy && (
-          <p className="p-4 text-[13px] text-faint">
+          <p className="p-4 text-[14px] text-muted-foreground">
             Ask for changes worth making, then measure the ones worth testing.
           </p>
         )}

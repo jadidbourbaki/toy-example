@@ -18,7 +18,7 @@ function Elapsed({ since }: { since: number }) {
     return () => clearInterval(timer);
   }, []);
   const seconds = Math.max(0, (now - since) / 1000);
-  return <span className="num text-[13px] text-faint">{seconds.toFixed(1)}s</span>;
+  return <span className="num text-[14px] text-muted-foreground">{seconds.toFixed(1)}s</span>;
 }
 
 export function CodePanel() {
@@ -63,9 +63,9 @@ export function CodePanel() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center gap-3 border-b border-line px-4 py-2">
+      <div className="flex items-center gap-3 border-b border-border px-4 py-2">
         <button
-          className="btn btn-primary"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
           onClick={() => void start()}
           disabled={running || !graph}
         >
@@ -74,7 +74,7 @@ export function CodePanel() {
 
         {running && (
           <>
-            <span className="text-[13px] text-mute">
+            <span className="text-[14px] text-muted-foreground">
               {STEP_TEXT[step] ?? "Working"}
               {attempt > 1 ? ` (attempt ${attempt})` : ""}
             </span>
@@ -83,7 +83,10 @@ export function CodePanel() {
         )}
 
         {result?.source && !running && (
-          <button className="btn" onClick={() => void copy()}>
+          <button
+            className="inline-flex items-center gap-2 rounded-lg border bg-card px-3.5 py-2 hover:bg-accent disabled:opacity-40"
+            onClick={() => void copy()}
+          >
             {copied ? <Check size={13} /> : <Copy size={13} />}
             {copied ? "Copied" : "Copy"}
           </button>
@@ -92,16 +95,16 @@ export function CodePanel() {
         <div className="flex-1" />
 
         {result && !running && (
-          <span className="num text-[13px] text-faint">
+          <span className="num text-[14px] text-muted-foreground">
             {result.source.split("\n").length} lines
           </span>
         )}
       </div>
 
       {compile.problems.length > 0 && running && (
-        <div className="border-b border-line bg-sunk px-4 py-2">
+        <div className="border-b border-border bg-muted px-4 py-2">
           {compile.problems.map((problem, index) => (
-            <div key={index} className="font-mono text-[13px] text-warn">
+            <div key={index} className="font-mono text-[14px] text-muted-foreground">
               {problem}
             </div>
           ))}
@@ -109,10 +112,10 @@ export function CodePanel() {
       )}
 
       {(error || (result && !result.ok)) && (
-        <div className="border-b border-line px-4 py-2">
-          {error && <div className="text-[13px] text-bad">{error}</div>}
+        <div className="border-b border-border px-4 py-2">
+          {error && <div className="text-[14px] text-destructive">{error}</div>}
           {result?.problems.map((problem, index) => (
-            <div key={index} className="font-mono text-[13px] text-bad">
+            <div key={index} className="font-mono text-[14px] text-destructive">
               {problem}
             </div>
           ))}
@@ -120,14 +123,18 @@ export function CodePanel() {
       )}
 
       {result?.notes && !running && (
-        <div className="border-b border-line px-4 py-2 text-[13px] text-mute">{result.notes}</div>
+        <div className="border-b border-border px-4 py-2 text-[14px] text-muted-foreground">
+          {result.notes}
+        </div>
       )}
 
       <div className="flex-1 overflow-auto">
         {result?.source ? (
-          <pre className="p-4 font-mono text-[13px] leading-[1.55] text-ink">{result.source}</pre>
+          <pre className="p-4 font-mono text-[14px] leading-[1.55] text-foreground">
+            {result.source}
+          </pre>
         ) : (
-          <div className="p-4 text-[13px] text-faint">
+          <div className="p-4 text-[14px] text-muted-foreground">
             {running ? "" : "Compile this agent into a runnable module."}
           </div>
         )}
