@@ -36,6 +36,7 @@ packages = ["sketch"]
 dev = [
     "httpx>=0.28",
     "pytest==8.4.2",
+    "pytest-asyncio==1.4.0",
     "ruff==0.15.20",
     "ty==0.0.56",
 ]
@@ -53,3 +54,4 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_mode = "auto"

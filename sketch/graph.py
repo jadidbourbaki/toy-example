@@ -134,6 +134,10 @@ class AgentGraph(BaseModel):
     description: str = ""
     nodes: list[Node] = Field(default_factory=list)
     edges: list[Edge] = Field(default_factory=list)
+    sample: list[str] = Field(
+        default_factory=list,
+        description="Requests the graph should handle well. Measuring a change runs the graph over the sample, so the sample decides what a measured result means.",
+    )
 
     def node(self, node_id: str) -> Node | None:
         return next((n for n in self.nodes if n.id == node_id), None)

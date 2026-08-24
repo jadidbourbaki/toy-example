@@ -12,7 +12,7 @@ import uvicorn
 from rich.console import Console
 from rich.table import Table
 
-from sketch import apiref, compiler, optimizer, server
+from sketch import apiref, compiler, measure, optimizer, server
 from sketch.estimate import estimate
 from sketch.graph import validate_graph
 from sketch.runner import run_graph
@@ -159,6 +159,79 @@ def optimize_command(graph_id: str) -> None:
         console.print(f"  [dim]{priced.patch.op}[/dim] {priced.patch.rationale}")
         for problem in priced.problems:
             console.print(f"  [red]{problem}[/red]")
+
+
+@app.command(name="sample")
+def sample_command(
+    graph_id: str,
+    count: Annotated[int, typer.Option(help="How many requests to write.")] = 3,
+    save: Annotated[bool, typer.Option(help="Write the sample onto the graph.")] = False,
+) -> None:
+    """Write a starting sample of requests for a graph."""
+
+    workspace = _workspace()
+    graph = workspace.read(graph_id)
+    requests = asyncio.run(measure.propose_sample(graph, count))
+    for request in requests:
+        console.print(f"- {request}")
+    if save:
+        graph.sample = requests
+        workspace.write(graph)
+        console.print(f"\n[dim]Saved onto {graph_id}.[/dim]")
+
+
+@app.command(name="measure")
+def measure_command(
+    graph_id: str,
+    yes: Annotated[bool, typer.Option("--yes", help="Skip the spend confirmation.")] = False,
+) -> None:
+    """Measure every proposal the optimizer makes against the graph's sample."""
+
+    workspace = _workspace()
+    graph = workspace.read(graph_id)
+    models = workspace.models()
+
+    if not graph.sample:
+        console.print("[red]The graph has no sample. Run `sketch sample` first.[/red]")
+        raise typer.Exit(code=1)
+
+    proposal = asyncio.run(optimizer.optimize(graph, models))
+    if not proposal.ok:
+        console.print(f"[red]{proposal.error}[/red]")
+        raise typer.Exit(code=1)
+
+    patches = [priced.patch for priced in proposal.patches if priced.applies]
+    projection = measure.plan(graph, patches, graph.sample, models)
+    console.print(
+        f"{projection.graph_runs} graph runs and {projection.judgements} judgements, "
+        f"projected ${projection.projected_usd:.4f}."
+    )
+    if not yes and not typer.confirm("Run it?"):
+        raise typer.Exit()
+
+    async def drive() -> None:
+        async for event in measure.measure(
+            graph, patches, graph.sample, models, workspace.root, workspace.all_graphs()
+        ):
+            if event.type == "baseline_done" and event.baseline:
+                console.print(
+                    f"\n[bold]baseline[/bold] ${event.baseline.usd:.6f} per request, "
+                    f"{event.baseline.ms}ms, n={event.baseline.n}"
+                )
+            elif event.type == "patch_done" and event.patch:
+                measured = event.patch
+                mark = "[red]x[/red]" if measured.regressed else "[green]+[/green]"
+                console.print(
+                    f"{mark} [bold]{measured.title}[/bold]  "
+                    f"${measured.usd_delta:+.6f}  {measured.ms_delta:+d}ms  "
+                    f"{measured.wins}W {measured.losses}L {measured.ties}T"
+                )
+            elif event.type == "error":
+                console.print(f"[red]{event.text}[/red]")
+            elif event.type == "done":
+                console.print(f"\n[dim]Spent ${event.spent_usd:.4f}.[/dim]")
+
+    asyncio.run(drive())
 
 
 @app.command()

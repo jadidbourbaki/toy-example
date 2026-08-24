@@ -3,19 +3,146 @@
   "name": "Support desk",
   "description": "Classify an incoming request, answer the easy ones directly, and hand the hard ones to the research brief agent.",
   "nodes": [
-    {"id": "t1", "name": "input", "position": {"x": 0, "y": 240}, "notes": "", "config": {"kind": "input", "description": "A message from a customer."}},
-    {"id": "t2", "name": "triage", "position": {"x": 190, "y": 220}, "notes": "", "config": {"kind": "router", "stage": "route", "model": "haiku", "question": "How much work does this message need?", "prompt": "${input}", "routes": [{"label": "quick", "description": "A direct question answerable from general knowledge."}, {"label": "deep", "description": "Needs the engineering notes searched before answering."}]}},
-    {"id": "t3", "name": "quick_reply", "position": {"x": 470, "y": 120}, "notes": "", "config": {"kind": "llm", "stage": "answer", "model": "haiku", "instructions": "Answer in at most three sentences. Open with the answer.", "prompt": "${input}"}},
-    {"id": "t4", "name": "deep_dive", "position": {"x": 470, "y": 300}, "notes": "", "config": {"kind": "subagent", "graph_id": "research_brief", "prompt": "${input}"}},
-    {"id": "t5", "name": "word_check", "position": {"x": 730, "y": 300}, "notes": "", "config": {"kind": "tool", "tool": "word_count", "arguments": {"text": "${deep_dive}"}}},
-    {"id": "t6", "name": "output", "position": {"x": 960, "y": 240}, "notes": "", "config": {"kind": "output", "description": "The reply sent back to the customer."}}
+    {
+      "id": "t1",
+      "name": "input",
+      "position": {
+        "x": 0,
+        "y": 240
+      },
+      "notes": "",
+      "config": {
+        "kind": "input",
+        "description": "A message from a customer."
+      }
+    },
+    {
+      "id": "t2",
+      "name": "triage",
+      "position": {
+        "x": 190,
+        "y": 220
+      },
+      "notes": "",
+      "config": {
+        "kind": "router",
+        "stage": "route",
+        "model": "haiku",
+        "question": "How much work does this message need?",
+        "prompt": "${input}",
+        "routes": [
+          {
+            "label": "quick",
+            "description": "A direct question answerable from general knowledge."
+          },
+          {
+            "label": "deep",
+            "description": "Needs the engineering notes searched before answering."
+          }
+        ]
+      }
+    },
+    {
+      "id": "t3",
+      "name": "quick_reply",
+      "position": {
+        "x": 470,
+        "y": 120
+      },
+      "notes": "",
+      "config": {
+        "kind": "llm",
+        "stage": "answer",
+        "model": "haiku",
+        "instructions": "Answer in at most three sentences. Open with the answer.",
+        "prompt": "${input}"
+      }
+    },
+    {
+      "id": "t4",
+      "name": "deep_dive",
+      "position": {
+        "x": 470,
+        "y": 300
+      },
+      "notes": "",
+      "config": {
+        "kind": "subagent",
+        "graph_id": "research_brief",
+        "prompt": "${input}"
+      }
+    },
+    {
+      "id": "t5",
+      "name": "word_check",
+      "position": {
+        "x": 730,
+        "y": 300
+      },
+      "notes": "",
+      "config": {
+        "kind": "tool",
+        "tool": "word_count",
+        "arguments": {
+          "text": "${deep_dive}"
+        }
+      }
+    },
+    {
+      "id": "t6",
+      "name": "output",
+      "position": {
+        "x": 960,
+        "y": 240
+      },
+      "notes": "",
+      "config": {
+        "kind": "output",
+        "description": "The reply sent back to the customer."
+      }
+    }
   ],
   "edges": [
-    {"id": "te1", "source": "t1", "target": "t2", "label": ""},
-    {"id": "te2", "source": "t2", "target": "t3", "label": "quick"},
-    {"id": "te3", "source": "t2", "target": "t4", "label": "deep"},
-    {"id": "te4", "source": "t4", "target": "t5", "label": ""},
-    {"id": "te5", "source": "t3", "target": "t6", "label": ""},
-    {"id": "te6", "source": "t5", "target": "t6", "label": ""}
+    {
+      "id": "te1",
+      "source": "t1",
+      "target": "t2",
+      "label": ""
+    },
+    {
+      "id": "te2",
+      "source": "t2",
+      "target": "t3",
+      "label": "quick"
+    },
+    {
+      "id": "te3",
+      "source": "t2",
+      "target": "t4",
+      "label": "deep"
+    },
+    {
+      "id": "te4",
+      "source": "t4",
+      "target": "t5",
+      "label": ""
+    },
+    {
+      "id": "te5",
+      "source": "t3",
+      "target": "t6",
+      "label": ""
+    },
+    {
+      "id": "te6",
+      "source": "t5",
+      "target": "t6",
+      "label": ""
+    }
+  ],
+  "sample": [
+    "What time do you close on Saturdays?",
+    "Our retrieval recall dropped after we raised chunk overlap to 40 percent. What happened?",
+    "Can I change the email on my account?"
   ]
 }

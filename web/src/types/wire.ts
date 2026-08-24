@@ -18,6 +18,10 @@ export interface AgentGraph {
   description: string;
   nodes: Node[];
   edges: Edge[];
+  /**
+   * Requests the graph should handle well. Measuring a change runs the graph over the sample, so the sample decides what a measured result means.
+   */
+  sample: string[];
 }
 /**
  * This interface was referenced by `Sketch`'s JSON-Schema
@@ -216,6 +220,102 @@ export interface Health {
   ok: boolean;
   model_credentials: boolean;
   compiler_model: string;
+}
+/**
+ * This interface was referenced by `Sketch`'s JSON-Schema
+ * via the `definition` "MeasureEvent".
+ */
+export interface MeasureEvent {
+  type: "plan" | "run_done" | "baseline_done" | "patch_done" | "done" | "error";
+  plan: MeasurePlan | null;
+  label: string;
+  request: string;
+  baseline: Measurement | null;
+  patch: PatchMeasurement | null;
+  spent_usd: number;
+  text: string;
+}
+/**
+ * What the run is about to do and what it is about to spend.
+ *
+ * This interface was referenced by `Sketch`'s JSON-Schema
+ * via the `definition` "MeasurePlan".
+ */
+export interface MeasurePlan {
+  sample_size: number;
+  candidates: number;
+  graph_runs: number;
+  judgements: number;
+  projected_usd: number;
+  budget_usd: number;
+}
+/**
+ * What a version of the graph did across the whole sample. usd and ms
+ * are means over the runs that finished, and spread is the gap between
+ * the cheapest and the dearest run, which is what says how much to trust
+ * the mean.
+ *
+ * This interface was referenced by `Sketch`'s JSON-Schema
+ * via the `definition` "Measurement".
+ */
+export interface Measurement {
+  runs: SampleRun[];
+  usd: number;
+  ms: number;
+  usd_spread: number;
+  n: number;
+  failures: number;
+}
+/**
+ * One request through one version of the graph.
+ *
+ * This interface was referenced by `Sketch`'s JSON-Schema
+ * via the `definition` "SampleRun".
+ */
+export interface SampleRun {
+  request: string;
+  output: string;
+  usd: number;
+  ms: number;
+  input_tokens: number;
+  output_tokens: number;
+  error: string;
+}
+/**
+ * One candidate, measured.
+ *
+ * Every delta is paired. Both versions ran the same requests, and only the
+ * requests both versions completed count toward a delta, so a candidate that
+ * crashed on the expensive request cannot bank the cost it never paid. A
+ * candidate that completed nothing reports an error and no delta at all,
+ * because a broken graph is the cheapest graph there is.
+ *
+ * This interface was referenced by `Sketch`'s JSON-Schema
+ * via the `definition` "PatchMeasurement".
+ */
+export interface PatchMeasurement {
+  patch_id: string;
+  title: string;
+  candidate: Measurement;
+  baseline_usd: number;
+  usd_delta: number;
+  ms_delta: number;
+  paired: number;
+  verdicts: Verdict[];
+  wins: number;
+  losses: number;
+  ties: number;
+  error: string;
+}
+/**
+ * This interface was referenced by `Sketch`'s JSON-Schema
+ * via the `definition` "Verdict".
+ */
+export interface Verdict {
+  request: string;
+  winner: "baseline" | "candidate" | "tie";
+  reason: string;
+  agreed: boolean;
 }
 /**
  * One inference endpoint a stage can be bound to. quality_prior is

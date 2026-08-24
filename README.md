@@ -36,6 +36,53 @@ run moves through it.
 operations, and each one is priced by applying it alone to the graph and
 re-estimating. Accept the ones you want and they land on the canvas.
 
+**A measurement.** The estimate prices prompt size, which is right about a
+model swap and blind to a prompt rewrite whose saving lands downstream.
+Measuring runs the baseline and each candidate over a sample of requests and
+reports what each one really cost. It is worth knowing how often the estimate
+and the measurement disagree, and the panel shows both.
+
+## Why measuring needs a judge
+
+Cost on its own would make the optimizer worse rather than better. Every
+candidate that moves a stage to a cheaper model wins on measured cost by
+construction, so a ranking built on cost alone converges on the advice to
+serve everything with the cheapest model available.
+
+So a quality signal sits next to the cost signal. A judge sees the baseline
+answer and the candidate answer for one request without being told which is
+which, and it is asked twice with the two swapped. A winner is called only
+when both passes agree, which keeps a position preference from reading as a
+quality difference. Each candidate reports a cost delta, a latency delta, and
+a win, loss, and tie record.
+
+Every delta is paired. Both versions run the same requests, and only the
+requests both versions completed count toward a delta. Without pairing, a
+candidate that crashed on the expensive request would bank the cost it never
+paid and report the failure as the largest saving on the page.
+
+A single run per request is noisy for a ReAct loop, since the number of tool
+calls varies. The panel shows `n` and the spread rather than one confident
+number.
+
+## The sample
+
+The sample is the set of requests a graph is measured against, and it is
+stored on the graph so it travels with it. A model writes a first draft from
+what the graph says it does, covering the ordinary case, the case that needs
+the graph's hardest stage, and one request near the edge of what the graph is
+for. Edit it, because the sample decides what a measured result means.
+
+```bash
+uv run sketch sample research_brief --save
+uv run sketch measure research_brief
+```
+
+Measuring runs the graph once per request per candidate, so it costs real
+money. `sketch measure` prints its projection and asks before spending, the
+panel puts the projection on the button, and a run that projects past
+`SKETCH_MEASURE_BUDGET_USD` refuses to start.
+
 ## Stages
 
 A stage is a label on a call that says what the call is for rather than
@@ -84,6 +131,8 @@ uv run sketch check research_brief       # validate one and price a request
 uv run sketch compile research_brief     # write the module to stdout
 uv run sketch run research_brief "how much chunk overlap?"
 uv run sketch optimize research_brief    # proposals with a price on each
+uv run sketch sample research_brief      # write a sample to measure against
+uv run sketch measure research_brief     # measure every proposal against it
 ```
 
 ## The workspace

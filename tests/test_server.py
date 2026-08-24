@@ -117,3 +117,34 @@ def test_every_serialized_field_is_required() -> None:
 def test_a_model_with_a_field_named_title_keeps_it() -> None:
     patch = wire_schema()["definitions"]["Patch"]  # ty: ignore[non-subscriptable]
     assert "title" in patch["properties"]
+
+
+def test_measure_plan_counts_runs_and_judgements(client: TestClient) -> None:
+    graph = client.get("/api/graphs/research_brief").json()
+    patch = {
+        "title": "cheaper",
+        "rationale": "why",
+        "op": "set_model",
+        "node_id": "n4",
+        "model": "haiku",
+    }
+    body = client.post(
+        "/api/measure/plan", json={"graph": graph, "patches": [patch], "sample": ["a", "b"]}
+    ).json()
+    assert body["graph_runs"] == 4
+    assert body["judgements"] == 4
+    assert body["projected_usd"] > 0
+
+
+def test_measure_plan_falls_back_to_the_graphs_own_sample(client: TestClient) -> None:
+    graph = client.get("/api/graphs/research_brief").json()
+    assert len(graph["sample"]) == 3
+    body = client.post("/api/measure/plan", json={"graph": graph, "patches": []}).json()
+    assert body["sample_size"] == 3
+
+
+def test_a_graphs_sample_survives_a_save(client: TestClient) -> None:
+    graph = client.get("/api/graphs/research_brief").json()
+    graph["sample"] = ["only this one"]
+    client.put("/api/graphs/research_brief", json=graph)
+    assert client.get("/api/graphs/research_brief").json()["sample"] == ["only this one"]

@@ -4,6 +4,8 @@ import type {
   CompileResult,
   GraphSummary,
   Health,
+  MeasureEvent,
+  MeasurePlan,
   ModelSpec,
   OptimizeResult,
   Patch,
@@ -43,31 +45,32 @@ export const api = {
   compile: (graph: AgentGraph) => post<CompileResult>("/compile", { graph }),
   optimize: (graph: AgentGraph) => post<OptimizeResult>("/optimize", { graph }),
   patch: (graph: AgentGraph, patches: Patch[]) => post<PatchResponse>("/patch", { graph, patches }),
+  writeSample: (graph: AgentGraph, count = 3) => post<string[]>("/sample", { graph, count }),
+  measurePlan: (graph: AgentGraph, patches: Patch[], sample: string[]) =>
+    post<MeasurePlan>("/measure/plan", { graph, patches, sample }),
 };
 
-/**
- * Stream a run. The endpoint is a POST, so this reads the body itself rather
- * than going through EventSource, which only ever issues a GET.
- */
-export async function streamRun(
-  graph: AgentGraph,
-  prompt: string,
-  onEvent: (event: RunEvent) => void,
+/** Read a server-sent event stream from a POST. EventSource only ever issues a
+ *  GET, and both of these endpoints take a graph in the body. */
+async function streamPost<T>(
+  path: string,
+  body: unknown,
+  onEvent: (event: T) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const response = await fetch("/api/run", {
+  const response = await fetch(`/api${path}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ graph, request: prompt }),
+    body: JSON.stringify(body),
     signal,
   });
   if (!response.ok || !response.body) {
-    throw new Error(`The run could not start: ${response.status} ${response.statusText}`);
+    throw new Error(`${path} did not start: ${response.status} ${response.statusText}`);
   }
 
   const parser = createParser({
     onEvent: (message) => {
-      if (message.data) onEvent(JSON.parse(message.data) as RunEvent);
+      if (message.data) onEvent(JSON.parse(message.data) as T);
     },
   });
 
@@ -77,4 +80,24 @@ export async function streamRun(
     if (done) break;
     parser.feed(value);
   }
+}
+
+export function streamMeasure(
+  graph: AgentGraph,
+  patches: Patch[],
+  sample: string[],
+  onEvent: (event: MeasureEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  return streamPost("/measure", { graph, patches, sample }, onEvent, signal);
+}
+
+/** Stream a run, lighting up the canvas as each stage reports. */
+export function streamRun(
+  graph: AgentGraph,
+  prompt: string,
+  onEvent: (event: RunEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  return streamPost("/run", { graph, request: prompt }, onEvent, signal);
 }

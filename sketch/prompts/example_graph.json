@@ -3,17 +3,120 @@
   "name": "Research brief",
   "description": "Sharpen a vague question, gather notes on it, and write a short brief.",
   "nodes": [
-    {"id": "n1", "name": "input", "position": {"x": 0, "y": 160}, "notes": "", "config": {"kind": "input", "description": "A question from the user."}},
-    {"id": "n2", "name": "clarify", "position": {"x": 220, "y": 160}, "notes": "", "config": {"kind": "llm", "stage": "clarify", "model": "haiku", "instructions": "Rewrite a vague question into one precise question. Answer with the question alone.", "prompt": "${input}"}},
-    {"id": "n3", "name": "research", "position": {"x": 460, "y": 160}, "notes": "", "config": {"kind": "react", "stage": "research", "model": "sonnet", "instructions": "Search the notes before answering. Cite the topic tag of every note you use.", "prompt": "Gather what the notes say about: ${clarify}", "tools": ["search_notes"], "max_iterations": 6}},
-    {"id": "n4", "name": "brief", "position": {"x": 700, "y": 160}, "notes": "", "config": {"kind": "llm", "stage": "answer", "model": "sonnet", "instructions": "Write a brief of at most six sentences. Open with the answer.", "prompt": "Question: ${clarify}\n\nFindings: ${research}"}},
-    {"id": "n5", "name": "output", "position": {"x": 940, "y": 160}, "notes": "", "config": {"kind": "output", "description": "The finished brief."}}
+    {
+      "id": "n1",
+      "name": "input",
+      "position": {
+        "x": 0,
+        "y": 160
+      },
+      "notes": "",
+      "config": {
+        "kind": "input",
+        "description": "A question from the user."
+      }
+    },
+    {
+      "id": "n2",
+      "name": "clarify",
+      "position": {
+        "x": 220,
+        "y": 160
+      },
+      "notes": "",
+      "config": {
+        "kind": "llm",
+        "stage": "clarify",
+        "model": "haiku",
+        "instructions": "Rewrite a vague question into one precise question. Answer with the question alone.",
+        "prompt": "${input}"
+      }
+    },
+    {
+      "id": "n3",
+      "name": "research",
+      "position": {
+        "x": 460,
+        "y": 160
+      },
+      "notes": "",
+      "config": {
+        "kind": "react",
+        "stage": "research",
+        "model": "sonnet",
+        "instructions": "Search the notes before answering. Cite the topic tag of every note you use.",
+        "prompt": "Gather what the notes say about: ${clarify}",
+        "tools": [
+          "search_notes"
+        ],
+        "max_iterations": 6
+      }
+    },
+    {
+      "id": "n4",
+      "name": "brief",
+      "position": {
+        "x": 700,
+        "y": 160
+      },
+      "notes": "",
+      "config": {
+        "kind": "llm",
+        "stage": "answer",
+        "model": "sonnet",
+        "instructions": "Write a brief of at most six sentences. Open with the answer.",
+        "prompt": "Question: ${clarify}\n\nFindings: ${research}"
+      }
+    },
+    {
+      "id": "n5",
+      "name": "output",
+      "position": {
+        "x": 940,
+        "y": 160
+      },
+      "notes": "",
+      "config": {
+        "kind": "output",
+        "description": "The finished brief."
+      }
+    }
   ],
   "edges": [
-    {"id": "e1", "source": "n1", "target": "n2", "label": ""},
-    {"id": "e2", "source": "n2", "target": "n3", "label": ""},
-    {"id": "e3", "source": "n2", "target": "n4", "label": ""},
-    {"id": "e4", "source": "n3", "target": "n4", "label": ""},
-    {"id": "e5", "source": "n4", "target": "n5", "label": ""}
+    {
+      "id": "e1",
+      "source": "n1",
+      "target": "n2",
+      "label": ""
+    },
+    {
+      "id": "e2",
+      "source": "n2",
+      "target": "n3",
+      "label": ""
+    },
+    {
+      "id": "e3",
+      "source": "n2",
+      "target": "n4",
+      "label": ""
+    },
+    {
+      "id": "e4",
+      "source": "n3",
+      "target": "n4",
+      "label": ""
+    },
+    {
+      "id": "e5",
+      "source": "n4",
+      "target": "n5",
+      "label": ""
+    }
+  ],
+  "sample": [
+    "How much chunk overlap should I use for retrieval?",
+    "Is an LLM judge reliable enough to compare two model versions?",
+    "Where does the money actually go in a multi stage agent?"
   ]
 }

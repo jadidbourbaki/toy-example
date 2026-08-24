@@ -87,7 +87,7 @@ export function blankGraph(id: string, name: string): AgentGraph {
     notes: "",
     config: defaultConfig("output"),
   };
-  return { id, name, description: "", nodes: [input, output], edges: [] };
+  return { id, name, description: "", nodes: [input, output], edges: [], sample: [] };
 }
 
 /** The names a node may reference, which is what its upstream stages produce. */

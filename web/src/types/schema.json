@@ -24,6 +24,13 @@
             "$ref": "#/definitions/Edge"
           },
           "type": "array"
+        },
+        "sample": {
+          "description": "Requests the graph should handle well. Measuring a change runs the graph over the sample, so the sample decides what a measured result means.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -31,7 +38,8 @@
         "edges",
         "id",
         "name",
-        "nodes"
+        "nodes",
+        "sample"
       ],
       "type": "object",
       "title": "AgentGraph",
@@ -233,6 +241,159 @@
         "model",
         "prompt",
         "stage"
+      ]
+    },
+    "MeasureEvent": {
+      "properties": {
+        "type": {
+          "enum": [
+            "plan",
+            "run_done",
+            "baseline_done",
+            "patch_done",
+            "done",
+            "error"
+          ],
+          "type": "string"
+        },
+        "plan": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/MeasurePlan"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "label": {
+          "default": "",
+          "type": "string"
+        },
+        "request": {
+          "default": "",
+          "type": "string"
+        },
+        "baseline": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Measurement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "patch": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PatchMeasurement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "spent_usd": {
+          "default": 0.0,
+          "type": "number"
+        },
+        "text": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "baseline",
+        "label",
+        "patch",
+        "plan",
+        "request",
+        "spent_usd",
+        "text",
+        "type"
+      ],
+      "type": "object",
+      "title": "MeasureEvent",
+      "additionalProperties": false
+    },
+    "MeasurePlan": {
+      "description": "What the run is about to do and what it is about to spend.",
+      "properties": {
+        "sample_size": {
+          "type": "integer"
+        },
+        "candidates": {
+          "type": "integer"
+        },
+        "graph_runs": {
+          "type": "integer"
+        },
+        "judgements": {
+          "type": "integer"
+        },
+        "projected_usd": {
+          "type": "number"
+        },
+        "budget_usd": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "budget_usd",
+        "candidates",
+        "graph_runs",
+        "judgements",
+        "projected_usd",
+        "sample_size"
+      ],
+      "type": "object",
+      "title": "MeasurePlan",
+      "additionalProperties": false
+    },
+    "Measurement": {
+      "description": "What a version of the graph did across the whole sample. usd and ms\nare means over the runs that finished, and spread is the gap between\nthe cheapest and the dearest run, which is what says how much to trust\nthe mean.",
+      "properties": {
+        "runs": {
+          "items": {
+            "$ref": "#/definitions/SampleRun"
+          },
+          "type": "array"
+        },
+        "usd": {
+          "default": 0.0,
+          "type": "number"
+        },
+        "ms": {
+          "default": 0,
+          "type": "integer"
+        },
+        "usd_spread": {
+          "default": 0.0,
+          "type": "number"
+        },
+        "n": {
+          "default": 0,
+          "type": "integer"
+        },
+        "failures": {
+          "default": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "title": "Measurement",
+      "additionalProperties": false,
+      "required": [
+        "failures",
+        "ms",
+        "n",
+        "runs",
+        "usd",
+        "usd_spread"
       ]
     },
     "ModelSpec": {
@@ -519,6 +680,75 @@
       ],
       "type": "object",
       "title": "Patch",
+      "additionalProperties": false
+    },
+    "PatchMeasurement": {
+      "description": "One candidate, measured.\n\nEvery delta is paired. Both versions ran the same requests, and only the\nrequests both versions completed count toward a delta, so a candidate that\ncrashed on the expensive request cannot bank the cost it never paid. A\ncandidate that completed nothing reports an error and no delta at all,\nbecause a broken graph is the cheapest graph there is.",
+      "properties": {
+        "patch_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "candidate": {
+          "$ref": "#/definitions/Measurement"
+        },
+        "baseline_usd": {
+          "default": 0.0,
+          "type": "number"
+        },
+        "usd_delta": {
+          "default": 0.0,
+          "type": "number"
+        },
+        "ms_delta": {
+          "default": 0,
+          "type": "integer"
+        },
+        "paired": {
+          "default": 0,
+          "type": "integer"
+        },
+        "verdicts": {
+          "items": {
+            "$ref": "#/definitions/Verdict"
+          },
+          "type": "array"
+        },
+        "wins": {
+          "default": 0,
+          "type": "integer"
+        },
+        "losses": {
+          "default": 0,
+          "type": "integer"
+        },
+        "ties": {
+          "default": 0,
+          "type": "integer"
+        },
+        "error": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "baseline_usd",
+        "candidate",
+        "error",
+        "losses",
+        "ms_delta",
+        "paired",
+        "patch_id",
+        "ties",
+        "title",
+        "usd_delta",
+        "verdicts",
+        "wins"
+      ],
+      "type": "object",
+      "title": "PatchMeasurement",
       "additionalProperties": false
     },
     "PatchResponse": {
@@ -820,6 +1050,50 @@
       "title": "RunEvent",
       "additionalProperties": false
     },
+    "SampleRun": {
+      "description": "One request through one version of the graph.",
+      "properties": {
+        "request": {
+          "type": "string"
+        },
+        "output": {
+          "default": "",
+          "type": "string"
+        },
+        "usd": {
+          "default": 0.0,
+          "type": "number"
+        },
+        "ms": {
+          "default": 0,
+          "type": "integer"
+        },
+        "input_tokens": {
+          "default": 0,
+          "type": "integer"
+        },
+        "output_tokens": {
+          "default": 0,
+          "type": "integer"
+        },
+        "error": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "error",
+        "input_tokens",
+        "ms",
+        "output",
+        "output_tokens",
+        "request",
+        "usd"
+      ],
+      "type": "object",
+      "title": "SampleRun",
+      "additionalProperties": false
+    },
     "SubagentConfig": {
       "description": "A call into another graph in the same workspace. Saving a graph\nputs it in the palette of every other graph, which is how a network\nof agents gets assembled out of parts that were each built alone.",
       "properties": {
@@ -921,6 +1195,38 @@
       ],
       "type": "object",
       "title": "ValidateResponse",
+      "additionalProperties": false
+    },
+    "Verdict": {
+      "properties": {
+        "request": {
+          "type": "string"
+        },
+        "winner": {
+          "enum": [
+            "baseline",
+            "candidate",
+            "tie"
+          ],
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "type": "string"
+        },
+        "agreed": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "agreed",
+        "reason",
+        "request",
+        "winner"
+      ],
+      "type": "object",
+      "title": "Verdict",
       "additionalProperties": false
     }
   }

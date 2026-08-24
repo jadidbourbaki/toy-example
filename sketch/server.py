@@ -18,9 +18,10 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, TypeAdapter
 from sse_starlette.sse import EventSourceResponse
 
-from sketch import compiler, optimizer
+from sketch import compiler, measure, optimizer
 from sketch.estimate import GraphEstimate, estimate
 from sketch.graph import AgentGraph, Problem, validate_graph
+from sketch.measure import MeasureEvent
 from sketch.models import TOOL_CATALOG, ModelSpec, ToolSpec
 from sketch.runner import RunEvent, run_graph
 from sketch.settings import settings
@@ -36,6 +37,17 @@ class GraphRequest(BaseModel):
 class RunRequest(BaseModel):
     graph: AgentGraph
     request: str = "Say hello."
+
+
+class SampleRequest(BaseModel):
+    graph: AgentGraph
+    count: int = 3
+
+
+class MeasureRequest(BaseModel):
+    graph: AgentGraph
+    patches: list[optimizer.Patch] = Field(default_factory=list)
+    sample: list[str] = Field(default_factory=list)
 
 
 class PatchRequest(BaseModel):
@@ -138,6 +150,37 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
             estimate=estimate(patched, workspace.models()),
         )
 
+    @app.post("/api/sample")
+    async def sample_endpoint(body: SampleRequest) -> list[str]:
+        if not settings.has_model_credentials:
+            raise HTTPException(
+                status_code=400,
+                detail="Set ANTHROPIC_API_KEY to write a sample. It drives a model.",
+            )
+        return await measure.propose_sample(body.graph, body.count)
+
+    @app.post("/api/measure/plan")
+    def measure_plan_endpoint(body: MeasureRequest) -> measure.MeasurePlan:
+        sample = body.sample or body.graph.sample
+        return measure.plan(body.graph, body.patches, sample, workspace.models())
+
+    @app.post("/api/measure")
+    async def measure_endpoint(body: MeasureRequest) -> EventSourceResponse:
+        sample = body.sample or body.graph.sample
+
+        async def stream() -> AsyncIterator[dict[str, str]]:
+            async for event in measure.measure(
+                body.graph,
+                body.patches,
+                sample,
+                workspace.models(),
+                workspace.root,
+                workspace.all_graphs(),
+            ):
+                yield {"event": event.type, "data": event.model_dump_json()}
+
+        return EventSourceResponse(stream())
+
     @app.post("/api/run")
     async def run_endpoint(body: RunRequest) -> EventSourceResponse:
         async def stream() -> AsyncIterator[dict[str, str]]:
@@ -180,6 +223,8 @@ class Wire(BaseModel):
     patch_response: PatchResponse
     validate_response: ValidateResponse
     run_event: RunEvent
+    measure_plan: measure.MeasurePlan
+    measure_event: MeasureEvent
     health: Health
 
 

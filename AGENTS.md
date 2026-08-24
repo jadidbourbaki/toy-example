@@ -87,6 +87,26 @@ model call through a `STAGES` table that names a model for each stage.
 A failure feeds the error back for one retry. Enforce invariants with
 checks rather than by narrowing what the model is allowed to write.
 
+## Measuring beats estimating, and cost alone beats nothing
+
+`sketch/estimate.py` prices prompt size. It is right about a model swap and
+about an iteration cap, and it is blind to a prompt rewrite whose saving
+lands in a later stage's output tokens. Keep it for the canvas, where it is
+instant and free, and for predicting what a measurement is about to spend.
+
+`sketch/measure.py` runs the thing. Two rules hold there and are worth
+restating before changing it.
+
+Cost never travels alone. Every candidate that moves a stage to a cheaper
+model wins on measured cost by construction, so a ranking built on cost alone
+converges on the advice to serve everything with the cheapest model
+available. A quality signal sits beside it.
+
+Every delta is paired. Only the requests both versions completed count toward
+a delta. A candidate that crashed on the expensive request would otherwise
+bank the cost it never paid and report the failure as the largest saving on
+the page.
+
 ## Stages
 
 A stage is a label on a call that says what the call is for. Two nodes

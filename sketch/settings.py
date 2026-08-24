@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SKETCH_", extra="ignore")
 
     compiler_model: str = "anthropic:claude-opus-5"
+    judge_model: str = "anthropic:claude-sonnet-5"
+    # A measurement runs the graph once per sample request per candidate, so a
+    # careless click on a large sample can spend real money. The run refuses to
+    # start when its own projection passes this line.
+    measure_budget_usd: float = 5.0
+    # How many graph runs may be in flight at once. Higher finishes sooner and
+    # is likelier to meet a provider rate limit.
+    measure_concurrency: int = 4
     workspace: Path = PROJECT_ROOT / "workspace"
     host: str = "127.0.0.1"
     port: int = 8000
