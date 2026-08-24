@@ -131,7 +131,7 @@
 
 .react-flow__edge-text {
   @apply fill-mute font-sans;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .react-flow__edge-textbg {

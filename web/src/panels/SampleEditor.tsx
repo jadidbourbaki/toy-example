@@ -32,21 +32,21 @@ export function SampleEditor() {
       <div className="mb-2 flex items-center gap-2">
         <span className="text-[13px] text-faint">Sample</span>
         <div className="flex-1" />
-        <button className="btn py-1 text-[11px]" onClick={() => void write()} disabled={busy}>
+        <button className="btn py-1 text-[13px]" onClick={() => void write()} disabled={busy}>
           <Sparkles size={11} />
           {busy ? "Writing" : graph.sample.length ? "Rewrite" : "Write a sample"}
         </button>
       </div>
 
-      {error && <div className="mb-2 text-[11px] text-bad">{error}</div>}
+      {error && <div className="mb-2 text-[13px] text-bad">{error}</div>}
 
       {graph.sample.map((request, index) => (
         <div key={index} className="group mb-1 flex items-start gap-1.5">
-          <span className="num mt-1.5 w-4 shrink-0 text-right text-[10px] text-faint">
+          <span className="num mt-1.5 w-4 shrink-0 text-right text-[13px] text-faint">
             {index + 1}
           </span>
           <input
-            className="field flex-1 py-1 text-[12px]"
+            className="field flex-1 py-1 text-[13px]"
             value={request}
             onChange={(e) => set(graph.sample.map((r, i) => (i === index ? e.target.value : r)))}
           />
@@ -61,7 +61,7 @@ export function SampleEditor() {
       ))}
 
       <button
-        className="ml-5 flex items-center gap-1 text-[11px] text-faint hover:text-ink"
+        className="ml-5 flex items-center gap-1 text-[13px] text-faint hover:text-ink"
         onClick={() => set([...graph.sample, ""])}
       >
         <Plus size={11} /> Add a request

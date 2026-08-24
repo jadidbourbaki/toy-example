@@ -1,4 +1,5 @@
-import { Plus } from "lucide-react";
+import { Plus, Settings2 } from "lucide-react";
+import { AgentModal } from "@/panels/AgentModal";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { KIND_LABELS, PALETTE_KINDS } from "@/lib/kinds";
@@ -11,6 +12,7 @@ export function GraphRail() {
   const createGraph = useStore((s) => s.createGraph);
   const addNode = useStore((s) => s.addNode);
   const [naming, setNaming] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [name, setName] = useState("");
 
   const submit = async () => {
@@ -44,15 +46,30 @@ export function GraphRail() {
           />
         )}
 
-        {graphs.map((summary) => (
-          <button
-            key={summary.id}
-            className={cn("row", graph?.id === summary.id && "row-on")}
-            onClick={() => void openGraph(summary.id)}
-          >
-            <span className="truncate">{summary.name}</span>
-          </button>
-        ))}
+        {graphs.map((summary) => {
+          const active = graph?.id === summary.id;
+          return (
+            <div key={summary.id} className={cn("row group", active && "row-on")}>
+              <button
+                className="min-w-0 flex-1 text-left"
+                onClick={() => void openGraph(summary.id)}
+              >
+                <span className="block truncate">{summary.name}</span>
+              </button>
+              {active && (
+                <button
+                  className="shrink-0 text-faint opacity-0 group-hover:opacity-100 hover:text-ink"
+                  onClick={() => setSettingsOpen(true)}
+                  title="Agent settings"
+                >
+                  <Settings2 size={15} />
+                </button>
+              )}
+            </div>
+          );
+        })}
+
+        <AgentModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       </div>
 
       <div>

@@ -31,7 +31,7 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
     return (
       <div
         className={cn(
-          "rounded-full border border-dashed bg-page px-4 py-1.5 text-[13px] text-mute",
+          "rounded-full border border-dashed bg-page px-4 py-2 text-[14px] text-mute",
           selected ? "border-accent" : "border-line-strong",
           skipped && "opacity-40",
         )}
@@ -66,13 +66,13 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
 
       <div className="py-3 pr-3 pl-4">
         <div className="flex items-baseline gap-2">
-          <span className="text-[12px] font-medium" style={{ color: tint }}>
+          <span className="text-[13px] font-medium" style={{ color: tint }}>
             {KIND_LABELS[kind]}
           </span>
           <span className="flex-1" />
           {BILLED[kind] && (
             <span
-              className={cn("num text-[12px]", measured ? "text-accent" : "text-faint")}
+              className={cn("num text-[13px]", measured ? "text-accent" : "text-faint")}
               title={measured ? "Measured on the last run" : "Estimated"}
             >
               {usd(measured ? (measured.usd ?? 0) : (estimate?.usd ?? 0))}
@@ -86,17 +86,17 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
             title="Remove this stage"
             className="-mr-1 shrink-0 rounded p-0.5 text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:bg-sunk hover:text-bad"
           >
-            <X size={13} />
+            <X size={15} />
           </button>
         </div>
 
-        <div className="mt-0.5 truncate text-[15px] font-medium">{node.name}</div>
+        <div className="mt-0.5 truncate text-[16px] font-semibold">{node.name}</div>
 
         <div className="mt-2 flex items-center gap-1.5">
           {settings.map((setting) => (
             <span
               key={setting}
-              className="truncate rounded-md bg-sunk px-2 py-0.5 text-[12px] text-mute"
+              className="truncate rounded-md bg-sunk px-2 py-0.5 text-[13px] text-mute"
             >
               {setting}
             </span>
@@ -109,7 +109,7 @@ function StageNodeImpl({ data, selected }: StageNodeProps) {
           {routes.map((route) => (
             <div
               key={route.label}
-              className="relative border-b border-line py-1.5 pr-4 text-right text-[13px] text-mute last:border-b-0"
+              className="relative border-b border-line py-1.5 pr-4 text-right text-[14px] text-mute last:border-b-0"
             >
               {route.label}
               <Handle type="source" id={route.label} position={Position.Right} />

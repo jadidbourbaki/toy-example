@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Plus, Trash2, X } from "lucide-react";
+import { ChevronRight, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { useStore } from "@/store";
 import type { ModelSpec } from "@/types/wire";
@@ -17,10 +17,6 @@ const BLANK: ModelSpec = {
   tools: true,
   structured: true,
 };
-
-function rate(value: number): string {
-  return value === 0 ? "free" : `$${value.toFixed(2)}`;
-}
 
 /** The registry, as a list you read rather than a grid you fill in. Editing one
  *  model opens that model, so the numbers are only ever entered next to the
@@ -186,12 +182,6 @@ export function ModelPicker() {
                     <div className="truncate">{model.label || model.id}</div>
                     <div className="num truncate text-[12px] text-faint">{model.model}</div>
                   </button>
-                  <span className="num shrink-0 text-[13px] text-mute">
-                    {rate(model.input_usd_per_mtok)} in
-                  </span>
-                  <span className="num w-20 shrink-0 text-right text-[13px] text-mute">
-                    {rate(model.output_usd_per_mtok)} out
-                  </span>
                   <button
                     className="shrink-0 text-faint opacity-0 group-hover:opacity-100 hover:text-bad"
                     onClick={() => void remove(model.id)}
@@ -199,6 +189,7 @@ export function ModelPicker() {
                   >
                     <Trash2 size={15} />
                   </button>
+                  <ChevronRight size={15} className="shrink-0 text-faint" />
                 </div>
               ))}
               <p className="px-5 py-3 text-[13px] text-faint">

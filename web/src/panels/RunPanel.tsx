@@ -83,7 +83,7 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
         )}
       </div>
 
-      {error && <div className="border-b border-line px-4 py-2 text-[12px] text-bad">{error}</div>}
+      {error && <div className="border-b border-line px-4 py-2 text-[13px] text-bad">{error}</div>}
 
       <div className="flex-1 overflow-y-auto">
         {events
@@ -101,29 +101,29 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
                 style={{ paddingLeft: 16 + (event.depth ?? 0) * 14 }}
               >
                 <div className="flex items-baseline gap-2">
-                  <span className={cn("text-[12px]", failed ? "text-bad" : "text-ink")}>
+                  <span className={cn("text-[13px]", failed ? "text-bad" : "text-ink")}>
                     {event.name}
                   </span>
                   {event.route && (
-                    <span className="rounded border border-line px-1 text-[11px] text-mute">
+                    <span className="rounded border border-line px-1 text-[13px] text-mute">
                       {event.route}
                     </span>
                   )}
                   {event.type === "node_skipped" && (
-                    <span className="text-[11px] text-faint">skipped</span>
+                    <span className="text-[13px] text-faint">skipped</span>
                   )}
                   <span className="flex-1" />
                   {event.ms ? (
-                    <span className="num text-[11px] text-faint">{ms(event.ms)}</span>
+                    <span className="num text-[13px] text-faint">{ms(event.ms)}</span>
                   ) : null}
                   {event.usd ? (
-                    <span className="num text-[11px] text-mute">{usd(event.usd)}</span>
+                    <span className="num text-[13px] text-mute">{usd(event.usd)}</span>
                   ) : null}
                 </div>
                 {event.text && event.type !== "node_skipped" && (
                   <p
                     className={cn(
-                      "mt-0.5 max-w-3xl text-[12px] leading-relaxed",
+                      "mt-0.5 max-w-3xl text-[13px] leading-relaxed",
                       failed ? "text-bad" : "text-mute",
                     )}
                   >
@@ -140,7 +140,7 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
             <p className="max-w-3xl whitespace-pre-wrap text-[13px] leading-relaxed">
               {answer.text}
             </p>
-            <div className="num mt-2 flex gap-4 text-[11px] text-faint">
+            <div className="num mt-2 flex gap-4 text-[13px] text-faint">
               <span>{ms(answer.ms ?? 0)}</span>
               <span>{usd(answer.usd ?? 0)}</span>
               <span>{(answer.input_tokens ?? 0).toLocaleString()} tokens in</span>
@@ -150,7 +150,7 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
         )}
 
         {events.length === 0 && !busy && (
-          <div className="p-4 text-[12px] text-faint">Run this agent to see each stage.</div>
+          <div className="p-4 text-[13px] text-faint">Run this agent to see each stage.</div>
         )}
       </div>
     </div>

@@ -56,12 +56,12 @@ class ModelSpec(BaseModel):
 
 
 class ToolSpec(BaseModel):
-    """One entry in the tool catalog. The prototype ships offline
-    implementations so a graph runs with no credentials beyond the model
-    key."""
+    """One entry in the tool catalog. A tool has one name, the name of the
+    function it calls, so nothing on screen shows a second one. The prototype
+    ships offline implementations so a graph runs with no credentials beyond
+    the model key."""
 
     id: str
-    label: str
     description: str
     parameters: list[str] = Field(default_factory=list)
 
@@ -147,31 +147,26 @@ DEFAULT_MODELS: list[ModelSpec] = [
 TOOL_CATALOG: list[ToolSpec] = [
     ToolSpec(
         id="echo",
-        label="Echo",
         description="Return the text it is given. Useful as a placeholder while a graph is being sketched.",
         parameters=["text"],
     ),
     ToolSpec(
         id="calculator",
-        label="Calculator",
         description="Evaluate an arithmetic expression over numbers, parentheses, and the four operators.",
         parameters=["expression"],
     ),
     ToolSpec(
         id="word_count",
-        label="Word count",
         description="Count words, characters, and lines in a block of text.",
         parameters=["text"],
     ),
     ToolSpec(
         id="search_notes",
-        label="Search notes",
         description="Search a small built-in corpus of notes and return the matching entries.",
         parameters=["query"],
     ),
     ToolSpec(
         id="read_file",
-        label="Read file",
         description="Read a UTF-8 text file from the workspace directory.",
         parameters=["path"],
     ),

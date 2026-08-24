@@ -44,6 +44,7 @@ type State = {
   models: ModelSpec[];
   tools: ToolSpec[];
   selectedId: string | null;
+  editingId: string | null;
   tab: Tab;
   problems: Problem[];
   estimate: GraphEstimate | null;
@@ -62,6 +63,7 @@ type Actions = {
   save: () => Promise<void>;
   setTab: (tab: Tab) => void;
   select: (id: string | null) => void;
+  setEditing: (id: string | null) => void;
   setGraph: (graph: AgentGraph) => void;
   patchGraph: (change: Partial<AgentGraph>) => void;
   updateNode: (id: string, change: Partial<Node>) => void;
@@ -110,6 +112,7 @@ export const useStore = create<State & Actions>((set, get) => {
     models: [],
     tools: [],
     selectedId: null,
+    editingId: null,
     tab: "build",
     problems: [],
     estimate: null,
@@ -169,6 +172,7 @@ export const useStore = create<State & Actions>((set, get) => {
 
     setTab: (tab) => set({ tab }),
     select: (selectedId) => set({ selectedId }),
+    setEditing: (editingId) => set({ editingId }),
 
     setGraph: (graph) => mutate(graph),
 
@@ -229,6 +233,7 @@ export const useStore = create<State & Actions>((set, get) => {
         edges: graph.edges.filter((e) => e.source !== id && e.target !== id),
       });
       if (get().selectedId === id) set({ selectedId: null });
+      if (get().editingId === id) set({ editingId: null });
     },
 
     connect: (source, target, label = "") => {

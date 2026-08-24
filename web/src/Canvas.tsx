@@ -31,6 +31,7 @@ export function Canvas({ running, skipped }: CanvasProps) {
   const problems = useStore((s) => s.problems);
   const selectedId = useStore((s) => s.selectedId);
   const select = useStore((s) => s.select);
+  const setEditing = useStore((s) => s.setEditing);
   const moveNodes = useStore((s) => s.moveNodes);
   const connect = useStore((s) => s.connect);
   const disconnect = useStore((s) => s.disconnect);
@@ -99,13 +100,13 @@ export function Canvas({ running, skipped }: CanvasProps) {
       // them is a picture of boxes.
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        width: 16,
-        height: 16,
+        width: 20,
+        height: 20,
         color: running.has(edge.target) ? "var(--color-accent)" : "var(--color-line-strong)",
       },
       style: {
         stroke: running.has(edge.target) ? "var(--color-accent)" : "var(--color-line-strong)",
-        strokeWidth: 1.5,
+        strokeWidth: 1.75,
       },
     }));
   }, [graph, running]);
@@ -122,6 +123,11 @@ export function Canvas({ running, skipped }: CanvasProps) {
   const onNodeClick = useCallback<NodeMouseHandler<FlowNode<StageNodeData>>>(
     (_event, node) => select(node.id),
     [select],
+  );
+
+  const onNodeDoubleClick = useCallback<NodeMouseHandler<FlowNode<StageNodeData>>>(
+    (_event, node) => setEditing(node.id),
+    [setEditing],
   );
 
   const onDrop = useCallback(
@@ -154,6 +160,7 @@ export function Canvas({ running, skipped }: CanvasProps) {
         onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
         onPaneClick={() => select(null)}
         onEdgesDelete={(edges) => edges.forEach((edge) => disconnect(edge.id))}
         onNodesDelete={(deleted) => deleted.forEach((node) => removeNode(node.id))}

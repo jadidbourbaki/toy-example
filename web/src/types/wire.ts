@@ -457,16 +457,16 @@ export interface RunEvent {
   graph_id: string;
 }
 /**
- * One entry in the tool catalog. The prototype ships offline
- * implementations so a graph runs with no credentials beyond the model
- * key.
+ * One entry in the tool catalog. A tool has one name, the name of the
+ * function it calls, so nothing on screen shows a second one. The prototype
+ * ships offline implementations so a graph runs with no credentials beyond
+ * the model key.
  *
  * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "ToolSpec".
  */
 export interface ToolSpec {
   id: string;
-  label: string;
   description: string;
   parameters: string[];
 }

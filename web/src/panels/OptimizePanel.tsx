@@ -26,30 +26,30 @@ function Measured({ measured }: { measured: PatchMeasurement }) {
     >
       <div className="mb-1.5 flex items-center gap-3">
         <span className="text-[13px] text-faint">Measured</span>
-        <span className={cn("num text-[12px]", cheaper ? "text-good" : "text-warn")}>
+        <span className={cn("num text-[13px]", cheaper ? "text-good" : "text-warn")}>
           {signedUsd(measured.usd_delta)} per request
         </span>
-        <span className="num text-[11px] text-mute">
+        <span className="num text-[13px] text-mute">
           {measured.ms_delta >= 0 ? "+" : "−"}
           {ms(Math.abs(measured.ms_delta))}
         </span>
         <Record measured={measured} />
         <div className="flex-1" />
         <span
-          className="num text-[10px] text-mute"
+          className="num text-[13px] text-mute"
           title="How many sample requests both versions completed. A small n on a loop is noisy."
         >
           n={measured.paired}
         </span>
       </div>
 
-      {measured.error && <div className="mb-1.5 text-[11px] text-bad">{measured.error}</div>}
+      {measured.error && <div className="mb-1.5 text-[13px] text-bad">{measured.error}</div>}
 
       {measured.verdicts.map((verdict, index) => (
         <div key={index} className="mb-1 flex items-start gap-2">
           <span
             className={cn(
-              "font-mono mt-px w-16 shrink-0 text-[10px]",
+              "font-mono mt-px w-16 shrink-0 text-[13px]",
               verdict.winner === "candidate"
                 ? "text-good"
                 : verdict.winner === "baseline"
@@ -63,7 +63,7 @@ function Measured({ measured }: { measured: PatchMeasurement }) {
                 ? "worse"
                 : "tie"}
           </span>
-          <span className="text-[11px] leading-snug text-mute">
+          <span className="text-[13px] leading-snug text-mute">
             {verdict.reason}
             {!verdict.agreed && (
               <span className="text-faint"> (the two orderings disagreed, so it scores a tie)</span>
@@ -196,9 +196,9 @@ export function OptimizePanel() {
             )}
             <div className="flex-1" />
             {regressions > 0 && (
-              <span className="mr-1 text-[11px] text-bad">{regressions} measured worse</span>
+              <span className="mr-1 text-[13px] text-bad">{regressions} measured worse</span>
             )}
-            <span className="num text-[11px] text-mute">{accepted.size} selected</span>
+            <span className="num text-[13px] text-mute">{accepted.size} selected</span>
             <button className="btn btn-primary" onClick={() => void applyChosen()}>
               Apply to the canvas
             </button>
@@ -208,10 +208,10 @@ export function OptimizePanel() {
       </div>
 
       {error && (
-        <div className="border-b border-line bg-bad/10 px-4 py-2 text-[12px] text-bad">{error}</div>
+        <div className="border-b border-line bg-bad/10 px-4 py-2 text-[13px] text-bad">{error}</div>
       )}
       {result && !result.ok && (
-        <div className="border-b border-line bg-bad/10 px-4 py-2 text-[12px] text-bad">
+        <div className="border-b border-line bg-bad/10 px-4 py-2 text-[13px] text-bad">
           {result.error}
         </div>
       )}
@@ -223,7 +223,7 @@ export function OptimizePanel() {
           <div className="border-b border-line bg-panel px-4 py-3">
             <div className="mb-1.5 text-[13px] text-faint">What it found</div>
             <p className="max-w-3xl text-[13px] leading-relaxed text-ink">{result.summary}</p>
-            <div className="num mt-2 flex gap-4 text-[11px] text-faint">
+            <div className="num mt-2 flex gap-4 text-[13px] text-faint">
               <span>estimated {usd(result.baseline_usd)} per request</span>
               {baselineUsd !== null && (
                 <span className="text-mute">measured {usd(baselineUsd)} per request</span>
@@ -263,7 +263,7 @@ export function OptimizePanel() {
                   <span className="flex-1 text-[13px] text-ink">{priced.patch.title}</span>
                   <span
                     className={cn(
-                      "num shrink-0 text-[12px]",
+                      "num shrink-0 text-[13px]",
                       record ? "text-mute" : priced.usd_delta < 0 ? "text-good" : "text-faint",
                     )}
                     title={
@@ -272,19 +272,19 @@ export function OptimizePanel() {
                         : "Static estimate"
                     }
                   >
-                    <span className="text-[10px] text-faint">est </span>
+                    <span className="text-[13px] text-faint">est </span>
                     {signedUsd(priced.usd_delta)}
                   </span>
                 </div>
                 <div className="mt-1.5 pl-6">
-                  <p className="max-w-2xl text-[12px] leading-relaxed text-mute">
+                  <p className="max-w-2xl text-[13px] leading-relaxed text-mute">
                     {priced.patch.rationale}
                   </p>
-                  <div className="font-mono mt-1.5 text-[10px] text-faint">
+                  <div className="font-mono mt-1.5 text-[13px] text-faint">
                     {priced.patch.op.replace(/_/g, " ")}
                   </div>
                   {priced.problems.map((problem, i) => (
-                    <div key={i} className="mt-1 text-[11px] text-bad">
+                    <div key={i} className="mt-1 text-[13px] text-bad">
                       {problem}
                     </div>
                   ))}
@@ -297,7 +297,7 @@ export function OptimizePanel() {
                 </div>
               )}
               {measuring && on && !record && (
-                <div className="pl-6 pt-2 text-[11px] text-faint">Running the sample…</div>
+                <div className="pl-6 pt-2 text-[13px] text-faint">Running the sample…</div>
               )}
             </div>
           );

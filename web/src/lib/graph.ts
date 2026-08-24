@@ -80,7 +80,7 @@ export function makeNode(
 ): Node {
   return {
     id: uid("n"),
-    name: uniqueName(graph, kind === "llm" ? "stage" : kind),
+    name: uniqueName(graph, kind === "llm" ? "stage" : kind === "tool" ? "search_notes" : kind),
     position: { x, y },
     notes: "",
     config: defaultConfig(kind, models),

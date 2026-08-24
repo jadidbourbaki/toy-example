@@ -20,8 +20,8 @@
       "id": "t2",
       "name": "triage",
       "position": {
-        "x": 250,
-        "y": 190
+        "x": 240,
+        "y": 200
       },
       "notes": "",
       "config": {
@@ -46,8 +46,8 @@
       "id": "t3",
       "name": "quick_reply",
       "position": {
-        "x": 600,
-        "y": 110
+        "x": 620,
+        "y": 60
       },
       "notes": "",
       "config": {
@@ -62,8 +62,8 @@
       "id": "t4",
       "name": "deep_dive",
       "position": {
-        "x": 600,
-        "y": 330
+        "x": 620,
+        "y": 340
       },
       "notes": "",
       "config": {
@@ -76,8 +76,8 @@
       "id": "t5",
       "name": "word_check",
       "position": {
-        "x": 900,
-        "y": 330
+        "x": 930,
+        "y": 340
       },
       "notes": "",
       "config": {
@@ -92,7 +92,7 @@
       "id": "t6",
       "name": "output",
       "position": {
-        "x": 1200,
+        "x": 1240,
         "y": 262
       },
       "notes": "",
