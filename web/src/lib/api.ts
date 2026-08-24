@@ -12,6 +12,7 @@ import type {
   PatchResponse,
   RunEvent,
   ToolSpec,
+  Turn,
   ValidateResponse,
 } from "@/types/wire";
 
@@ -73,6 +74,35 @@ async function streamPost<T>(
     },
   });
 
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parser.feed(value);
+  }
+}
+
+export async function streamAsk(
+  graph: AgentGraph,
+  question: string,
+  history: Turn[],
+  onDelta: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const response = await fetch("/api/ask", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ graph, question, history }),
+    signal,
+  });
+  if (!response.ok || !response.body) {
+    throw new Error(`The assistant did not answer: ${response.status} ${response.statusText}`);
+  }
+  const parser = createParser({
+    onEvent: (message) => {
+      if (message.event === "delta") onDelta(message.data);
+    },
+  });
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
   for (;;) {
     const { done, value } = await reader.read();

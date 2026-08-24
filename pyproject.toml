@@ -35,6 +35,7 @@ packages = ["sketch"]
 [dependency-groups]
 dev = [
     "httpx>=0.28",
+    "pillow==12.1.0",
     "pytest==8.4.2",
     "pytest-asyncio==1.4.0",
     "ruff==0.15.20",

@@ -31,6 +31,9 @@ class Settings(BaseSettings):
 
     compiler_model: str = "qwen3-coder-480b"
     judge_model: str = "glm-5"
+    # The assistant answers while someone is working, so it is bound to a fast
+    # model rather than the strongest one.
+    assistant_model: str = "glm-4.7-flash"
     # A measurement runs the graph once per sample request per candidate, so a
     # careless click on a large sample can spend real money. The run refuses to
     # start when its own projection passes this line.

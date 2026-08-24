@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, TypeAdapter
 from sse_starlette.sse import EventSourceResponse
 
-from sketch import compiler, measure, optimizer
+from sketch import assistant, compiler, measure, optimizer
 from sketch.estimate import GraphEstimate, estimate
 from sketch.graph import AgentGraph, Problem, validate_graph
 from sketch.measure import MeasureEvent
@@ -156,6 +156,17 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
             estimate=estimate(patched, workspace.models()),
         )
 
+    @app.post("/api/ask")
+    async def ask_endpoint(body: assistant.AskRequest) -> EventSourceResponse:
+        known = {g.id for g in workspace.all_graphs()} | {body.graph.id}
+
+        async def stream() -> AsyncIterator[dict[str, str]]:
+            async for delta in assistant.ask(body, workspace.models(), known):
+                yield {"event": "delta", "data": delta}
+            yield {"event": "done", "data": ""}
+
+        return EventSourceResponse(stream())
+
     @app.post("/api/sample")
     async def sample_endpoint(body: SampleRequest) -> list[str]:
         if not settings.has_model_credentials:
@@ -230,6 +241,7 @@ class Wire(BaseModel):
     patch_response: PatchResponse
     validate_response: ValidateResponse
     run_event: RunEvent
+    turn: assistant.Turn
     measure_plan: measure.MeasurePlan
     measure_event: MeasureEvent
     health: Health

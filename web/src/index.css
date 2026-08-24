@@ -124,3 +124,28 @@
 .stage-running {
   animation: stage-running 1.2s ease-in-out infinite;
 }
+
+/* The cat's eyes are their own rects, so a blink is a fill swap to the face
+   colour rather than a second image. */
+.orla-cat-eyes rect {
+  fill: #5faf00;
+  animation: orla-blink 6.5s infinite;
+}
+
+@keyframes orla-blink {
+  0%,
+  93%,
+  100% {
+    fill: #5faf00;
+  }
+  95%,
+  97% {
+    fill: #5f5f5f;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orla-cat-eyes rect {
+    animation: none;
+  }
+}

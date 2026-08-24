@@ -36,6 +36,12 @@ run moves through it.
 operations, and each one is priced by applying it alone to the graph and
 re-estimating. Accept the ones you want and they land on the canvas.
 
+**An assistant.** The Orla cat sits in the bottom corner and waits. Click it
+and it answers questions about the graph you have open, with the stage
+bindings, the estimated cost of each stage, the model rates, and the
+validator's complaints as its context. It reads and never edits, because a
+helper that quietly rewrites a canvas is hard to trust.
+
 **A measurement.** The estimate prices prompt size, which is right about a
 model swap and blind to a prompt rewrite whose saving lands downstream.
 Measuring runs the baseline and each candidate over a sample of requests and

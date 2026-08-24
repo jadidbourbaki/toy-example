@@ -1227,6 +1227,27 @@
       "title": "ToolSpec",
       "additionalProperties": false
     },
+    "Turn": {
+      "properties": {
+        "role": {
+          "enum": [
+            "user",
+            "assistant"
+          ],
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "text"
+      ],
+      "type": "object",
+      "title": "Turn",
+      "additionalProperties": false
+    },
     "ValidateResponse": {
       "properties": {
         "problems": {

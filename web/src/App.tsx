@@ -2,6 +2,7 @@ import * as Tabs from "@radix-ui/react-tabs";
 import { AlertTriangle, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Canvas } from "@/Canvas";
+import { Assistant } from "@/panels/Assistant";
 import { cn } from "@/lib/cn";
 import { CodePanel } from "@/panels/CodePanel";
 import { StatusLine } from "@/panels/StatusLine";
@@ -100,6 +101,8 @@ export function App() {
 
         <Inspector />
       </div>
+
+      <Assistant />
     </div>
   );
 }
