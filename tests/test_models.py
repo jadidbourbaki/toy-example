@@ -94,3 +94,15 @@ def test_every_shipped_model_can_serve_any_stage(model: ModelSpec) -> None:
 
 def test_by_id_finds_nothing_for_an_unknown_name(models: list[ModelSpec]) -> None:
     assert by_id(models, "absent") is None
+
+
+def test_a_model_builds_without_credentials(
+    monkeypatch: pytest.MonkeyPatch, models: list[ModelSpec]
+) -> None:
+    """Building a model is not the moment to demand a key. A graph is edited,
+    validated, and priced long before anything calls a provider, so a missing
+    credential must not raise here."""
+
+    monkeypatch.delenv("AWS_BEARER_TOKEN_BEDROCK", raising=False)
+    for spec in models:
+        assert build_model(spec) is not None

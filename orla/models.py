@@ -198,7 +198,11 @@ def build_model(spec: ModelSpec) -> Model | str:
 
     if spec.provider in ("bedrock-mantle", "ollama"):
         base_url = mantle_base_url() if spec.provider == "bedrock-mantle" else spec.endpoint
-        key = os.environ.get(spec.api_key_var, "") if spec.api_key_var else "unused"
+        # An OpenAI-compatible client refuses to construct without a key, which
+        # would turn a missing credential into an error raised while a graph is
+        # merely being built. The placeholder defers the failure to the call,
+        # where the provider says plainly that the key is wrong.
+        key = (os.environ.get(spec.api_key_var) if spec.api_key_var else None) or "no-key-set"
         return OpenAIChatModel(spec.model, provider=OpenAIProvider(base_url=base_url, api_key=key))
     return provider_model_string(spec)
 
