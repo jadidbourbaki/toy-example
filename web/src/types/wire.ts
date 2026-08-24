@@ -163,6 +163,20 @@ export interface Edge {
   label: string;
 }
 /**
+ * Progress from a compile. Writing the module takes long enough that
+ * silence reads as a hang, and the checks it runs are worth watching.
+ *
+ * This interface was referenced by `Sketch`'s JSON-Schema
+ * via the `definition` "CompileEvent".
+ */
+export interface CompileEvent {
+  type: "writing" | "checking" | "rejected" | "done" | "error";
+  attempt: number;
+  problems: string[];
+  result: CompileResult | null;
+  text: string;
+}
+/**
  * This interface was referenced by `Sketch`'s JSON-Schema
  * via the `definition` "CompileResult".
  */
@@ -327,7 +341,7 @@ export interface Verdict {
  */
 export interface ModelSpec {
   id: string;
-  provider: "anthropic" | "openai" | "bedrock" | "ollama";
+  provider: "bedrock-mantle" | "anthropic" | "openai" | "ollama";
   model: string;
   label: string;
   endpoint: string;

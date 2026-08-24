@@ -45,6 +45,56 @@
       "title": "AgentGraph",
       "additionalProperties": false
     },
+    "CompileEvent": {
+      "description": "Progress from a compile. Writing the module takes long enough that\nsilence reads as a hang, and the checks it runs are worth watching.",
+      "properties": {
+        "type": {
+          "enum": [
+            "writing",
+            "checking",
+            "rejected",
+            "done",
+            "error"
+          ],
+          "type": "string"
+        },
+        "attempt": {
+          "default": 0,
+          "type": "integer"
+        },
+        "problems": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CompileResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "text": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attempt",
+        "problems",
+        "result",
+        "text",
+        "type"
+      ],
+      "type": "object",
+      "title": "CompileEvent",
+      "additionalProperties": false
+    },
     "CompileResult": {
       "properties": {
         "source": {
@@ -404,9 +454,9 @@
         },
         "provider": {
           "enum": [
+            "bedrock-mantle",
             "anthropic",
             "openai",
-            "bedrock",
             "ollama"
           ],
           "type": "string"

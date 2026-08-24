@@ -4,6 +4,7 @@ import { blankGraph, makeEdge, makeNode, slugify } from "@/lib/graph";
 import type { NodeKind } from "@/lib/kinds";
 import type {
   AgentGraph,
+  CompileResult,
   GraphEstimate,
   GraphSummary,
   ModelSpec,
@@ -12,6 +13,28 @@ import type {
   RunEvent,
   ToolSpec,
 } from "@/types/wire";
+
+/** Where a compile has got to. The panel unmounts when a tab changes, so
+ *  progress and the finished module live here rather than in the component. */
+export type CompileState = {
+  running: boolean;
+  attempt: number;
+  step: "" | "writing" | "checking" | "rejected";
+  result: CompileResult | null;
+  problems: string[];
+  error: string;
+  startedAt: number;
+};
+
+const IDLE_COMPILE: CompileState = {
+  running: false,
+  attempt: 0,
+  step: "",
+  result: null,
+  problems: [],
+  error: "",
+  startedAt: 0,
+};
 
 export type Tab = "build" | "code" | "optimize" | "run";
 
@@ -28,6 +51,7 @@ type State = {
   measured: Record<string, RunEvent>;
   dirty: boolean;
   error: string;
+  compile: CompileState;
 };
 
 type Actions = {
@@ -49,6 +73,7 @@ type Actions = {
   setModels: (models: ModelSpec[]) => Promise<void>;
   recordRun: (events: RunEvent[]) => void;
   clearMeasured: () => void;
+  setCompile: (change: Partial<CompileState>) => void;
 };
 
 /** Validation and pricing both live on the server, so the canvas asks for them
@@ -80,6 +105,7 @@ export const useStore = create<State & Actions>((set, get) => {
     measured: {},
     dirty: false,
     error: "",
+    compile: IDLE_COMPILE,
 
     boot: async () => {
       const [graphs, models, tools] = await Promise.all([
@@ -94,7 +120,14 @@ export const useStore = create<State & Actions>((set, get) => {
 
     openGraph: async (id) => {
       const graph = await api.readGraph(id);
-      set({ graph, selectedId: null, dirty: false, measured: {}, error: "" });
+      set({
+        graph,
+        selectedId: null,
+        dirty: false,
+        measured: {},
+        error: "",
+        compile: IDLE_COMPILE,
+      });
       await refresh(graph, set);
     },
 
@@ -203,5 +236,7 @@ export const useStore = create<State & Actions>((set, get) => {
     },
 
     clearMeasured: () => set({ measured: {} }),
+
+    setCompile: (change) => set({ compile: { ...get().compile, ...change } }),
   };
 });

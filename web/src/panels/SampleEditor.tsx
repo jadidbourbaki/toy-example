@@ -28,9 +28,9 @@ export function SampleEditor() {
   };
 
   return (
-    <div className="border-b border-line bg-slate px-4 py-3">
+    <div className="border-b border-line bg-panel px-4 py-3">
       <div className="mb-2 flex items-center gap-2">
-        <span className="eyebrow">Sample</span>
+        <span className="label">Sample</span>
         <span className="num text-[10px] text-faint">{graph.sample.length} requests</span>
         <div className="flex-1" />
         <button className="btn py-1 text-[11px]" onClick={() => void write()} disabled={busy}>
@@ -62,7 +62,7 @@ export function SampleEditor() {
       ))}
 
       <button
-        className="ml-5 flex items-center gap-1 text-[11px] text-faint hover:text-chalk"
+        className="ml-5 flex items-center gap-1 text-[11px] text-faint hover:text-ink"
         onClick={() => set([...graph.sample, ""])}
       >
         <Plus size={11} /> Add a request

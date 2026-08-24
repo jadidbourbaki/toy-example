@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Canvas } from "@/Canvas";
 import { cn } from "@/lib/cn";
 import { CodePanel } from "@/panels/CodePanel";
-import { CostSpine } from "@/panels/CostSpine";
+import { StatusLine } from "@/panels/StatusLine";
 import { GraphRail } from "@/panels/GraphRail";
 import { Inspector } from "@/panels/Inspector";
 import { ModelPicker } from "@/panels/ModelPicker";
@@ -40,10 +40,10 @@ export function App() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      <header className="flex h-12 shrink-0 items-center gap-4 border-b border-line bg-slate px-4">
-        <span className="ident text-[14px] tracking-tight text-chalk">sketch</span>
+      <header className="flex h-12 shrink-0 items-center gap-4 border-b border-line bg-panel px-4">
+        <span className="font-mono text-[14px] tracking-tight text-ink">sketch</span>
         {graph && (
-          <span className="ident text-[12px] text-faint">
+          <span className="font-mono text-[12px] text-faint">
             <span className="text-mute">{graph.id}</span>
           </span>
         )}
@@ -56,7 +56,7 @@ export function App() {
                 value={entry.id}
                 className={cn(
                   "rounded-[2px] px-3 py-1 text-[12px] transition-colors",
-                  tab === entry.id ? "bg-raise text-chalk" : "text-mute hover:text-chalk",
+                  tab === entry.id ? "bg-sunk text-ink" : "text-mute hover:text-ink",
                 )}
               >
                 {entry.label}
@@ -95,7 +95,7 @@ export function App() {
           {tab === "code" && <CodePanel />}
           {tab === "optimize" && <OptimizePanel />}
           {tab === "run" && <RunPanel onRunning={setRunning} onSkipped={setSkipped} />}
-          <CostSpine />
+          <StatusLine />
         </main>
 
         <Inspector />

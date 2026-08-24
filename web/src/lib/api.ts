@@ -1,7 +1,7 @@
 import { createParser } from "eventsource-parser";
 import type {
   AgentGraph,
-  CompileResult,
+  CompileEvent,
   GraphSummary,
   Health,
   MeasureEvent,
@@ -42,7 +42,6 @@ export const api = {
     request<ModelSpec[]>("/models", { method: "PUT", body: JSON.stringify(models) }),
   tools: () => request<ToolSpec[]>("/tools"),
   validate: (graph: AgentGraph) => post<ValidateResponse>("/validate", { graph }),
-  compile: (graph: AgentGraph) => post<CompileResult>("/compile", { graph }),
   optimize: (graph: AgentGraph) => post<OptimizeResult>("/optimize", { graph }),
   patch: (graph: AgentGraph, patches: Patch[]) => post<PatchResponse>("/patch", { graph, patches }),
   writeSample: (graph: AgentGraph, count = 3) => post<string[]>("/sample", { graph, count }),
@@ -80,6 +79,14 @@ async function streamPost<T>(
     if (done) break;
     parser.feed(value);
   }
+}
+
+export function streamCompile(
+  graph: AgentGraph,
+  onEvent: (event: CompileEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  return streamPost("/compile", { graph }, onEvent, signal);
 }
 
 export function streamMeasure(

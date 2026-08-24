@@ -25,11 +25,11 @@ function Measured({ measured }: { measured: PatchMeasurement }) {
     <div
       className={cn(
         "mt-2 rounded-[3px] border px-2.5 py-2",
-        measured.losses > measured.wins ? "border-bad/40 bg-bad/5" : "border-line bg-ink/60",
+        measured.losses > measured.wins ? "border-bad/40 bg-bad/5" : "border-line bg-panel",
       )}
     >
       <div className="mb-1.5 flex items-center gap-3">
-        <span className="eyebrow">Measured</span>
+        <span className="label">Measured</span>
         <span className={cn("num text-[12px]", cheaper ? "text-good" : "text-warn")}>
           {signedUsd(measured.usd_delta)} per request
         </span>
@@ -53,7 +53,7 @@ function Measured({ measured }: { measured: PatchMeasurement }) {
         <div key={index} className="mb-1 flex items-start gap-2">
           <span
             className={cn(
-              "ident mt-px w-16 shrink-0 text-[10px]",
+              "font-mono mt-px w-16 shrink-0 text-[10px]",
               verdict.winner === "candidate"
                 ? "text-good"
                 : verdict.winner === "baseline"
@@ -224,9 +224,9 @@ export function OptimizePanel() {
         <SampleEditor />
 
         {result?.summary && (
-          <div className="border-b border-line bg-slate px-4 py-3">
-            <div className="eyebrow mb-1.5">What it found</div>
-            <p className="max-w-3xl text-[13px] leading-relaxed text-chalk">{result.summary}</p>
+          <div className="border-b border-line bg-panel px-4 py-3">
+            <div className="label mb-1.5">What it found</div>
+            <p className="max-w-3xl text-[13px] leading-relaxed text-ink">{result.summary}</p>
             <div className="num mt-2 flex gap-4 text-[11px] text-faint">
               <span>estimated {usd(result.baseline_usd)} per request</span>
               {baselineUsd !== null && (
@@ -245,7 +245,7 @@ export function OptimizePanel() {
               key={id}
               className={cn(
                 "border-b border-line px-4 py-3",
-                on ? "bg-kind-llm/10" : "",
+                on ? "bg-accent/5" : "",
                 !priced.applies && "opacity-50",
               )}
             >
@@ -261,10 +261,10 @@ export function OptimizePanel() {
                   <span
                     className={cn(
                       "mt-0.5 h-3 w-3 shrink-0 rounded-[2px] border",
-                      on ? "border-kind-llm bg-kind-llm" : "border-faint",
+                      on ? "border-accent bg-accent" : "border-faint",
                     )}
                   />
-                  <span className="flex-1 text-[13px] text-chalk">{priced.patch.title}</span>
+                  <span className="flex-1 text-[13px] text-ink">{priced.patch.title}</span>
                   <span
                     className={cn(
                       "num shrink-0 text-[12px]",
@@ -284,7 +284,7 @@ export function OptimizePanel() {
                   <p className="max-w-2xl text-[12px] leading-relaxed text-mute">
                     {priced.patch.rationale}
                   </p>
-                  <div className="ident mt-1.5 text-[10px] text-faint">
+                  <div className="font-mono mt-1.5 text-[10px] text-faint">
                     {priced.patch.op}
                     {priced.patch.node_id ? ` · ${priced.patch.node_id}` : ""}
                   </div>
@@ -311,7 +311,7 @@ export function OptimizePanel() {
         {!result && !busy && (
           <div className="flex flex-1 items-center justify-center px-8 py-16 text-center">
             <div className="max-w-md">
-              <div className="mb-2 text-[13px] text-chalk">Ask for changes worth making.</div>
+              <div className="mb-2 text-[13px] text-ink">Ask for changes worth making.</div>
               <div className="text-[12px] leading-relaxed text-mute">
                 Proposals arrive with a static estimate, which is free and instant. Tick the ones
                 worth testing and press Measure to run them against the sample for a real cost, a

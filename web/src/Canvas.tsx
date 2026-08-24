@@ -11,7 +11,7 @@ import {
 } from "@xyflow/react";
 import { useCallback, useMemo, useRef } from "react";
 import { StageNode, type StageNodeData } from "@/nodes/StageNode";
-import { KINDS, type NodeKind } from "@/lib/kinds";
+import { type NodeKind } from "@/lib/kinds";
 import { useStore } from "@/store";
 import type { RunEvent } from "@/types/wire";
 
@@ -64,8 +64,6 @@ export function Canvas({ running, skipped }: CanvasProps) {
   const flowEdges = useMemo<FlowEdge[]>(() => {
     if (!graph) return [];
     return graph.edges.map((edge) => {
-      const source = graph.nodes.find((n) => n.id === edge.source);
-      const colour = source ? KINDS[source.config.kind].color : "var(--color-faint)";
       const live = running.has(edge.target) || Boolean(measured[edge.target]);
       return {
         id: edge.id,
@@ -75,8 +73,8 @@ export function Canvas({ running, skipped }: CanvasProps) {
         label: edge.label || undefined,
         animated: running.has(edge.target),
         style: {
-          stroke: live ? colour : "var(--color-line)",
-          strokeWidth: live ? 1.8 : 1.4,
+          stroke: live ? "var(--color-accent)" : "var(--color-line-strong)",
+          strokeWidth: 1.4,
         },
       };
     });

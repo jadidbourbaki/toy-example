@@ -2,74 +2,29 @@ import type { Node } from "@/types/wire";
 
 export type NodeKind = Node["config"]["kind"];
 
-export type KindMeta = {
-  kind: NodeKind;
-  label: string;
-  /** What a stage of this kind does, in the words someone building one would use. */
-  blurb: string;
-  /** The taxonomy hue. Every appearance of this colour means this kind of work. */
-  color: string;
-  /** Whether a stage of this kind makes a model call, and so carries a stage tag. */
-  billed: boolean;
+export const KIND_LABELS: Record<NodeKind, string> = {
+  input: "Input",
+  output: "Output",
+  llm: "Model call",
+  tool: "Tool",
+  react: "ReAct loop",
+  router: "Router",
+  subagent: "Subagent",
 };
 
-export const KINDS: Record<NodeKind, KindMeta> = {
-  input: {
-    kind: "input",
-    label: "Input",
-    blurb: "Where the request enters the graph.",
-    color: "var(--color-kind-boundary)",
-    billed: false,
-  },
-  output: {
-    kind: "output",
-    label: "Output",
-    blurb: "What the graph returns.",
-    color: "var(--color-kind-boundary)",
-    billed: false,
-  },
-  llm: {
-    kind: "llm",
-    label: "Model call",
-    blurb: "One prompt in, one response out.",
-    color: "var(--color-kind-llm)",
-    billed: true,
-  },
-  tool: {
-    kind: "tool",
-    label: "Tool",
-    blurb: "A function call. No model, no cost.",
-    color: "var(--color-kind-tool)",
-    billed: false,
-  },
-  react: {
-    kind: "react",
-    label: "ReAct loop",
-    blurb: "Calls tools in a loop until it answers.",
-    color: "var(--color-kind-react)",
-    billed: true,
-  },
-  router: {
-    kind: "router",
-    label: "Router",
-    blurb: "Picks one branch and skips the rest.",
-    color: "var(--color-kind-router)",
-    billed: true,
-  },
-  subagent: {
-    kind: "subagent",
-    label: "Subagent",
-    blurb: "Runs another graph in this workspace.",
-    color: "var(--color-kind-subagent)",
-    billed: true,
-  },
-};
-
+/** Kinds a stage can be added as. Boundaries come with the graph. */
 export const PALETTE_KINDS: NodeKind[] = ["llm", "tool", "react", "router", "subagent"];
 
-export function kindOf(node: Node): KindMeta {
-  return KINDS[node.config.kind];
-}
+/** Whether a kind makes a model call, and so carries a stage tag and a cost. */
+export const BILLED: Record<NodeKind, boolean> = {
+  input: false,
+  output: false,
+  llm: true,
+  tool: false,
+  react: true,
+  router: true,
+  subagent: true,
+};
 
 export function usd(value: number): string {
   if (value === 0) return "$0";

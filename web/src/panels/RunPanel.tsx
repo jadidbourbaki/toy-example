@@ -1,8 +1,8 @@
-import { Play, Square } from "lucide-react";
+import { Square } from "lucide-react";
 import { useRef, useState } from "react";
 import { streamRun } from "@/lib/api";
 import { cn } from "@/lib/cn";
-import { KINDS, ms, usd } from "@/lib/kinds";
+import { ms, usd } from "@/lib/kinds";
 import { useStore } from "@/store";
 import type { RunEvent } from "@/types/wire";
 
@@ -15,7 +15,7 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
   const graph = useStore((s) => s.graph);
   const recordRun = useStore((s) => s.recordRun);
   const select = useStore((s) => s.select);
-  const [prompt, setPrompt] = useState("How should I tune retrieval?");
+  const [prompt, setPrompt] = useState("How much chunk overlap should I use?");
   const [events, setEvents] = useState<RunEvent[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -58,37 +58,32 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
     }
   };
 
-  const stop = () => abort.current?.abort();
-
   const answer = events.find((e) => e.type === "run_done" && (e.depth ?? 0) === 0);
   const failure = events.find((e) => e.type === "run_error");
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-line px-4 py-2.5">
+      <div className="flex items-center gap-2 border-b border-line px-4 py-2">
         <input
           className="field flex-1"
           value={prompt}
-          placeholder="What should the agent be asked?"
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !busy) void start();
           }}
         />
         {busy ? (
-          <button className="btn" onClick={stop}>
-            <Square size={11} /> Stop
+          <button className="btn" onClick={() => abort.current?.abort()}>
+            <Square size={12} /> Stop
           </button>
         ) : (
           <button className="btn btn-primary" onClick={() => void start()} disabled={!graph}>
-            <Play size={11} /> Run
+            Run
           </button>
         )}
       </div>
 
-      {error && (
-        <div className="border-b border-line bg-bad/10 px-4 py-2 text-[12px] text-bad">{error}</div>
-      )}
+      {error && <div className="border-b border-line px-4 py-2 text-[12px] text-bad">{error}</div>}
 
       <div className="flex-1 overflow-y-auto">
         {events
@@ -97,28 +92,20 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
           )
           .filter((e) => e.kind !== "input")
           .map((event, index) => {
-            const meta =
-              event.kind && event.kind in KINDS ? KINDS[event.kind as keyof typeof KINDS] : null;
             const failed = event.type === "run_error";
             return (
               <button
                 key={index}
                 onClick={() => event.node_id && select(event.node_id)}
-                className="block w-full border-b border-line-soft px-4 py-2.5 text-left hover:bg-slate"
+                className="block w-full border-b border-line px-4 py-2 text-left hover:bg-panel"
                 style={{ paddingLeft: 16 + (event.depth ?? 0) * 14 }}
               >
-                <div className="flex items-baseline gap-2.5">
-                  <span
-                    className="h-3 w-[3px] shrink-0 rounded-[1px]"
-                    style={{
-                      background: failed
-                        ? "var(--color-bad)"
-                        : (meta?.color ?? "var(--color-faint)"),
-                    }}
-                  />
-                  <span className="ident text-[12px] text-chalk">{event.name}</span>
+                <div className="flex items-baseline gap-2">
+                  <span className={cn("text-[12px]", failed ? "text-bad" : "text-ink")}>
+                    {event.name}
+                  </span>
                   {event.route && (
-                    <span className="ident rounded-[2px] border border-kind-router/50 px-1 text-[10px] text-kind-router">
+                    <span className="rounded border border-line px-1 text-[11px] text-mute">
                       {event.route}
                     </span>
                   )}
@@ -136,11 +123,11 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
                 {event.text && event.type !== "node_skipped" && (
                   <p
                     className={cn(
-                      "mt-1 max-w-3xl pl-[22px] text-[12px] leading-relaxed",
+                      "mt-0.5 max-w-3xl text-[12px] leading-relaxed",
                       failed ? "text-bad" : "text-mute",
                     )}
                   >
-                    {event.text.length > 400 ? `${event.text.slice(0, 400)}…` : event.text}
+                    {event.text.length > 300 ? `${event.text.slice(0, 300)}…` : event.text}
                   </p>
                 )}
               </button>
@@ -148,16 +135,16 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
           })}
 
         {answer && !failure && (
-          <div className="border-t-2 border-line bg-slate px-4 py-3">
-            <div className="eyebrow mb-1.5">Answer</div>
-            <p className="max-w-3xl whitespace-pre-wrap text-[13px] leading-relaxed text-chalk">
+          <div className="border-t-2 border-line bg-panel px-4 py-3">
+            <div className="label mb-1">Answer</div>
+            <p className="max-w-3xl whitespace-pre-wrap text-[13px] leading-relaxed">
               {answer.text}
             </p>
-            <div className="num mt-2.5 flex gap-4 text-[11px] text-faint">
+            <div className="num mt-2 flex gap-4 text-[11px] text-faint">
               <span>{ms(answer.ms ?? 0)}</span>
               <span>{usd(answer.usd ?? 0)}</span>
               <span>
-                {(answer.input_tokens ?? 0).toLocaleString()} in /{" "}
+                {(answer.input_tokens ?? 0).toLocaleString()} in ·{" "}
                 {(answer.output_tokens ?? 0).toLocaleString()} out
               </span>
             </div>
@@ -165,15 +152,7 @@ export function RunPanel({ onRunning, onSkipped }: RunPanelProps) {
         )}
 
         {events.length === 0 && !busy && (
-          <div className="flex h-full items-center justify-center px-8 text-center">
-            <div className="max-w-md">
-              <div className="mb-2 text-[13px] text-chalk">Run the graph you drew.</div>
-              <div className="text-[12px] leading-relaxed text-mute">
-                Each stage reports what it produced, how long it took, and what it cost. The canvas
-                lights up as the run moves through it, and the cost bar fills with measured spend.
-              </div>
-            </div>
-          </div>
+          <div className="p-4 text-[12px] text-faint">Run the graph to see each stage.</div>
         )}
       </div>
     </div>

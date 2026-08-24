@@ -25,9 +25,9 @@ export function ModelPicker() {
         </button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-ink/80" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 max-h-[80vh] w-[760px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded border border-line bg-slate p-4 shadow-2xl">
-          <Dialog.Title className="text-[14px] text-chalk">Model registry</Dialog.Title>
+        <Dialog.Overlay className="fixed inset-0 bg-page/30" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 max-h-[80vh] w-[760px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded border border-line bg-panel p-4 shadow-2xl">
+          <Dialog.Title className="text-[14px] text-ink">Model registry</Dialog.Title>
           <Dialog.Description className="mt-1 mb-4 text-[12px] leading-relaxed text-mute">
             A stage names a model by its id here, so retargeting a stage is a one word change. The
             rates drive the cost estimate on the canvas.
@@ -37,7 +37,7 @@ export function ModelPicker() {
             <thead>
               <tr className="text-left">
                 {["id", "provider", "model", "$/Mtok in", "$/Mtok out", "quality"].map((head) => (
-                  <th key={head} className="eyebrow pb-1.5 font-medium">
+                  <th key={head} className="label pb-1.5 font-medium">
                     {head}
                   </th>
                 ))}
@@ -45,10 +45,10 @@ export function ModelPicker() {
             </thead>
             <tbody>
               {rows.map((model, index) => (
-                <tr key={model.id} className="border-t border-line-soft">
-                  <td className="ident py-1.5 pr-2 text-chalk">{model.id}</td>
-                  <td className="ident py-1.5 pr-2 text-mute">{model.provider}</td>
-                  <td className="ident py-1.5 pr-2 text-mute">{model.model}</td>
+                <tr key={model.id} className="border-t border-line">
+                  <td className="font-mono py-1.5 pr-2 text-ink">{model.id}</td>
+                  <td className="font-mono py-1.5 pr-2 text-mute">{model.provider}</td>
+                  <td className="font-mono py-1.5 pr-2 text-mute">{model.model}</td>
                   {(["input_usd_per_mtok", "output_usd_per_mtok", "quality_prior"] as const).map(
                     (field) => (
                       <td key={field} className="py-1 pr-2">
