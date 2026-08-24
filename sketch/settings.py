@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     port: int = 8000
 
     @property
+    def aws_region(self) -> str:
+        return os.environ.get("AWS_REGION", "us-west-2")
+
+    @property
     def has_model_credentials(self) -> bool:
         return bool(os.environ.get("AWS_BEARER_TOKEN_BEDROCK"))
 

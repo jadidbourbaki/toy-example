@@ -74,11 +74,22 @@ class Workspace:
         self.graph_path(graph_id).unlink(missing_ok=True)
 
     def models(self) -> list[ModelSpec]:
+        """The registry, with any model added to the defaults since this
+        workspace was created. An edited rate survives, because a stored entry
+        always wins over the default of the same id."""
+
         if not self.models_path.is_file():
-            self.write_models(DEFAULT_MODELS)
+            self.write_models(list(DEFAULT_MODELS))
             return list(DEFAULT_MODELS)
+
         raw = json.loads(self.models_path.read_text(encoding="utf-8"))
-        return [ModelSpec.model_validate(row) for row in raw]
+        stored = [ModelSpec.model_validate(row) for row in raw]
+        known = {spec.id for spec in stored}
+        arrived = [spec for spec in DEFAULT_MODELS if spec.id not in known]
+        if arrived:
+            stored.extend(arrived)
+            self.write_models(stored)
+        return stored
 
     def write_models(self, models: list[ModelSpec]) -> list[ModelSpec]:
         payload = [m.model_dump() for m in models]

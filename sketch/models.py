@@ -15,18 +15,22 @@ from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
-Provider = Literal["bedrock-mantle", "anthropic", "openai", "ollama"]
+from sketch.graph import AgentGraph, Problem, ReactConfig, RouterConfig
+from sketch.settings import settings
 
-# Bedrock serves models through two endpoints with two different catalogues.
-# bedrock-runtime carries the AWS-native Converse API. bedrock-mantle carries
-# the OpenAI-compatible one, and it is where the current open-weight models
-# live. Talking to it needs a base URL and a key, which is the same shape as
-# talking to any other OpenAI-compatible server.
+Provider = Literal["bedrock-mantle", "bedrock-runtime", "anthropic", "openai", "ollama"]
+
+# Bedrock serves models through two endpoints with two different catalogues,
+# and the registry uses both. bedrock-mantle speaks the OpenAI protocol and
+# carries the current open-weight models. bedrock-runtime speaks the AWS-native
+# Converse API and carries a different set, including models that never moved
+# across. A registry entry names which endpoint serves it, so adding a model
+# from either side is one row.
 MANTLE_HOST = "https://bedrock-mantle.{region}.api.aws/v1"
 
 
 def mantle_base_url(region: str | None = None) -> str:
-    return MANTLE_HOST.format(region=region or os.environ.get("AWS_REGION", "us-west-2"))
+    return MANTLE_HOST.format(region=region or settings.aws_region)
 
 
 class ModelSpec(BaseModel):
@@ -43,6 +47,12 @@ class ModelSpec(BaseModel):
     input_usd_per_mtok: float = 0.0
     output_usd_per_mtok: float = 0.0
     quality_prior: float = 0.5
+    # Not every model can do everything. A ReAct stage needs tool calling and a
+    # router needs a typed result, so a model missing either one is usable for a
+    # plain call and nothing else. Binding it anywhere else is caught by
+    # validation rather than failing at run time.
+    tools: bool = True
+    structured: bool = True
 
 
 class ToolSpec(BaseModel):
@@ -57,18 +67,28 @@ class ToolSpec(BaseModel):
 
 
 def _bedrock(
-    entry_id: str, model: str, label: str, price_in: float, price_out: float, prior: float
+    entry_id: str,
+    model: str,
+    label: str,
+    price_in: float,
+    price_out: float,
+    prior: float,
+    provider: Provider = "bedrock-mantle",
+    tools: bool = True,
+    structured: bool = True,
 ) -> ModelSpec:
     return ModelSpec(
         id=entry_id,
-        provider="bedrock-mantle",
+        provider=provider,
         model=model,
         label=label,
-        endpoint=MANTLE_HOST,
+        endpoint=MANTLE_HOST if provider == "bedrock-mantle" else "",
         api_key_var="AWS_BEARER_TOKEN_BEDROCK",
         input_usd_per_mtok=price_in,
         output_usd_per_mtok=price_out,
         quality_prior=prior,
+        tools=tools,
+        structured=structured,
     )
 
 
@@ -109,6 +129,29 @@ DEFAULT_MODELS: list[ModelSpec] = [
     ),
     _bedrock("kimi-k2.5", "moonshotai.kimi-k2.5", "Kimi K2.5", 0.60, 3.00, 0.88),
     _bedrock("glm-5", "zai.glm-5", "GLM 5", 1.00, 3.20, 0.92),
+    # Served by Converse on bedrock-runtime rather than by mantle.
+    _bedrock(
+        "llama4-maverick",
+        "us.meta.llama4-maverick-17b-instruct-v1:0",
+        "Llama 4 Maverick 17B",
+        0.24,
+        0.97,
+        0.78,
+        provider="bedrock-runtime",
+    ),
+    # A reasoning model with no tool calling and no typed output, so it serves a
+    # plain call and nothing else.
+    _bedrock(
+        "deepseek-r1",
+        "us.deepseek.r1-v1:0",
+        "DeepSeek R1",
+        1.35,
+        5.40,
+        0.90,
+        provider="bedrock-runtime",
+        tools=False,
+        structured=False,
+    ),
 ]
 
 TOOL_CATALOG: list[ToolSpec] = [
@@ -158,6 +201,8 @@ def provider_model_string(spec: ModelSpec) -> str:
 
     if spec.provider in ("bedrock-mantle", "ollama"):
         return spec.model
+    if spec.provider == "bedrock-runtime":
+        return f"bedrock:{spec.model}"
     return f"{spec.provider}:{spec.model}"
 
 
@@ -182,3 +227,43 @@ def driver_model(name: str) -> Model | str:
 
     spec = by_id(DEFAULT_MODELS, name)
     return build_model(spec) if spec else name
+
+
+def capability_problems(graph: AgentGraph, models: list[ModelSpec]) -> list[Problem]:
+    """Stages bound to a model that cannot do what the stage needs. A ReAct
+    stage calls tools and a router returns one of a fixed set of labels, so a
+    model missing either capability fails at run time. Saying so on the canvas
+    is cheaper than finding out during a run."""
+
+    problems: list[Problem] = []
+    for node in graph.nodes:
+        model_id = getattr(node.config, "model", "")
+        if not model_id:
+            continue
+        spec = by_id(models, model_id)
+        if spec is None:
+            problems.append(
+                Problem(
+                    severity="error",
+                    node_id=node.id,
+                    message=f"The registry has no model named {model_id!r}.",
+                )
+            )
+            continue
+        if isinstance(node.config, ReactConfig) and not spec.tools:
+            problems.append(
+                Problem(
+                    severity="error",
+                    node_id=node.id,
+                    message=f"{node.name} is a ReAct loop, and {spec.label} cannot call tools. Bind it to a model that can, or make this a plain model call.",
+                )
+            )
+        if isinstance(node.config, RouterConfig) and not spec.structured:
+            problems.append(
+                Problem(
+                    severity="error",
+                    node_id=node.id,
+                    message=f"{node.name} is a router, and {spec.label} cannot return one of a fixed set of labels. Bind it to a model that can.",
+                )
+            )
+    return problems

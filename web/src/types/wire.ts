@@ -341,7 +341,7 @@ export interface Verdict {
  */
 export interface ModelSpec {
   id: string;
-  provider: "bedrock-mantle" | "anthropic" | "openai" | "ollama";
+  provider: "bedrock-mantle" | "bedrock-runtime" | "anthropic" | "openai" | "ollama";
   model: string;
   label: string;
   endpoint: string;
@@ -349,6 +349,8 @@ export interface ModelSpec {
   input_usd_per_mtok: number;
   output_usd_per_mtok: number;
   quality_prior: number;
+  tools: boolean;
+  structured: boolean;
 }
 /**
  * This interface was referenced by `Sketch`'s JSON-Schema

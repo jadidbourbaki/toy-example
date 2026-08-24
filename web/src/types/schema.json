@@ -455,6 +455,7 @@
         "provider": {
           "enum": [
             "bedrock-mantle",
+            "bedrock-runtime",
             "anthropic",
             "openai",
             "ollama"
@@ -487,6 +488,14 @@
         "quality_prior": {
           "default": 0.5,
           "type": "number"
+        },
+        "tools": {
+          "default": true,
+          "type": "boolean"
+        },
+        "structured": {
+          "default": true,
+          "type": "boolean"
         }
       },
       "required": [
@@ -498,7 +507,9 @@
         "model",
         "output_usd_per_mtok",
         "provider",
-        "quality_prior"
+        "quality_prior",
+        "structured",
+        "tools"
       ],
       "type": "object",
       "title": "ModelSpec",

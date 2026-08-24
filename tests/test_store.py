@@ -54,3 +54,20 @@ def test_edited_rates_survive(workspace: Workspace) -> None:
     models[0].input_usd_per_mtok = 42.0
     workspace.write_models(models)
     assert workspace.models()[0].input_usd_per_mtok == 42.0
+
+
+def test_a_model_added_to_the_defaults_reaches_an_existing_workspace(
+    workspace: Workspace,
+) -> None:
+    trimmed = workspace.models()[:2]
+    workspace.write_models(trimmed)
+    assert len(workspace.models()) == len(DEFAULT_MODELS)
+
+
+def test_an_edited_rate_survives_a_new_default_arriving(workspace: Workspace) -> None:
+    models = workspace.models()
+    models[0].input_usd_per_mtok = 42.0
+    workspace.write_models(models[:3])
+    refreshed = workspace.models()
+    assert refreshed[0].input_usd_per_mtok == 42.0
+    assert len(refreshed) == len(DEFAULT_MODELS)

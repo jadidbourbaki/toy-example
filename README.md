@@ -124,11 +124,13 @@ canvas, validating a graph, and pricing one need no key at all.
 
 ## Models
 
-Every model in the registry is open weight and served by Amazon Bedrock's
-`bedrock-mantle` endpoint, which speaks the OpenAI protocol. Bedrock has two
-inference endpoints with two different catalogues, and the current open-weight
-models live on the mantle one. `bedrock-runtime` carries the AWS-native
-Converse API and a different, older set.
+Every model in the registry is open weight and served by Amazon Bedrock. The
+registry uses both of Bedrock's inference endpoints, because they carry
+different catalogues. `bedrock-mantle` speaks the OpenAI protocol and carries
+most of the current open-weight models. `bedrock-runtime` speaks the
+AWS-native Converse API and carries models that never moved across, including
+Llama 4 Maverick and DeepSeek R1. A registry entry names which endpoint serves
+it, so adding a model from either side is one row.
 
 The ladder runs from Nemotron Nano 3 30B at $0.06 per million input tokens to
 GLM 5 at $1.00, through GLM 4.7 Flash, Qwen3 Coder 30B, Nemotron Super 3 120B,
@@ -137,10 +139,16 @@ list. The ladder is deliberately not a straight line: Nemotron Super 120B
 costs the same per input token as Qwen3 Coder 30B, and which model is cheapest
 for a stage depends on whether that stage reads a lot or writes a lot.
 
-Every entry is verified to call tools and to return structured output, which
-a ReAct stage and a router both need. Editing a rate or adding a model is a
-change to `DEFAULT_MODELS` in `sketch/models.py`, or an edit in the model
-picker for a workspace that already exists.
+Not every model can do everything. A ReAct stage needs tool calling and a
+router needs a typed result, so each entry records whether it has them.
+DeepSeek R1 has neither, which makes it usable for a plain model call and
+nothing else, and binding it anywhere else is reported on the canvas rather
+than failing during a run.
+
+Editing a rate or adding a model is a change to `DEFAULT_MODELS` in
+`sketch/models.py`, or an edit in the model picker. A model added to the
+defaults later shows up in an existing workspace on the next read, and a rate
+you edited there is kept.
 
 For hot reload on both sides, `just dev` runs the API and the Vite dev
 server together and proxies `/api` from one to the other.

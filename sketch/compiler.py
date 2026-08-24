@@ -265,6 +265,22 @@ The module must satisfy all of these, and the result is rejected otherwise.
 
    Import those two from `pydantic_ai.models.openai` and
    `pydantic_ai.providers.openai`.
+
+   The registry uses two Bedrock endpoints. A model string that already starts
+   with `bedrock:` is served by the Converse API and is handed to `Agent`
+   unchanged. A bare model id is served by mantle and is built as above. So
+   `model_for` branches on the prefix:
+
+   ```python
+   def model_for(stage: str) -> OpenAIChatModel | str:
+       name = MODELS[STAGES[stage]]
+       if name.startswith("bedrock:"):
+           return name
+       provider = OpenAIProvider(
+           base_url=BASE_URL, api_key=os.environ["AWS_BEARER_TOKEN_BEDROCK"]
+       )
+       return OpenAIChatModel(name, provider=provider)
+   ```
 4. Templates in prompts use `${{name}}` and are filled through a `fill`
    helper built on `string.Template.safe_substitute`, so a prompt that
    contains braces survives.

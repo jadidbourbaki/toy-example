@@ -22,7 +22,7 @@ from sketch import assistant, compiler, measure, optimizer
 from sketch.estimate import GraphEstimate, estimate
 from sketch.graph import AgentGraph, Problem, validate_graph
 from sketch.measure import MeasureEvent
-from sketch.models import TOOL_CATALOG, ModelSpec, ToolSpec
+from sketch.models import TOOL_CATALOG, ModelSpec, ToolSpec, capability_problems
 from sketch.runner import RunEvent, run_graph
 from sketch.settings import settings
 from sketch.store import GraphSummary, Workspace
@@ -128,9 +128,10 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
     @app.post("/api/validate")
     def validate(body: GraphRequest) -> ValidateResponse:
         known = {g.id for g in workspace.all_graphs()} | {body.graph.id}
+        models = workspace.models()
         return ValidateResponse(
-            problems=validate_graph(body.graph, known),
-            estimate=estimate(body.graph, workspace.models()),
+            problems=validate_graph(body.graph, known) + capability_problems(body.graph, models),
+            estimate=estimate(body.graph, models),
         )
 
     @app.post("/api/compile")
