@@ -1,0 +1,149 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+/* Color is taxonomy here. Every hue below names a kind of work a stage does,
+   and nothing on screen carries a hue for decoration. */
+@theme {
+  --color-ink: #0e1116;
+  --color-slate: #171b22;
+  --color-raise: #1e242d;
+  --color-line: #262e39;
+  --color-line-soft: #1c222b;
+  --color-chalk: #e6eaf0;
+  --color-mute: #7c8899;
+  --color-faint: #4a5563;
+
+  --color-kind-llm: #5b9dd9;
+  --color-kind-react: #c99a3f;
+  --color-kind-router: #a87cc8;
+  --color-kind-tool: #4fa88b;
+  --color-kind-subagent: #d97757;
+  --color-kind-boundary: #6b7684;
+
+  --color-warn: #d9a441;
+  --color-bad: #d96b5b;
+  --color-good: #4fa88b;
+
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-ink text-chalk font-sans antialiased;
+    font-size: 13px;
+  }
+
+  /* Identifiers are set in mono because they appear verbatim in generated
+     code. A reader should be able to tell a name from a description. */
+  .ident {
+    @apply font-mono tracking-tight;
+  }
+
+  .num {
+    @apply font-mono tabular-nums;
+  }
+
+  .rule {
+    @apply border-line;
+  }
+
+  .eyebrow {
+    @apply text-[10px] uppercase tracking-[0.14em] text-faint font-medium;
+  }
+
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-line rounded-full;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-kind-llm;
+  }
+}
+
+@layer components {
+  .field {
+    @apply w-full bg-ink border border-line rounded px-2 py-1.5 text-chalk
+      placeholder:text-faint focus:border-kind-llm focus:outline-none;
+  }
+
+  .btn {
+    @apply inline-flex items-center gap-1.5 rounded border border-line bg-raise px-2.5 py-1.5
+      text-chalk hover:bg-line disabled:opacity-40 disabled:pointer-events-none transition-colors;
+  }
+
+  .btn-primary {
+    @apply border-kind-llm/60 bg-kind-llm/15 text-kind-llm hover:bg-kind-llm/25;
+  }
+}
+
+/* React Flow paints its own surface. Hand it ours. */
+.react-flow {
+  --xy-background-color: var(--color-ink);
+  --xy-edge-stroke: var(--color-faint);
+  --xy-edge-stroke-selected: var(--color-kind-llm);
+  --xy-connectionline-stroke: var(--color-kind-llm);
+}
+
+.react-flow__handle {
+  @apply h-2.5 w-2 rounded-[1px] border border-line bg-raise;
+}
+
+.react-flow__handle:hover {
+  @apply bg-kind-llm border-kind-llm;
+}
+
+.react-flow__edge-text {
+  @apply fill-mute font-mono;
+  font-size: 9px;
+}
+
+.react-flow__edge-textbg {
+  fill: var(--color-ink);
+}
+
+.react-flow__attribution {
+  display: none;
+}
+
+.react-flow__controls-button {
+  @apply border-line bg-slate fill-mute hover:bg-raise;
+}
+
+.react-flow__minimap {
+  @apply bg-slate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes stage-active {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.stage-running {
+  animation: stage-active 1.2s ease-in-out infinite;
+}

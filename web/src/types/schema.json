@@ -1,0 +1,927 @@
+{
+  "title": "sketch",
+  "definitions": {
+    "AgentGraph": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/definitions/Node"
+          },
+          "type": "array"
+        },
+        "edges": {
+          "items": {
+            "$ref": "#/definitions/Edge"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "description",
+        "edges",
+        "id",
+        "name",
+        "nodes"
+      ],
+      "type": "object",
+      "title": "AgentGraph",
+      "additionalProperties": false
+    },
+    "CompileResult": {
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "notes": {
+          "default": "",
+          "type": "string"
+        },
+        "attempts": {
+          "default": 0,
+          "type": "integer"
+        },
+        "problems": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "ok": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "attempts",
+        "notes",
+        "ok",
+        "problems",
+        "source"
+      ],
+      "type": "object",
+      "title": "CompileResult",
+      "additionalProperties": false
+    },
+    "Edge": {
+      "description": "A data dependency. The target reads the source's output through\na template reference to the source node's name. label carries the\nroute name when the source is a router.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "label": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "source",
+        "target"
+      ],
+      "type": "object",
+      "title": "Edge",
+      "additionalProperties": false
+    },
+    "GraphEstimate": {
+      "description": "Per node and total cost for one request through the graph. A node\nbehind a router is weighted by an even split across the router's\nroutes, since a static estimate has no traffic to learn a real split\nfrom.",
+      "properties": {
+        "nodes": {
+          "items": {
+            "$ref": "#/definitions/NodeEstimate"
+          },
+          "type": "array"
+        },
+        "usd": {
+          "type": "number"
+        },
+        "input_tokens": {
+          "type": "integer"
+        },
+        "output_tokens": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "input_tokens",
+        "nodes",
+        "output_tokens",
+        "usd"
+      ],
+      "type": "object",
+      "title": "GraphEstimate",
+      "additionalProperties": false
+    },
+    "GraphSummary": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "nodes": {
+          "type": "integer"
+        },
+        "edges": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "description",
+        "edges",
+        "id",
+        "name",
+        "nodes"
+      ],
+      "type": "object",
+      "title": "GraphSummary",
+      "additionalProperties": false
+    },
+    "Health": {
+      "properties": {
+        "ok": {
+          "default": true,
+          "type": "boolean"
+        },
+        "model_credentials": {
+          "type": "boolean"
+        },
+        "compiler_model": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "compiler_model",
+        "model_credentials",
+        "ok"
+      ],
+      "type": "object",
+      "title": "Health",
+      "additionalProperties": false
+    },
+    "InputConfig": {
+      "properties": {
+        "kind": {
+          "const": "input",
+          "default": "input",
+          "type": "string"
+        },
+        "description": {
+          "default": "The request the agent receives.",
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "title": "InputConfig",
+      "additionalProperties": false,
+      "required": [
+        "description",
+        "kind"
+      ]
+    },
+    "LLMConfig": {
+      "description": "A single model call. One prompt in, one response out.",
+      "properties": {
+        "kind": {
+          "const": "llm",
+          "default": "llm",
+          "type": "string"
+        },
+        "stage": {
+          "default": "answer",
+          "type": "string"
+        },
+        "model": {
+          "default": "haiku",
+          "type": "string"
+        },
+        "instructions": {
+          "default": "You are a careful assistant.",
+          "type": "string"
+        },
+        "prompt": {
+          "default": "${input}",
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "title": "LLMConfig",
+      "additionalProperties": false,
+      "required": [
+        "instructions",
+        "kind",
+        "model",
+        "prompt",
+        "stage"
+      ]
+    },
+    "ModelSpec": {
+      "description": "One inference endpoint a stage can be bound to. quality_prior is\nthe operator's own belief about how strong the model is, on a zero\nto one scale, and it is what the optimizer trades against cost.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "provider": {
+          "enum": [
+            "anthropic",
+            "openai",
+            "bedrock",
+            "ollama"
+          ],
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "label": {
+          "default": "",
+          "type": "string"
+        },
+        "endpoint": {
+          "default": "",
+          "type": "string"
+        },
+        "api_key_var": {
+          "default": "",
+          "type": "string"
+        },
+        "input_usd_per_mtok": {
+          "default": 0.0,
+          "type": "number"
+        },
+        "output_usd_per_mtok": {
+          "default": 0.0,
+          "type": "number"
+        },
+        "quality_prior": {
+          "default": 0.5,
+          "type": "number"
+        }
+      },
+      "required": [
+        "api_key_var",
+        "endpoint",
+        "id",
+        "input_usd_per_mtok",
+        "label",
+        "model",
+        "output_usd_per_mtok",
+        "provider",
+        "quality_prior"
+      ],
+      "type": "object",
+      "title": "ModelSpec",
+      "additionalProperties": false
+    },
+    "Node": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/definitions/Position"
+        },
+        "notes": {
+          "default": "",
+          "type": "string"
+        },
+        "config": {
+          "discriminator": {
+            "mapping": {
+              "input": "#/definitions/InputConfig",
+              "llm": "#/definitions/LLMConfig",
+              "output": "#/definitions/OutputConfig",
+              "react": "#/definitions/ReactConfig",
+              "router": "#/definitions/RouterConfig",
+              "subagent": "#/definitions/SubagentConfig",
+              "tool": "#/definitions/ToolConfig"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/definitions/InputConfig"
+            },
+            {
+              "$ref": "#/definitions/OutputConfig"
+            },
+            {
+              "$ref": "#/definitions/LLMConfig"
+            },
+            {
+              "$ref": "#/definitions/ToolConfig"
+            },
+            {
+              "$ref": "#/definitions/ReactConfig"
+            },
+            {
+              "$ref": "#/definitions/RouterConfig"
+            },
+            {
+              "$ref": "#/definitions/SubagentConfig"
+            }
+          ]
+        }
+      },
+      "required": [
+        "config",
+        "id",
+        "name",
+        "notes",
+        "position"
+      ],
+      "type": "object",
+      "title": "Node",
+      "additionalProperties": false
+    },
+    "NodeEstimate": {
+      "properties": {
+        "node_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "calls": {
+          "type": "number"
+        },
+        "input_tokens": {
+          "type": "integer"
+        },
+        "output_tokens": {
+          "type": "integer"
+        },
+        "usd": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "calls",
+        "input_tokens",
+        "model",
+        "name",
+        "node_id",
+        "output_tokens",
+        "usd"
+      ],
+      "type": "object",
+      "title": "NodeEstimate",
+      "additionalProperties": false
+    },
+    "OptimizeResult": {
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "baseline_usd": {
+          "type": "number"
+        },
+        "patches": {
+          "items": {
+            "$ref": "#/definitions/PricedPatch"
+          },
+          "type": "array"
+        },
+        "ok": {
+          "default": true,
+          "type": "boolean"
+        },
+        "error": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "baseline_usd",
+        "error",
+        "ok",
+        "patches",
+        "summary"
+      ],
+      "type": "object",
+      "title": "OptimizeResult",
+      "additionalProperties": false
+    },
+    "OutputConfig": {
+      "properties": {
+        "kind": {
+          "const": "output",
+          "default": "output",
+          "type": "string"
+        },
+        "description": {
+          "default": "The answer the agent returns.",
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "title": "OutputConfig",
+      "additionalProperties": false,
+      "required": [
+        "description",
+        "kind"
+      ]
+    },
+    "Patch": {
+      "description": "One proposed change. node_id names the node the operation acts\non, and the fields a given operation reads are the only ones it\nneeds.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "description": "A short imperative summary, for example 'Serve clarify with haiku'.",
+          "type": "string"
+        },
+        "rationale": {
+          "description": "Two sentences at most on why the change helps.",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "set_model",
+            "set_stage",
+            "set_instructions",
+            "set_prompt",
+            "set_max_iterations",
+            "remove_node",
+            "insert_llm_after"
+          ],
+          "type": "string"
+        },
+        "node_id": {
+          "default": "",
+          "type": "string"
+        },
+        "model": {
+          "default": "",
+          "type": "string"
+        },
+        "stage": {
+          "default": "",
+          "type": "string"
+        },
+        "instructions": {
+          "default": "",
+          "type": "string"
+        },
+        "prompt": {
+          "default": "",
+          "type": "string"
+        },
+        "max_iterations": {
+          "default": 0,
+          "type": "integer"
+        },
+        "name": {
+          "default": "",
+          "description": "For insert_llm_after, the new node's name.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "instructions",
+        "max_iterations",
+        "model",
+        "name",
+        "node_id",
+        "op",
+        "prompt",
+        "rationale",
+        "stage",
+        "title"
+      ],
+      "type": "object",
+      "title": "Patch",
+      "additionalProperties": false
+    },
+    "PatchResponse": {
+      "properties": {
+        "graph": {
+          "$ref": "#/definitions/AgentGraph"
+        },
+        "diff": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "object"
+        },
+        "estimate": {
+          "$ref": "#/definitions/GraphEstimate"
+        }
+      },
+      "required": [
+        "diff",
+        "estimate",
+        "graph"
+      ],
+      "type": "object",
+      "title": "PatchResponse",
+      "additionalProperties": false
+    },
+    "Position": {
+      "description": "Where the node sits on the canvas, in canvas coordinates.",
+      "properties": {
+        "x": {
+          "default": 0.0,
+          "type": "number"
+        },
+        "y": {
+          "default": 0.0,
+          "type": "number"
+        }
+      },
+      "type": "object",
+      "title": "Position",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ]
+    },
+    "PricedPatch": {
+      "properties": {
+        "patch": {
+          "$ref": "#/definitions/Patch"
+        },
+        "usd_delta": {
+          "type": "number"
+        },
+        "applies": {
+          "type": "boolean"
+        },
+        "problems": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "applies",
+        "patch",
+        "problems",
+        "usd_delta"
+      ],
+      "type": "object",
+      "title": "PricedPatch",
+      "additionalProperties": false
+    },
+    "Problem": {
+      "description": "One thing wrong with a graph. node_id is empty when the problem\nbelongs to the graph as a whole.",
+      "properties": {
+        "severity": {
+          "enum": [
+            "error",
+            "warning"
+          ],
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "node_id": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message",
+        "node_id",
+        "severity"
+      ],
+      "type": "object",
+      "title": "Problem",
+      "additionalProperties": false
+    },
+    "ReactConfig": {
+      "description": "A reason-and-act loop. The model calls tools until it answers or\nthe iteration cap stops it.",
+      "properties": {
+        "kind": {
+          "const": "react",
+          "default": "react",
+          "type": "string"
+        },
+        "stage": {
+          "default": "research",
+          "type": "string"
+        },
+        "model": {
+          "default": "sonnet",
+          "type": "string"
+        },
+        "instructions": {
+          "default": "Work step by step. Use the tools before answering.",
+          "type": "string"
+        },
+        "prompt": {
+          "default": "${input}",
+          "type": "string"
+        },
+        "tools": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "max_iterations": {
+          "default": 6,
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "title": "ReactConfig",
+      "additionalProperties": false,
+      "required": [
+        "instructions",
+        "kind",
+        "max_iterations",
+        "model",
+        "prompt",
+        "stage",
+        "tools"
+      ]
+    },
+    "Route": {
+      "description": "One labelled branch out of a router. The label matches the label\non the outgoing edge that carries it.",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "label"
+      ],
+      "type": "object",
+      "title": "Route",
+      "additionalProperties": false
+    },
+    "RouterConfig": {
+      "description": "A classifier that picks one outgoing branch. Nodes on the\nbranches the router does not pick are skipped for that run.",
+      "properties": {
+        "kind": {
+          "const": "router",
+          "default": "router",
+          "type": "string"
+        },
+        "stage": {
+          "default": "route",
+          "type": "string"
+        },
+        "model": {
+          "default": "haiku",
+          "type": "string"
+        },
+        "question": {
+          "default": "Which branch handles this request best?",
+          "type": "string"
+        },
+        "prompt": {
+          "default": "${input}",
+          "type": "string"
+        },
+        "routes": {
+          "items": {
+            "$ref": "#/definitions/Route"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "title": "RouterConfig",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "model",
+        "prompt",
+        "question",
+        "routes",
+        "stage"
+      ]
+    },
+    "RunEvent": {
+      "description": "One thing that happened during a run. The canvas lights a node on\nnode_start and fills it in on node_done.",
+      "properties": {
+        "type": {
+          "enum": [
+            "run_start",
+            "node_start",
+            "node_done",
+            "node_skipped",
+            "run_done",
+            "run_error"
+          ],
+          "type": "string"
+        },
+        "node_id": {
+          "default": "",
+          "type": "string"
+        },
+        "name": {
+          "default": "",
+          "type": "string"
+        },
+        "kind": {
+          "default": "",
+          "type": "string"
+        },
+        "stage": {
+          "default": "",
+          "type": "string"
+        },
+        "model": {
+          "default": "",
+          "type": "string"
+        },
+        "text": {
+          "default": "",
+          "type": "string"
+        },
+        "route": {
+          "default": "",
+          "type": "string"
+        },
+        "ms": {
+          "default": 0,
+          "type": "integer"
+        },
+        "usd": {
+          "default": 0.0,
+          "type": "number"
+        },
+        "input_tokens": {
+          "default": 0,
+          "type": "integer"
+        },
+        "output_tokens": {
+          "default": 0,
+          "type": "integer"
+        },
+        "depth": {
+          "default": 0,
+          "type": "integer"
+        },
+        "graph_id": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "depth",
+        "graph_id",
+        "input_tokens",
+        "kind",
+        "model",
+        "ms",
+        "name",
+        "node_id",
+        "output_tokens",
+        "route",
+        "stage",
+        "text",
+        "type",
+        "usd"
+      ],
+      "type": "object",
+      "title": "RunEvent",
+      "additionalProperties": false
+    },
+    "SubagentConfig": {
+      "description": "A call into another graph in the same workspace. Saving a graph\nputs it in the palette of every other graph, which is how a network\nof agents gets assembled out of parts that were each built alone.",
+      "properties": {
+        "kind": {
+          "const": "subagent",
+          "default": "subagent",
+          "type": "string"
+        },
+        "graph_id": {
+          "default": "",
+          "type": "string"
+        },
+        "prompt": {
+          "default": "${input}",
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "title": "SubagentConfig",
+      "additionalProperties": false,
+      "required": [
+        "graph_id",
+        "kind",
+        "prompt"
+      ]
+    },
+    "ToolConfig": {
+      "description": "A deterministic call into the tool catalog. No model involved.",
+      "properties": {
+        "kind": {
+          "const": "tool",
+          "default": "tool",
+          "type": "string"
+        },
+        "tool": {
+          "default": "echo",
+          "type": "string"
+        },
+        "arguments": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "type": "object",
+      "title": "ToolConfig",
+      "additionalProperties": false,
+      "required": [
+        "arguments",
+        "kind",
+        "tool"
+      ]
+    },
+    "ToolSpec": {
+      "description": "One entry in the tool catalog. The prototype ships offline\nimplementations so a graph runs with no credentials beyond the model\nkey.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "parameters": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "description",
+        "id",
+        "label",
+        "parameters"
+      ],
+      "type": "object",
+      "title": "ToolSpec",
+      "additionalProperties": false
+    },
+    "ValidateResponse": {
+      "properties": {
+        "problems": {
+          "items": {
+            "$ref": "#/definitions/Problem"
+          },
+          "type": "array"
+        },
+        "estimate": {
+          "$ref": "#/definitions/GraphEstimate"
+        }
+      },
+      "required": [
+        "estimate",
+        "problems"
+      ],
+      "type": "object",
+      "title": "ValidateResponse",
+      "additionalProperties": false
+    }
+  }
+}

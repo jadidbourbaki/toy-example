@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff format --check sketch tests
+      - run: uv run ruff check sketch tests
+      - run: uv run ty check sketch
+      - run: uv run pytest -q
+      - name: The committed types match the models
+        run: |
+          uv run sketch schema --out /tmp/schema.json
+          diff -u web/src/types/schema.json /tmp/schema.json \
+            || { echo "The wire schema changed. Run 'just types' and commit the result."; exit 1; }
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
