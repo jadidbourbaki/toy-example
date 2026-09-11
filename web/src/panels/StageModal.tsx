@@ -123,8 +123,22 @@ export function StageModal() {
             </Prop>
           )}
 
+          {(config.kind === "judge" || config.kind === "approve") && (
+            <Prop label="Tries">
+              <TextField.Root
+                type="number"
+                min="1"
+                max="5"
+                className="num"
+                style={{ width: 120 }}
+                value={String(config.max_rounds)}
+                onChange={(e) => updateConfig(node.id, { max_rounds: Number(e.target.value) || 1 })}
+              />
+            </Prop>
+          )}
+
           {config.kind === "react" && (
-            <Prop label="Tool budget">
+            <Prop label="Tool calls">
               <TextField.Root
                 type="number"
                 min="1"
@@ -140,12 +154,12 @@ export function StageModal() {
           )}
 
           {config.kind === "subagent" && (
-            <Prop label="Agent">
+            <Prop label="Workflow">
               <Select.Root
                 value={config.graph_id || undefined}
                 onValueChange={(value) => updateConfig(node.id, { graph_id: value })}
               >
-                <Select.Trigger placeholder="Pick an agent" style={{ width: "100%" }} />
+                <Select.Trigger placeholder="Pick a workflow" style={{ width: "100%" }} />
                 <Select.Content>
                   {graphs
                     .filter((g) => g.id !== graph.id)
@@ -183,7 +197,17 @@ export function StageModal() {
             </Block>
           )}
 
-          {config.kind === "router" && (
+          {config.kind === "judge" && (
+            <Block label="What a good answer has to satisfy">
+              <TextArea
+                rows={3}
+                value={config.criteria}
+                onChange={(e) => updateConfig(node.id, { criteria: e.target.value })}
+              />
+            </Block>
+          )}
+
+          {(config.kind === "router" || config.kind === "approve") && (
             <Block label="Question">
               <TextArea
                 rows={2}

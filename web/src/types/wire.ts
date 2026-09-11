@@ -39,7 +39,9 @@ export interface Node {
     | ToolConfig
     | ReactConfig
     | RouterConfig
-    | SubagentConfig;
+    | SubagentConfig
+    | JudgeConfig
+    | ApproveConfig;
 }
 /**
  * Where the node sits on the canvas, in canvas coordinates.
@@ -136,9 +138,9 @@ export interface Route {
   description: string;
 }
 /**
- * A call into another graph in the same workspace. Saving a graph
- * puts it in the palette of every other graph, which is how a network
- * of agents gets assembled out of parts that were each built alone.
+ * A call into another workflow in the same workspace. Saving a workflow
+ * puts it in the palette of every other one, which is how a system gets
+ * assembled out of parts that were each built alone.
  *
  * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "SubagentConfig".
@@ -147,6 +149,37 @@ export interface SubagentConfig {
   kind: "subagent";
   graph_id: string;
   prompt: string;
+}
+/**
+ * A judge on the stage feeding it. The judge reads that stage's output
+ * against the criteria. A pass lets the output through untouched. A fail
+ * sends the feedback back to the stage, which answers again, up to
+ * max_rounds times. Downstream stages read the version that passed, or the
+ * last attempt when nothing did.
+ *
+ * This interface was referenced by `Orla`'s JSON-Schema
+ * via the `definition` "JudgeConfig".
+ */
+export interface JudgeConfig {
+  kind: "judge";
+  stage: string;
+  model: string;
+  criteria: string;
+  max_rounds: number;
+}
+/**
+ * A pause for a person. The run shows what the stage feeding it produced
+ * and waits. Approving lets it through. Sending it back with a note asks the
+ * Prompt or Agent behind it to answer again, up to max_rounds times.
+ * Declining stops everything downstream.
+ *
+ * This interface was referenced by `Orla`'s JSON-Schema
+ * via the `definition` "ApproveConfig".
+ */
+export interface ApproveConfig {
+  kind: "approve";
+  question: string;
+  max_rounds: number;
 }
 /**
  * A data dependency. The target reads the source's output through
@@ -188,6 +221,14 @@ export interface CompileResult {
   ok: boolean;
 }
 /**
+ * This interface was referenced by `Orla`'s JSON-Schema
+ * via the `definition` "Decision".
+ */
+export interface Decision {
+  approved: boolean;
+  note: string;
+}
+/**
  * Per node and total cost for one request through the graph. A node
  * behind a router is weighted by an even split across the router's
  * routes, since a static estimate has no traffic to learn a real split
@@ -216,17 +257,9 @@ export interface NodeEstimate {
   usd: number;
 }
 /**
- * This interface was referenced by `Orla`'s JSON-Schema
- * via the `definition` "GraphSummary".
- */
-export interface GraphSummary {
-  id: string;
-  name: string;
-  description: string;
-  nodes: number;
-  edges: number;
-}
-/**
+ * Whether the server can call a model, and the workspace defaults the
+ * settings page shows.
+ *
  * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "Health".
  */
@@ -234,6 +267,10 @@ export interface Health {
   ok: boolean;
   model_credentials: boolean;
   compiler_model: string;
+  judge_model: string;
+  assistant_model: string;
+  measure_budget_usd: number;
+  workspace: string;
 }
 /**
  * This interface was referenced by `Orla`'s JSON-Schema
@@ -435,13 +472,22 @@ export interface Problem {
 }
 /**
  * One thing that happened during a run. The canvas lights a node on
- * node_start and fills it in on node_done.
+ * node_start and fills it in on node_done. An approval event carries the
+ * token a person answers against.
  *
  * This interface was referenced by `Orla`'s JSON-Schema
  * via the `definition` "RunEvent".
  */
 export interface RunEvent {
-  type: "run_start" | "node_start" | "node_done" | "node_skipped" | "run_done" | "run_error";
+  type:
+    | "run_start"
+    | "node_start"
+    | "node_done"
+    | "node_skipped"
+    | "approval"
+    | "run_done"
+    | "run_error";
+  token: string;
   node_id: string;
   name: string;
   kind: string;

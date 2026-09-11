@@ -45,6 +45,32 @@
       "title": "AgentGraph",
       "additionalProperties": false
     },
+    "ApproveConfig": {
+      "description": "A pause for a person. The run shows what the stage feeding it produced\nand waits. Approving lets it through. Sending it back with a note asks the\nPrompt or Agent behind it to answer again, up to max_rounds times.\nDeclining stops everything downstream.",
+      "properties": {
+        "kind": {
+          "const": "approve",
+          "default": "approve",
+          "type": "string"
+        },
+        "question": {
+          "default": "Send this?",
+          "type": "string"
+        },
+        "max_rounds": {
+          "default": 3,
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "title": "ApproveConfig",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "max_rounds",
+        "question"
+      ]
+    },
     "CompileEvent": {
       "description": "Progress from a compile. Writing the module takes long enough that\nsilence reads as a hang, and the checks it runs are worth watching.",
       "properties": {
@@ -130,6 +156,25 @@
       "title": "CompileResult",
       "additionalProperties": false
     },
+    "Decision": {
+      "properties": {
+        "approved": {
+          "default": true,
+          "type": "boolean"
+        },
+        "note": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "title": "Decision",
+      "additionalProperties": false,
+      "required": [
+        "approved",
+        "note"
+      ]
+    },
     "Edge": {
       "description": "A data dependency. The target reads the source's output through\na template reference to the source node's name. label carries the\nroute name when the source is a router.",
       "properties": {
@@ -186,36 +231,8 @@
       "title": "GraphEstimate",
       "additionalProperties": false
     },
-    "GraphSummary": {
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "nodes": {
-          "type": "integer"
-        },
-        "edges": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "description",
-        "edges",
-        "id",
-        "name",
-        "nodes"
-      ],
-      "type": "object",
-      "title": "GraphSummary",
-      "additionalProperties": false
-    },
     "Health": {
+      "description": "Whether the server can call a model, and the workspace defaults the\nsettings page shows.",
       "properties": {
         "ok": {
           "default": true,
@@ -226,12 +243,28 @@
         },
         "compiler_model": {
           "type": "string"
+        },
+        "judge_model": {
+          "type": "string"
+        },
+        "assistant_model": {
+          "type": "string"
+        },
+        "measure_budget_usd": {
+          "type": "number"
+        },
+        "workspace": {
+          "type": "string"
         }
       },
       "required": [
+        "assistant_model",
         "compiler_model",
+        "judge_model",
+        "measure_budget_usd",
         "model_credentials",
-        "ok"
+        "ok",
+        "workspace"
       ],
       "type": "object",
       "title": "Health",
@@ -255,6 +288,42 @@
       "required": [
         "description",
         "kind"
+      ]
+    },
+    "JudgeConfig": {
+      "description": "A judge on the stage feeding it. The judge reads that stage's output\nagainst the criteria. A pass lets the output through untouched. A fail\nsends the feedback back to the stage, which answers again, up to\nmax_rounds times. Downstream stages read the version that passed, or the\nlast attempt when nothing did.",
+      "properties": {
+        "kind": {
+          "const": "judge",
+          "default": "judge",
+          "type": "string"
+        },
+        "stage": {
+          "default": "judge",
+          "type": "string"
+        },
+        "model": {
+          "default": "",
+          "type": "string"
+        },
+        "criteria": {
+          "default": "The answer is correct, complete, and says nothing the sources do not support.",
+          "type": "string"
+        },
+        "max_rounds": {
+          "default": 2,
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "title": "JudgeConfig",
+      "additionalProperties": false,
+      "required": [
+        "criteria",
+        "kind",
+        "max_rounds",
+        "model",
+        "stage"
       ]
     },
     "LLMConfig": {
@@ -533,7 +602,9 @@
         "config": {
           "discriminator": {
             "mapping": {
+              "approve": "#/definitions/ApproveConfig",
               "input": "#/definitions/InputConfig",
+              "judge": "#/definitions/JudgeConfig",
               "llm": "#/definitions/LLMConfig",
               "output": "#/definitions/OutputConfig",
               "react": "#/definitions/ReactConfig",
@@ -564,6 +635,12 @@
             },
             {
               "$ref": "#/definitions/SubagentConfig"
+            },
+            {
+              "$ref": "#/definitions/JudgeConfig"
+            },
+            {
+              "$ref": "#/definitions/ApproveConfig"
             }
           ]
         }
@@ -1025,7 +1102,7 @@
       ]
     },
     "RunEvent": {
-      "description": "One thing that happened during a run. The canvas lights a node on\nnode_start and fills it in on node_done.",
+      "description": "One thing that happened during a run. The canvas lights a node on\nnode_start and fills it in on node_done. An approval event carries the\ntoken a person answers against.",
       "properties": {
         "type": {
           "enum": [
@@ -1033,9 +1110,14 @@
             "node_start",
             "node_done",
             "node_skipped",
+            "approval",
             "run_done",
             "run_error"
           ],
+          "type": "string"
+        },
+        "token": {
+          "default": "",
           "type": "string"
         },
         "node_id": {
@@ -1104,6 +1186,7 @@
         "route",
         "stage",
         "text",
+        "token",
         "type",
         "usd"
       ],
@@ -1156,7 +1239,7 @@
       "additionalProperties": false
     },
     "SubagentConfig": {
-      "description": "A call into another graph in the same workspace. Saving a graph\nputs it in the palette of every other graph, which is how a network\nof agents gets assembled out of parts that were each built alone.",
+      "description": "A call into another workflow in the same workspace. Saving a workflow\nputs it in the palette of every other one, which is how a system gets\nassembled out of parts that were each built alone.",
       "properties": {
         "kind": {
           "const": "subagent",
@@ -1190,7 +1273,7 @@
           "type": "string"
         },
         "tool": {
-          "default": "echo",
+          "default": "search_policies",
           "type": "string"
         },
         "arguments": {

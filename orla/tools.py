@@ -1,46 +1,69 @@
 """Offline implementations of the tool catalog.
 
-Every tool runs locally and needs no credentials, so a sketched graph is
+Every tool runs locally and needs no credentials, so a sketched workflow is
 runnable the moment it is drawn. Replacing one of these with a real
 integration is a change to a single function.
 """
 
 from __future__ import annotations
 
+import itertools
 from collections.abc import Callable
 from pathlib import Path
 
 from simpleeval import SimpleEval
 
-NOTES: list[tuple[str, str]] = [
+POLICIES: list[tuple[str, str]] = [
     (
-        "retrieval",
-        "Chunk overlap above 20 percent mostly adds cost. Measure recall before raising it.",
+        "refunds",
+        "A full refund is available within 30 days of purchase. After 30 days, store credit only.",
     ),
     (
-        "routing",
-        "A classifier in front of two specialists beats one generalist when the classes are far apart.",
-    ),
-    ("caching", "Prompt caching pays off once the shared prefix passes roughly a thousand tokens."),
-    (
-        "evaluation",
-        "An LLM judge drifts between model versions. Pin the judge model when you compare runs.",
+        "shipping",
+        "Standard shipping takes 3 to 5 business days. Express shipping takes 1 to 2 and costs 12 dollars.",
     ),
     (
-        "latency",
-        "Parallel stages hide latency only when nothing downstream reads both of their outputs.",
+        "returns",
+        "Items can be returned within 30 days if unused and in original packaging. Return shipping is free.",
+    ),
+    ("account", "A password reset link is sent to the email on file and expires after one hour."),
+    (
+        "data",
+        "Customers can export all of their data from the account settings page. Exports arrive by email within 24 hours.",
     ),
     (
-        "cost",
-        "Output tokens usually dominate. Shortening the answer format beats shortening the prompt.",
+        "cancellation",
+        "A subscription can be cancelled at any time and stays active until the end of the paid period.",
     ),
 ]
 
+_ticket_numbers = itertools.count(1042)
 
-def echo(text: str) -> str:
-    """Return the text unchanged."""
 
-    return text
+def search_policies(query: str) -> str:
+    """Search the company policy documents and return the matching sections."""
+
+    terms = [t for t in query.lower().split() if len(t) > 2]
+    hits = [
+        f"[{topic}] {body}"
+        for topic, body in POLICIES
+        if any(t in topic or t in body.lower() for t in terms)
+    ]
+    return "\n".join(hits) if hits else "No policy matched that query."
+
+
+def create_ticket(team: str, summary: str) -> str:
+    """Open an internal ticket for a team and return its number."""
+
+    number = next(_ticket_numbers)
+    return f"Ticket #{number} opened for the {team} team: {summary}"
+
+
+def send_email(to: str, body: str) -> str:
+    """Send an email to the customer and confirm what went out."""
+
+    preview = body.strip().replace("\n", " ")[:90]
+    return f"Sent to {to}: {preview}"
 
 
 def calculator(expression: str) -> str:
@@ -53,26 +76,8 @@ def calculator(expression: str) -> str:
         return f"calculator error: {exc}"
 
 
-def word_count(text: str) -> str:
-    """Count words, characters, and lines."""
-
-    return f"words={len(text.split())} characters={len(text)} lines={len(text.splitlines()) or 1}"
-
-
-def search_notes(query: str) -> str:
-    """Search the built-in corpus of engineering notes."""
-
-    terms = [t for t in query.lower().split() if len(t) > 2]
-    hits = [
-        f"[{topic}] {body}"
-        for topic, body in NOTES
-        if any(t in topic or t in body.lower() for t in terms)
-    ]
-    return "\n".join(hits) if hits else "No notes matched that query."
-
-
 def make_read_file(root: Path) -> Callable[[str], str]:
-    """A file reader confined to root, so a graph cannot walk out of the
+    """A file reader confined to root, so a workflow cannot walk out of the
     workspace by asking for a parent directory."""
 
     def read_file(path: str) -> str:
@@ -91,10 +96,10 @@ def make_read_file(root: Path) -> Callable[[str], str]:
 
 def registry(root: Path) -> dict[str, Callable[..., str]]:
     return {
-        "echo": echo,
+        "search_policies": search_policies,
+        "create_ticket": create_ticket,
+        "send_email": send_email,
         "calculator": calculator,
-        "word_count": word_count,
-        "search_notes": search_notes,
         "read_file": make_read_file(root),
     }
 

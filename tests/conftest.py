@@ -30,12 +30,12 @@ def dearest(models: list[ModelSpec]) -> str:
 
 @pytest.fixture
 def brief() -> AgentGraph:
-    return AgentGraph.model_validate_json((ASSETS / "example_graph.json").read_text())
+    return AgentGraph.model_validate_json((ASSETS / "research_brief.json").read_text())
 
 
 @pytest.fixture
-def desk() -> AgentGraph:
-    return AgentGraph.model_validate_json((ASSETS / "example_triage.json").read_text())
+def support() -> AgentGraph:
+    return AgentGraph.model_validate_json((ASSETS / "customer_support.json").read_text())
 
 
 @pytest.fixture

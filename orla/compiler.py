@@ -231,6 +231,21 @@ pydantic-ai and pydantic-deep. You return the module source and nothing else.
 - `router` is an `Agent` with `output_type=Literal[...]` over its route
   labels. Nodes reachable only through a route the router did not pick are
   skipped for that run.
+- `judge` judges the stage feeding it. Build an `Agent` with
+  `output_type=Verdict` where `Verdict` is a pydantic model with `passed: bool`
+  and `feedback: str`. Judge the feeding stage's output against the criteria.
+  On a fail, run the feeding stage again with the feedback appended to its
+  prompt, up to `max_rounds` times. Store the surviving answer under the
+  feeding stage's own name so later stages read the revised version.
+- `approve` pauses for a person. Give every entry function a keyword
+  parameter `approve: Callable[[str, str], Decision]` with a default that
+  asks on the console, where `Decision` is a pydantic model with
+  `approved: bool` and `note: str`. Call it with the node's question and the
+  feeding stage's output. An approval lets the output through under the
+  approve node's name. A refusal with a note runs the Prompt or Agent behind
+  the approve stage again with the note appended, up to `max_rounds` times,
+  and asks again. A refusal without a note returns a sentence saying where
+  the run stopped, and nothing after the approve stage runs.
 - `subagent` calls another graph's entry function. Compile every graph in the
   network into the same module, dependencies first.
 
@@ -241,7 +256,9 @@ The module must satisfy all of these, and the result is rejected otherwise.
 1. It parses and passes `ruff check --select F,E9`. No unused imports, no
    undefined names.
 2. It defines `async def <graph_id>_run(request: str) -> str` for every graph
-   in the network, with the id sanitized to a Python identifier.
+   in the network, with the id sanitized to a Python identifier. Further
+   keyword parameters with defaults are fine, and an `approve` stage needs
+   one.
 3. It defines a module-level `STAGES` dict naming a model id for every stage
    the graph uses, a `MODELS` dict naming the provider model string for every
    model id, and `model_for(stage)`. Every model call resolves its model
@@ -298,7 +315,7 @@ the graph. Comment only where the reason is non-obvious. Use no em-dashes.
 A graph:
 
 ```json
-{_asset("example_graph.json")}
+{_asset("customer_support.json")}
 ```
 
 compiles to:

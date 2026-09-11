@@ -10,12 +10,28 @@ be things you can see while you work.
 
 ## What is in here
 
-**A canvas.** Stages are cards, and an arrow between two of them means the
-second one reads the first one's output. Six kinds of stage cover most of
-what an agent does: a single model call, a tool call, a ReAct loop, a
-router that picks one branch and skips the rest, a subagent that runs
-another graph in the workspace, and the two boundaries where the request
-enters and the answer leaves.
+**A canvas.** Stages are drawn as circles, and an arrow between two of them
+means the second one reads the first one's output. Seven kinds of stage
+cover most of what a workflow does. A **Prompt** asks a model one question.
+An **Agent** gives a model tools and lets it work until it is done. A
+**Tool** takes an action, such as sending an email or opening a ticket. A
+**Branch** picks one path and skips the others. A **Judge** grades the stage
+feeding it against criteria and sends the answer back for another try when
+it falls short. An **Approve** pauses the run and shows a person what the
+stage before it produced. Approving lets it through, a note sends it back
+to the Prompt or Agent that wrote it, and declining stops everything after
+it. A **Workflow** runs another saved workflow as a step. Start and End mark
+where the request comes in and what goes back.
+
+The stages sit in a toolbar over the canvas. Click one to add it or drag it
+to where it should go. Double click a stage to edit it. A request goes in at
+the foot of the canvas and the answer comes back above it. Compile, Improve,
+and Chat open their own panels, and the canvas has the screen until they
+do. Every edit is saved as it is made.
+
+The home screen is the workspace. Workflows lists what is saved, Templates
+holds the patterns a new workflow can start from, Models is the registry,
+and Settings shows what the server was started with.
 
 **A model registry.** A stage names a model by an id rather than by a
 provider string, so retargeting a stage is a one word change. The rates in
@@ -36,11 +52,11 @@ run moves through it.
 operations, and each one is priced by applying it alone to the graph and
 re-estimating. Accept the ones you want and they land on the canvas.
 
-**An assistant.** The Orla cat sits in the bottom corner and waits. Click it
-and it answers questions about the graph you have open, with the stage
-bindings, the estimated cost of each stage, the model rates, and the
-validator's complaints as its context. It reads and never edits, because a
-helper that quietly rewrites a canvas is hard to trust.
+**An assistant.** The chat on the right answers questions about the
+workflow you have open, with the stage bindings, the estimated cost of each
+stage, the model rates, and the validator's complaints as its context. It
+reads and never edits, because a helper that quietly rewrites a canvas is
+hard to trust.
 
 **A measurement.** The estimate prices prompt size, which is right about a
 model swap and blind to a prompt rewrite whose saving lands downstream.
@@ -97,9 +113,9 @@ generated module puts that binding in one table at the top:
 
 ```python
 STAGES: dict[str, str] = {
-    "clarify": "haiku",
-    "research": "sonnet",
-    "answer": "sonnet",
+    "classify": "glm-4.7-flash",
+    "research": "qwen3-coder-30b",
+    "reply": "nemotron-super-120b",
 }
 ```
 
@@ -129,8 +145,8 @@ registry uses both of Bedrock's inference endpoints, because they carry
 different catalogues. `bedrock-mantle` speaks the OpenAI protocol and carries
 most of the current open-weight models. `bedrock-runtime` speaks the
 AWS-native Converse API and carries models that never moved across, including
-Llama 4 Maverick and DeepSeek R1. A registry entry names which endpoint serves
-it, so adding a model from either side is one row.
+Llama 4 Maverick. A registry entry names which endpoint serves it, so adding
+a model from either side is one row.
 
 The ladder runs from Nemotron Nano 3 30B at $0.06 per million input tokens to
 GLM 5 at $1.00, through GLM 4.7 Flash, Qwen3 Coder 30B, Nemotron Super 3 120B,
@@ -139,10 +155,9 @@ list. The ladder is deliberately not a straight line: Nemotron Super 120B
 costs the same per input token as Qwen3 Coder 30B, and which model is cheapest
 for a stage depends on whether that stage reads a lot or writes a lot.
 
-Not every model can do everything. A ReAct stage needs tool calling and a
-router needs a typed result, so each entry records whether it has them.
-DeepSeek R1 has neither, which makes it usable for a plain model call and
-nothing else, and binding it anywhere else is reported on the canvas rather
+Not every model can do everything. An Agent needs tool calling, and a Branch
+or a Judge needs a typed result, so each entry records whether it has them.
+Binding a model to a stage it cannot serve is reported on the canvas rather
 than failing during a run.
 
 Editing a rate or adding a model is a change to `DEFAULT_MODELS` in
@@ -159,13 +174,13 @@ Every panel has a headless equivalent, which is the faster way to iterate
 on a graph.
 
 ```bash
-uv run orla list                       # the graphs in the workspace
-uv run orla check research_brief       # validate one and price a request
-uv run orla compile research_brief     # write the module to stdout
-uv run orla run research_brief "how much chunk overlap?"
-uv run orla optimize research_brief    # proposals with a price on each
-uv run orla sample research_brief      # write a sample to measure against
-uv run orla measure research_brief     # measure every proposal against it
+uv run orla list                         # the workflows in the workspace
+uv run orla check customer_support       # validate one and price a request
+uv run orla compile customer_support     # write the module to stdout
+uv run orla run customer_support "Can I get a refund on a jacket I bought three weeks ago?"
+uv run orla optimize customer_support    # proposals with a price on each
+uv run orla sample customer_support      # write a sample to measure against
+uv run orla measure customer_support     # measure every proposal against it
 ```
 
 ## The workspace
@@ -175,17 +190,32 @@ to a `models.json` holding the registry. A workspace that fits in a
 directory does not need a database, and a graph as a readable file can be
 copied between workspaces or committed next to the code it generates.
 
-Two examples are seeded on first run. `research_brief` is a linear
-pipeline with a ReAct loop in the middle. `support_desk` routes an
-incoming message to either a cheap direct answer or the research brief
-agent, which makes it the example that exercises routers, subagents, and
-tools at once.
+One workflow is seeded on first run, and the templates page offers five
+patterns, simplest first. `answer` is one Prompt. `research_brief` looks a
+question up with a tool and writes the answer. `route` sorts a request into
+one of two kinds. `review` drafts a reply, has a Judge check it, has a
+person approve it, and sends it. `customer_support` is the full example: it
+reads a customer message and branches. A policy question goes to an Agent that searches the
+policy documents, then a Prompt that drafts the reply, then a Judge that
+grades the draft and sends it back once if it falls short, then an Approve
+that shows the reply to a person, then a Tool that emails it. A problem a
+team has to act on goes to an Agent that decides which team owns it and
+opens a ticket. `research_brief` is a short linear pipeline for looking a
+question up in the same policy documents.
+
+An Approve stage parks the run on a token until someone answers. The
+browser answers from the bar above the canvas, `orla run` asks in the
+terminal, and a generated module asks on the console unless the caller
+passes its own `approve` function. A measurement runs with nobody watching,
+so it lets every Approve through.
 
 ## Tools
 
-The tool catalog ships offline implementations, so a graph runs the moment
-it is drawn without any credential beyond the model key. `search_notes`
-reads a small built-in corpus, `calculator` evaluates arithmetic through
+The tool catalog ships offline implementations, so a workflow runs the
+moment it is drawn without any credential beyond the model key.
+`search_policies` reads a small built-in set of policy documents,
+`create_ticket` and `send_email` return confirmations, `calculator`
+evaluates arithmetic through
 [simpleeval](https://github.com/danthedeckie/simpleeval), and `read_file`
 is confined to the workspace directory. Replacing one with a real
 integration is a change to a single function in `orla/tools.py`.

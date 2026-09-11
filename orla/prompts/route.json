@@ -1,0 +1,78 @@
+{
+  "id": "route",
+  "name": "Route by kind",
+  "description": "Sort each request into one of two kinds and handle each kind its own way.",
+  "nodes": [
+    {
+      "id": "r1",
+      "name": "input",
+      "position": { "x": 0, "y": 230 },
+      "notes": "",
+      "config": { "kind": "input", "description": "A request." }
+    },
+    {
+      "id": "r2",
+      "name": "sort",
+      "position": { "x": 230, "y": 200 },
+      "notes": "",
+      "config": {
+        "kind": "router",
+        "stage": "sort",
+        "model": "glm-4.7-flash",
+        "question": "Is this a question to answer, or a task to carry out?",
+        "prompt": "${input}",
+        "routes": [
+          { "label": "question", "description": "Something to answer from what is known." },
+          { "label": "task", "description": "Something that needs a tool to carry out." }
+        ]
+      }
+    },
+    {
+      "id": "r3",
+      "name": "answer",
+      "position": { "x": 590, "y": 0 },
+      "notes": "",
+      "config": {
+        "kind": "llm",
+        "stage": "answer",
+        "model": "glm-4.7-flash",
+        "instructions": "Answer in three sentences at most.",
+        "prompt": "${input}"
+      }
+    },
+    {
+      "id": "r4",
+      "name": "carry_out",
+      "position": { "x": 590, "y": 400 },
+      "notes": "",
+      "config": {
+        "kind": "react",
+        "stage": "carry_out",
+        "model": "qwen3-coder-30b",
+        "instructions": "Use the tools to carry the task out, then report what you did in two sentences.",
+        "prompt": "${input}",
+        "tools": ["search_policies", "create_ticket"],
+        "max_iterations": 4
+      }
+    },
+    {
+      "id": "r5",
+      "name": "output",
+      "position": { "x": 950, "y": 230 },
+      "notes": "",
+      "config": { "kind": "output", "description": "What happened." }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "r1", "target": "r2", "label": "" },
+    { "id": "e2", "source": "r2", "target": "r3", "label": "question" },
+    { "id": "e3", "source": "r2", "target": "r4", "label": "task" },
+    { "id": "e4", "source": "r3", "target": "r5", "label": "" },
+    { "id": "e5", "source": "r4", "target": "r5", "label": "" }
+  ],
+  "sample": [
+    "What does the refund policy say about sale items?",
+    "Open a ticket for the shipping team about a parcel that never arrived.",
+    "Do you ship to Canada?"
+  ]
+}

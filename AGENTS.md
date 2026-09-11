@@ -274,21 +274,25 @@ Pin direct dependencies to exact versions, matching the Python side.
 
 ### Styling
 
-Tailwind utility classes in the markup, with Radix primitives for
-anything that has a standard shape and real accessibility requirements:
-dialogs, popovers, tabs, tooltips, selects. Radix ships the behaviour
-and the keyboard handling unstyled, and Tailwind supplies the look.
-Write a bespoke component only when no primitive fits. Use `clsx` and
-`tailwind-merge` to compose class names.
+Radix Themes supplies every control and every layout primitive. Sizes,
+spacing, and colours are theme scale steps such as `size="2"` and
+`gap="3"`, so a component never carries a pixel value chosen by hand.
+The canvas is the one exception: rough.js draws its shapes so they read
+as sketched, and its labels use the sketch font.
 
-Design tokens live in the Tailwind theme. A raw hex value in a
-component is a token that has not been named yet.
+Write a bespoke component only when no primitive fits. The few
+stylesheet rules the app has live in `web/src/index.css` and bridge the
+theme's tokens into React Flow.
 
 ## Writing tests
 
-Test the happy path for every exported function, every validation branch
-that returns an error, and boundary cases for numeric inputs. Test the
-fakes themselves. A silently broken fake hides regressions.
+Write only the tests that would catch a real regression. One test per
+behaviour: the happy path of an exported function, each validation branch
+that returns an error, and the boundary of a numeric input. A test that
+restates the implementation, checks a constant, or covers a case no caller
+can reach adds review load and rots as the code moves. When a change makes
+a test fail, the first question is whether the test earned its place.
+Test the fakes themselves. A silently broken fake hides regressions.
 
 **Python.** Use `pytest`. Parametrize with `@pytest.mark.parametrize`
 for several cases of the same shape, standalone `test_<scenario>`

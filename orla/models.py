@@ -15,7 +15,7 @@ from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
-from orla.graph import AgentGraph, LLMConfig, Problem, ReactConfig, RouterConfig
+from orla.graph import AgentGraph, JudgeConfig, LLMConfig, Problem, ReactConfig, RouterConfig
 from orla.settings import settings
 
 Provider = Literal["bedrock-mantle", "bedrock-runtime", "anthropic", "openai", "ollama"]
@@ -146,24 +146,24 @@ DEFAULT_MODELS: list[ModelSpec] = [
 
 TOOL_CATALOG: list[ToolSpec] = [
     ToolSpec(
-        id="echo",
-        description="Return the text it is given. Useful as a placeholder while a graph is being sketched.",
-        parameters=["text"],
+        id="search_policies",
+        description="Search the company policy documents and return the matching sections.",
+        parameters=["query"],
+    ),
+    ToolSpec(
+        id="create_ticket",
+        description="Open an internal ticket for a team with a one sentence summary.",
+        parameters=["team", "summary"],
+    ),
+    ToolSpec(
+        id="send_email",
+        description="Send an email to the customer and confirm what went out.",
+        parameters=["to", "body"],
     ),
     ToolSpec(
         id="calculator",
         description="Evaluate an arithmetic expression over numbers, parentheses, and the four operators.",
         parameters=["expression"],
-    ),
-    ToolSpec(
-        id="word_count",
-        description="Count words, characters, and lines in a block of text.",
-        parameters=["text"],
-    ),
-    ToolSpec(
-        id="search_notes",
-        description="Search a small built-in corpus of notes and return the matching entries.",
-        parameters=["query"],
     ),
     ToolSpec(
         id="read_file",
@@ -227,7 +227,7 @@ def capability_problems(graph: AgentGraph, models: list[ModelSpec]) -> list[Prob
     problems: list[Problem] = []
     for node in graph.nodes:
         config = node.config
-        if not isinstance(config, LLMConfig | ReactConfig | RouterConfig):
+        if not isinstance(config, LLMConfig | ReactConfig | RouterConfig | JudgeConfig):
             continue
         model_id = config.model
         if not model_id:
@@ -257,12 +257,12 @@ def capability_problems(graph: AgentGraph, models: list[ModelSpec]) -> list[Prob
                     message=f"{node.name} is a ReAct loop, and {spec.label} cannot call tools. Bind it to a model that can, or make this a plain model call.",
                 )
             )
-        if isinstance(config, RouterConfig) and not spec.structured:
+        if isinstance(config, RouterConfig | JudgeConfig) and not spec.structured:
             problems.append(
                 Problem(
                     severity="error",
                     node_id=node.id,
-                    message=f"{node.name} is a router, and {spec.label} cannot return one of a fixed set of labels. Bind it to a model that can.",
+                    message=f"{node.name} needs a typed answer, and {spec.label} cannot return one. Bind it to a model that can.",
                 )
             )
     return problems

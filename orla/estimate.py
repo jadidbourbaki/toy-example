@@ -19,6 +19,7 @@ from pydantic import BaseModel
 
 from orla.graph import (
     AgentGraph,
+    JudgeConfig,
     Node,
     ReactConfig,
     RouterConfig,
@@ -145,6 +146,9 @@ def estimate(
         calls = weights.get(node.id, 1.0)
         if isinstance(node.config, ReactConfig):
             calls *= max(1, node.config.max_iterations) / 2
+        if isinstance(node.config, JudgeConfig):
+            # One judgement always, and a second for the rounds that fail.
+            calls *= 1 + 0.5 * max(0, node.config.max_rounds - 1)
 
         per_call_out = (
             ROUTER_OUTPUT_TOKENS if isinstance(node.config, RouterConfig) else ASSUMED_OUTPUT_TOKENS

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from orla.compiler import entry_name, resolve_network, stages_of, validate
-from orla.graph import AgentGraph
+from orla.graph import AgentGraph, Node, SubagentConfig
 
 ENTRY = "async def research_brief_run(request: str) -> str:\n    return request\n"
 STAGES = 'STAGES: dict[str, str] = {"clarify": "haiku", "research": "sonnet", "answer": "sonnet"}\n'
@@ -30,9 +30,18 @@ def test_stages_of_collects_every_bound_stage(brief: AgentGraph) -> None:
     assert all(model for model in bound.values())
 
 
-def test_resolve_network_puts_dependencies_first(desk: AgentGraph, brief: AgentGraph) -> None:
-    network = resolve_network(desk, [brief])
-    assert [g.id for g in network] == ["research_brief", "support_desk"]
+def test_resolve_network_puts_dependencies_first(support: AgentGraph, brief: AgentGraph) -> None:
+    caller = support.model_copy(deep=True)
+    caller.id = "front_desk"
+    caller.nodes.append(
+        Node(
+            id="s1",
+            name="deep",
+            config=SubagentConfig(graph_id="research_brief", prompt="${input}"),
+        )
+    )
+    network = resolve_network(caller, [brief])
+    assert [g.id for g in network] == ["research_brief", "front_desk"]
 
 
 def test_resolve_network_of_a_lone_graph_is_itself(brief: AgentGraph) -> None:
@@ -81,16 +90,25 @@ def test_a_missing_model_for_is_rejected(brief: AgentGraph) -> None:
     assert any("model_for" in p for p in problems)
 
 
-def test_every_graph_in_a_network_needs_its_entry(desk: AgentGraph, brief: AgentGraph) -> None:
-    network = resolve_network(desk, [brief])
-    problems = validate(good_module(), desk, network)
-    assert any("support_desk_run" in p for p in problems)
+def test_every_graph_in_a_network_needs_its_entry(support: AgentGraph, brief: AgentGraph) -> None:
+    caller = support.model_copy(deep=True)
+    caller.id = "front_desk"
+    caller.nodes.append(
+        Node(
+            id="s1",
+            name="deep",
+            config=SubagentConfig(graph_id="research_brief", prompt="${input}"),
+        )
+    )
+    network = resolve_network(caller, [brief])
+    problems = validate(good_module(), caller, network)
+    assert any("front_desk_run" in p for p in problems)
     assert not any("research_brief_run" in p for p in problems)
 
 
-def test_the_worked_example_satisfies_the_validator(brief: AgentGraph) -> None:
+def test_the_worked_example_satisfies_the_validator(support: AgentGraph) -> None:
     """The example in the compiler prompt has to pass the checks the compiler
     applies, or it teaches the model to produce rejected source."""
 
     source = (Path("orla/prompts/example_module.py")).read_text(encoding="utf-8")
-    assert validate(source, brief, [brief]) == []
+    assert validate(source, support, [support]) == []

@@ -74,9 +74,9 @@ def test_render_leaves_json_braces_alone() -> None:
     assert render('{"k": 1} ${a}', {"a": "x"}) == '{"k": 1} x'
 
 
-def test_a_valid_graph_has_no_problems(brief: AgentGraph, desk: AgentGraph) -> None:
+def test_a_valid_graph_has_no_problems(brief: AgentGraph, support: AgentGraph) -> None:
     assert validate_graph(brief, {"research_brief"}) == []
-    assert validate_graph(desk, {"research_brief", "support_desk"}) == []
+    assert validate_graph(support, {"customer_support"}) == []
 
 
 def test_a_reference_without_an_edge_is_an_error() -> None:
@@ -146,20 +146,18 @@ def test_a_subagent_calling_its_own_graph_is_an_error() -> None:
     assert any("calls its own graph" in p.message for p in validate_graph(graph))
 
 
-def test_an_edge_label_that_is_not_a_route_is_an_error(desk: AgentGraph) -> None:
-    desk.edges[1].label = "nonsense"
-    messages = [
-        p.message for p in validate_graph(desk, {"research_brief"}) if p.severity == "error"
-    ]
+def test_an_edge_label_that_is_not_a_route_is_an_error(support: AgentGraph) -> None:
+    support.edges[1].label = "nonsense"
+    messages = [p.message for p in validate_graph(support) if p.severity == "error"]
     assert any("not one of its routes" in m for m in messages)
 
 
-def test_branch_exclusive_holds_out_the_join(desk: AgentGraph) -> None:
-    branches = branch_exclusive(desk, "t2")
-    assert branches["quick"] == {"t3"}
-    assert branches["deep"] == {"t4", "t5"}
+def test_branch_exclusive_holds_out_the_join(support: AgentGraph) -> None:
+    branches = branch_exclusive(support, "c2")
+    assert branches["policy"] == {"c3", "c4", "c5", "c8", "c9"}
+    assert branches["team"] == {"c6"}
     # output is reached by both branches, so neither branch may skip it.
-    assert all("t6" not in nodes for nodes in branches.values())
+    assert all("c7" not in nodes for nodes in branches.values())
 
 
 def test_branch_exclusive_is_empty_for_a_node_that_does_not_route(brief: AgentGraph) -> None:

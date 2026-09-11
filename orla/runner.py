@@ -19,20 +19,31 @@ from pydantic_ai.usage import UsageLimits
 from pydantic_deep import BASE_PROMPT, create_deep_agent, create_default_deps
 
 from orla import tools
+from orla.approvals import Approvals, Decision
 from orla.graph import (
     AgentGraph,
+    ApproveConfig,
+    JudgeConfig,
     LLMConfig,
     ReactConfig,
     RouterConfig,
     SubagentConfig,
     ToolConfig,
+    answer_chain,
+    answering_stage,
     branch_exclusive,
+    downstream,
     render,
     topological_order,
 )
 from orla.models import ModelSpec, build_model, by_id
 
-EventType = Literal["run_start", "node_start", "node_done", "node_skipped", "run_done", "run_error"]
+EventType = Literal[
+    "run_start", "node_start", "node_done", "node_skipped", "approval", "run_done", "run_error"
+]
+
+# How long a run waits at an Approve stage before treating silence as a no.
+APPROVAL_TIMEOUT_S = 15 * 60
 
 # request_limit raises rather than stopping the loop, so a cap set exactly at
 # the tool budget turns a stage that wanted one more turn into a failed run.
@@ -49,11 +60,18 @@ def tool_budget(max_iterations: int) -> str:
     )
 
 
+class Verdict(BaseModel):
+    passed: bool
+    feedback: str = ""
+
+
 class RunEvent(BaseModel):
     """One thing that happened during a run. The canvas lights a node on
-    node_start and fills it in on node_done."""
+    node_start and fills it in on node_done. An approval event carries the
+    token a person answers against."""
 
     type: EventType
+    token: str = ""
     node_id: str = ""
     name: str = ""
     kind: str = ""
@@ -80,13 +98,20 @@ class RunTotals(BaseModel):
 
 class Runner:
     def __init__(
-        self, models: list[ModelSpec], workspace_root: Path, graphs: list[AgentGraph]
+        self,
+        models: list[ModelSpec],
+        workspace_root: Path,
+        graphs: list[AgentGraph],
+        approvals: Approvals | None = None,
     ) -> None:
         self.models = models
         self.workspace_root = workspace_root
         self.graphs = {g.id: g for g in graphs}
         self.totals = RunTotals()
         self._deps = create_default_deps()
+        # Without somewhere to ask, an Approve stage lets everything through.
+        # Measuring runs a graph many times with nobody watching.
+        self.approvals = approvals
 
     def _model(self, model_id: str) -> Any:
         spec = by_id(self.models, model_id)
@@ -118,6 +143,46 @@ class Runner:
         registry = tools.registry(self.workspace_root)
         return [registry[name] for name in names if name in registry]
 
+    async def _answer(
+        self,
+        config: LLMConfig | ReactConfig,
+        values: dict[str, Any],
+        revision: str = "",
+    ) -> tuple[str, float, int, int]:
+        """Run a Prompt or an Agent once. revision carries a judge's feedback
+        when the stage is being asked to try again."""
+
+        prompt = render(config.prompt, values) + revision
+        if isinstance(config, ReactConfig):
+            agent_deep = create_deep_agent(
+                model=self._model(config.model),
+                instructions=f"{BASE_PROMPT}\n\n{config.instructions}\n\n{tool_budget(config.max_iterations)}",
+                tools=self._tool_functions(config.tools),
+                web_search=False,
+                web_fetch=False,
+                thinking=False,
+                include_todo=False,
+                include_filesystem=False,
+                include_execute=False,
+                include_subagents=False,
+                include_skills=False,
+                include_builtin_subagents=False,
+                include_plan=False,
+                include_memory=False,
+            )
+            result = await agent_deep.run(
+                prompt,
+                deps=self._deps,
+                usage_limits=UsageLimits(request_limit=config.max_iterations + BACKSTOP),
+            )
+        else:
+            plain: Agent[None, str] = Agent(
+                self._model(config.model), instructions=config.instructions
+            )
+            result = await plain.run(prompt)
+        usd, input_tokens, output_tokens = self._charge(config.model, result)
+        return str(result.output), usd, input_tokens, output_tokens
+
     async def run(self, graph: AgentGraph, request: str, depth: int = 0) -> AsyncIterator[RunEvent]:
         order = topological_order(graph)
         if order is None:
@@ -135,6 +200,7 @@ class Runner:
 
         values: dict[str, Any] = {}
         skipped: set[str] = set()
+        declined_at = ""
 
         for node_id in order:
             node = graph.node(node_id)
@@ -154,7 +220,11 @@ class Runner:
                     kind=config.kind,
                     graph_id=graph.id,
                     depth=depth,
-                    text="A router took a different branch.",
+                    text=(
+                        f"Declined at {declined_at}."
+                        if declined_at
+                        else "A router took a different branch."
+                    ),
                 )
                 continue
 
@@ -225,38 +295,116 @@ class Runner:
                         if label != route:
                             skipped |= branch
 
-                elif isinstance(config, ReactConfig):
-                    agent_deep = create_deep_agent(
-                        model=self._model(model_id),
-                        instructions=f"{BASE_PROMPT}\n\n{config.instructions}\n\n{tool_budget(config.max_iterations)}",
-                        tools=self._tool_functions(config.tools),
-                        web_search=False,
-                        web_fetch=False,
-                        thinking=False,
-                        include_todo=False,
-                        include_filesystem=False,
-                        include_execute=False,
-                        include_subagents=False,
-                        include_skills=False,
-                        include_builtin_subagents=False,
-                        include_plan=False,
-                        include_memory=False,
-                    )
-                    result = await agent_deep.run(
-                        render(config.prompt, values),
-                        deps=self._deps,
-                        usage_limits=UsageLimits(request_limit=config.max_iterations + BACKSTOP),
-                    )
-                    text = str(result.output)
-                    usd, input_tokens, output_tokens = self._charge(model_id, result)
+                elif isinstance(config, LLMConfig | ReactConfig):
+                    text, usd, input_tokens, output_tokens = await self._answer(config, values)
 
-                elif isinstance(config, LLMConfig):
-                    plain: Agent[None, str] = Agent(
-                        self._model(model_id), instructions=config.instructions
+                elif isinstance(config, JudgeConfig):
+                    feeder = graph.node(graph.incoming(node.id)[0].source)
+                    if feeder is None or not isinstance(feeder.config, LLMConfig | ReactConfig):
+                        raise ValueError(f"{node.name} has no Prompt or Agent to judge.")
+                    candidate = str(values.get(feeder.name, ""))
+                    judge = Agent[None, Verdict](
+                        self._model(model_id),
+                        output_type=Verdict,
+                        instructions=(
+                            "You review one stage's output against the criteria. Pass it only "
+                            "when every criterion holds. When it fails, say what to change in "
+                            "two sentences."
+                        ),
                     )
-                    result = await plain.run(render(config.prompt, values))
-                    text = str(result.output)
-                    usd, input_tokens, output_tokens = self._charge(model_id, result)
+                    rounds = 0
+                    while True:
+                        verdict_run = await judge.run(
+                            f"Criteria:\n{render(config.criteria, values)}\n\n"
+                            f"Request:\n{request}\n\nOutput to check:\n{candidate}"
+                        )
+                        u, i, o = self._charge(model_id, verdict_run)
+                        usd, input_tokens, output_tokens = (
+                            usd + u,
+                            input_tokens + i,
+                            output_tokens + o,
+                        )
+                        rounds += 1
+                        if verdict_run.output.passed or rounds >= config.max_rounds:
+                            break
+                        candidate, u, i, o = await self._answer(
+                            feeder.config,
+                            values,
+                            revision=(
+                                f"\n\nA reviewer rejected the previous answer: "
+                                f"{verdict_run.output.feedback}\nAnswer again with that fixed."
+                            ),
+                        )
+                        usd, input_tokens, output_tokens = (
+                            usd + u,
+                            input_tokens + i,
+                            output_tokens + o,
+                        )
+                    # Downstream stages read the revised answer under the judged
+                    # stage's own name, so a judge slots in without rewiring prompts.
+                    values[feeder.name] = candidate
+                    text = candidate
+                    route = f"{rounds} {'round' if rounds == 1 else 'rounds'}"
+
+                elif isinstance(config, ApproveConfig):
+                    feeder = graph.node(graph.incoming(node.id)[0].source)
+                    if feeder is None:
+                        raise ValueError(f"{node.name} has nothing feeding it to approve.")
+                    candidate = str(values.get(feeder.name, ""))
+                    answering = answering_stage(graph, node.id)
+                    revisable = (
+                        answering.config
+                        if answering is not None
+                        and isinstance(answering.config, LLMConfig | ReactConfig)
+                        else None
+                    )
+                    rounds = 0
+                    while True:
+                        rounds += 1
+                        if self.approvals is None:
+                            decision = Decision(approved=True)
+                            route = "approved automatically"
+                            break
+                        token = self.approvals.open()
+                        yield RunEvent(
+                            type="approval",
+                            token=token,
+                            node_id=node.id,
+                            name=node.name,
+                            kind="approve",
+                            graph_id=graph.id,
+                            depth=depth,
+                            text=candidate,
+                            route=render(config.question, values),
+                        )
+                        decision = await self.approvals.wait(token, APPROVAL_TIMEOUT_S)
+                        if decision.approved:
+                            route = "approved"
+                            break
+                        if not decision.note or revisable is None or rounds >= config.max_rounds:
+                            route = "declined"
+                            break
+                        candidate, u, i, o = await self._answer(
+                            revisable,
+                            values,
+                            revision=(
+                                f"\n\nA reviewer sent the previous answer back: "
+                                f"{decision.note}\nAnswer again with that fixed."
+                            ),
+                        )
+                        usd, input_tokens, output_tokens = (
+                            usd + u,
+                            input_tokens + i,
+                            output_tokens + o,
+                        )
+                        # The revised answer replaces the old one all the way
+                        # back to the stage that wrote it.
+                        for passed in answer_chain(graph, node.id):
+                            values[passed.name] = candidate
+                    text = candidate
+                    if route == "declined":
+                        declined_at = node.name
+                        skipped |= downstream(graph, node.id)
 
                 else:
                     text = ""
@@ -298,6 +446,8 @@ class Runner:
 
         final = next((n for n in graph.nodes if n.config.kind == "output"), None)
         answer = str(values.get(final.name, "")) if final else ""
+        if declined_at:
+            answer = f"Declined at {declined_at}. Nothing after it ran."
         yield RunEvent(
             type="run_done",
             graph_id=graph.id,
@@ -317,7 +467,8 @@ async def run_graph(
     models: list[ModelSpec],
     workspace_root: Path,
     graphs: list[AgentGraph] | None = None,
+    approvals: Approvals | None = None,
 ) -> AsyncIterator[RunEvent]:
-    runner = Runner(models, workspace_root, graphs or [])
+    runner = Runner(models, workspace_root, graphs or [], approvals)
     async for event in runner.run(graph, request):
         yield event

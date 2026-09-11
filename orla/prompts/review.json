@@ -1,0 +1,77 @@
+{
+  "id": "review",
+  "name": "Draft and approve",
+  "description": "Draft a reply, have a model check it, have a person approve it, then send it.",
+  "nodes": [
+    {
+      "id": "v1",
+      "name": "input",
+      "position": { "x": 0, "y": 30 },
+      "notes": "",
+      "config": { "kind": "input", "description": "A message to reply to." }
+    },
+    {
+      "id": "v2",
+      "name": "draft",
+      "position": { "x": 230, "y": 0 },
+      "notes": "",
+      "config": {
+        "kind": "llm",
+        "stage": "draft",
+        "model": "nemotron-super-120b",
+        "instructions": "Write the reply a careful colleague would send. Four sentences at most.",
+        "prompt": "${input}"
+      }
+    },
+    {
+      "id": "v3",
+      "name": "check",
+      "position": { "x": 530, "y": 0 },
+      "notes": "",
+      "config": {
+        "kind": "judge",
+        "stage": "check",
+        "model": "glm-4.7-flash",
+        "criteria": "Answers what was asked. Four sentences at most. Promises nothing it cannot know.",
+        "max_rounds": 2
+      }
+    },
+    {
+      "id": "v4",
+      "name": "approve",
+      "position": { "x": 830, "y": 0 },
+      "notes": "",
+      "config": { "kind": "approve", "question": "Send this reply?", "max_rounds": 3 }
+    },
+    {
+      "id": "v5",
+      "name": "send",
+      "position": { "x": 1130, "y": 0 },
+      "notes": "",
+      "config": {
+        "kind": "tool",
+        "tool": "send_email",
+        "arguments": { "to": "the sender", "body": "${approve}" }
+      }
+    },
+    {
+      "id": "v6",
+      "name": "output",
+      "position": { "x": 1490, "y": 30 },
+      "notes": "",
+      "config": { "kind": "output", "description": "Confirmation of what went out." }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "v1", "target": "v2", "label": "" },
+    { "id": "e2", "source": "v2", "target": "v3", "label": "" },
+    { "id": "e3", "source": "v3", "target": "v4", "label": "" },
+    { "id": "e4", "source": "v4", "target": "v5", "label": "" },
+    { "id": "e5", "source": "v5", "target": "v6", "label": "" }
+  ],
+  "sample": [
+    "Thanks for the quick delivery. Could you tell me how to change my billing address?",
+    "I was charged for a subscription I cancelled last month.",
+    "Is there a student discount?"
+  ]
+}

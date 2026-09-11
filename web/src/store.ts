@@ -1,21 +1,39 @@
 import { create } from "zustand";
-import { api } from "@/lib/api";
+import { api, streamCompile } from "@/lib/api";
 import { blankGraph, makeEdge, makeNode, slugify } from "@/lib/graph";
 import type { NodeKind } from "@/lib/kinds";
 import type {
   AgentGraph,
   CompileResult,
   GraphEstimate,
-  GraphSummary,
+  Health,
   ModelSpec,
   Node,
+  OptimizeResult,
   Problem,
   RunEvent,
   ToolSpec,
 } from "@/types/wire";
 
-/** Where a compile has got to. The panel unmounts when a tab changes, so
- *  progress and the finished module live here rather than in the component. */
+/** The pages of the home screen. */
+export type Section = "workflows" | "templates" | "models" | "settings";
+
+const SECTIONS: readonly Section[] = ["workflows", "templates", "models", "settings"];
+const isSection = (value: string): value is Section => SECTIONS.some((s) => s === value);
+
+export type DrawerTab = "code" | "optimize";
+
+/** The last ask for improvements. The list of accepted patches stays in the
+ *  panel, so `run` lets the panel start over when a new result lands. */
+export type OptimizeState = {
+  busy: boolean;
+  result: OptimizeResult | null;
+  error: string;
+  run: number;
+};
+
+/** Where a compile has got to. Progress and the finished module live here so
+ *  they survive whatever the panels do. */
 export type CompileState = {
   running: boolean;
   attempt: number;
@@ -36,20 +54,26 @@ const IDLE_COMPILE: CompileState = {
   startedAt: 0,
 };
 
-export type Tab = "build" | "code" | "optimize" | "run";
-
 type State = {
+  /** The workflow on the canvas. Null shows the home screen. */
   graph: AgentGraph | null;
-  graphs: GraphSummary[];
+  graphs: AgentGraph[];
+  templates: AgentGraph[];
   models: ModelSpec[];
   tools: ToolSpec[];
+  health: Health | null;
+  section: Section;
+  drawer: { tab: DrawerTab; open: boolean };
+  chatOpen: boolean;
+  optimize: OptimizeState;
   selectedId: string | null;
   editingId: string | null;
-  tab: Tab;
   problems: Problem[];
   estimate: GraphEstimate | null;
   /** Per node id, what the last run actually spent. Empty until a run finishes. */
   measured: Record<string, RunEvent>;
+  running: Set<string>;
+  skipped: Set<string>;
   dirty: boolean;
   error: string;
   compile: CompileState;
@@ -58,10 +82,18 @@ type State = {
 type Actions = {
   boot: () => Promise<void>;
   openGraph: (id: string) => Promise<void>;
-  createGraph: (name: string) => Promise<void>;
+  closeGraph: () => Promise<void>;
+  createGraph: () => Promise<void>;
+  createFromTemplate: (template: AgentGraph) => Promise<void>;
+  duplicateGraph: (id: string) => Promise<void>;
   removeGraph: (id: string) => Promise<void>;
+  setSection: (section: Section) => void;
+  setDrawer: (tab: DrawerTab, open: boolean) => void;
+  toggleChat: () => void;
+  runCompile: () => Promise<void>;
+  findImprovements: () => Promise<void>;
+  clearImprovements: () => void;
   save: () => Promise<void>;
-  setTab: (tab: Tab) => void;
   select: (id: string | null) => void;
   setEditing: (id: string | null) => void;
   setGraph: (graph: AgentGraph) => void;
@@ -74,8 +106,9 @@ type Actions = {
   connect: (source: string, target: string, label?: string) => void;
   disconnect: (edgeId: string) => void;
   setModels: (models: ModelSpec[]) => Promise<void>;
+  setRunning: (ids: Set<string>) => void;
+  setSkipped: (ids: Set<string>) => void;
   recordRun: (events: RunEvent[]) => void;
-  clearMeasured: () => void;
   setCompile: (change: Partial<CompileState>) => void;
 };
 
@@ -96,71 +129,196 @@ function refresh(graph: AgentGraph, set: (partial: Partial<State>) => void): voi
   }, 250);
 }
 
+// Every edit is saved on its own, a moment after the last keystroke or drag.
+let saving: ReturnType<typeof setTimeout> | undefined;
+
+function uniqueId(graphs: AgentGraph[], base: string): string {
+  const taken = new Set(graphs.map((g) => g.id));
+  let id = base;
+  for (let i = 2; taken.has(id); i += 1) id = `${base}_${i}`;
+  return id;
+}
+
+function uniqueTitle(graphs: AgentGraph[], base: string): string {
+  const taken = new Set(graphs.map((g) => g.name));
+  let name = base;
+  for (let i = 2; taken.has(name); i += 1) name = `${base} ${i}`;
+  return name;
+}
+
 export const useStore = create<State & Actions>((set, get) => {
+  const scheduleSave = () => {
+    clearTimeout(saving);
+    saving = setTimeout(() => void get().save(), 800);
+  };
+
   const mutate = (next: AgentGraph) => {
     set({ graph: next, dirty: true });
     refresh(next, set);
+    scheduleSave();
   };
 
   // Moving a stage changes neither what the graph does nor what it costs, so a
-  // drag never asks the server anything.
-  const move = (next: AgentGraph) => set({ graph: next, dirty: true });
+  // drag never asks the server to validate anything.
+  const move = (next: AgentGraph) => {
+    set({ graph: next, dirty: true });
+    scheduleSave();
+  };
+
+  // The open workflow lives in the URL hash, so a reload lands back on it.
+  const open = (graph: AgentGraph) => {
+    history.replaceState(null, "", `#${graph.id}`);
+    set({
+      graph,
+      selectedId: null,
+      editingId: null,
+      dirty: false,
+      measured: {},
+      running: new Set(),
+      skipped: new Set(),
+      error: "",
+      compile: IDLE_COMPILE,
+    });
+    refresh(graph, set);
+  };
 
   return {
     graph: null,
     graphs: [],
+    templates: [],
     models: [],
     tools: [],
     selectedId: null,
     editingId: null,
-    tab: "build",
     problems: [],
     estimate: null,
     measured: {},
+    running: new Set(),
+    skipped: new Set(),
     dirty: false,
     error: "",
     compile: IDLE_COMPILE,
+    health: null,
+    section: "workflows",
+    drawer: { tab: "code", open: false },
+    chatOpen: false,
+    optimize: { busy: false, result: null, error: "", run: 0 },
 
     boot: async () => {
-      const [graphs, models, tools] = await Promise.all([
+      const [graphs, templates, models, tools, health] = await Promise.all([
         api.listGraphs(),
+        api.templates(),
         api.models(),
         api.tools(),
+        api.health(),
       ]);
-      set({ graphs, models, tools });
-      const first = graphs[0];
-      if (first) await get().openGraph(first.id);
+      set({ graphs, templates, models, tools, health });
+      const wanted = location.hash.slice(1);
+      if (graphs.some((g) => g.id === wanted)) await get().openGraph(wanted);
+      else if (isSection(wanted)) set({ section: wanted });
+    },
+
+    setSection: (section) => {
+      history.replaceState(null, "", `#${section}`);
+      set({ section });
+    },
+    setDrawer: (tab, open) => set({ drawer: { tab, open } }),
+    toggleChat: () => set({ chatOpen: !get().chatOpen }),
+
+    runCompile: async () => {
+      const graph = get().graph;
+      if (!graph || get().compile.running) return;
+      const setCompile = get().setCompile;
+      setCompile({
+        running: true,
+        attempt: 0,
+        step: "writing",
+        result: null,
+        problems: [],
+        error: "",
+        startedAt: Date.now(),
+      });
+      set({ drawer: { tab: "code", open: true } });
+      try {
+        await streamCompile(graph, (event) => {
+          if (event.type === "error") setCompile({ error: event.text });
+          else if (event.type === "done")
+            setCompile({ result: event.result, problems: event.problems });
+          else setCompile({ step: event.type, attempt: event.attempt, problems: event.problems });
+        });
+      } catch (err) {
+        setCompile({ error: err instanceof Error ? err.message : String(err) });
+      } finally {
+        setCompile({ running: false, step: "" });
+      }
+    },
+
+    findImprovements: async () => {
+      const graph = get().graph;
+      const prior = get().optimize;
+      if (!graph || prior.busy) return;
+      set({
+        optimize: { busy: true, result: null, error: "", run: prior.run + 1 },
+        drawer: { tab: "optimize", open: true },
+      });
+      try {
+        set({ optimize: { ...get().optimize, result: await api.optimize(graph) } });
+      } catch (err) {
+        set({
+          optimize: { ...get().optimize, error: err instanceof Error ? err.message : String(err) },
+        });
+      } finally {
+        set({ optimize: { ...get().optimize, busy: false } });
+      }
+    },
+
+    clearImprovements: () => {
+      const prior = get().optimize;
+      set({ optimize: { busy: false, result: null, error: "", run: prior.run + 1 } });
     },
 
     openGraph: async (id) => {
-      const graph = await api.readGraph(id);
-      set({
-        graph,
-        selectedId: null,
-        dirty: false,
-        measured: {},
-        error: "",
-        compile: IDLE_COMPILE,
-      });
-      refresh(graph, set);
+      open(await api.readGraph(id));
     },
 
-    createGraph: async (name) => {
-      const graph = blankGraph(slugify(name), name);
+    closeGraph: async () => {
+      clearTimeout(saving);
+      if (get().dirty) await get().save();
+      history.replaceState(null, "", `#${get().section}`);
+      set({ graph: null, selectedId: null, editingId: null });
+    },
+
+    createGraph: async () => {
+      const name = uniqueTitle(get().graphs, "Untitled workflow");
+      const graph = blankGraph(uniqueId(get().graphs, slugify(name)), name);
       await api.saveGraph(graph);
-      set({ graphs: await api.listGraphs(), graph, selectedId: null, dirty: false, measured: {} });
-      refresh(graph, set);
+      set({ graphs: await api.listGraphs() });
+      open(graph);
+    },
+
+    // A template or an existing workflow is copied under a fresh id, so editing
+    // the copy never touches the original.
+    createFromTemplate: async (template) => {
+      const graph: AgentGraph = {
+        ...template,
+        id: uniqueId(get().graphs, template.id),
+        name: uniqueTitle(get().graphs, template.name),
+      };
+      await api.saveGraph(graph);
+      set({ graphs: await api.listGraphs() });
+      open(graph);
+    },
+
+    duplicateGraph: async (id) => {
+      const source = get().graphs.find((g) => g.id === id);
+      if (source) await get().createFromTemplate(source);
     },
 
     removeGraph: async (id) => {
+      clearTimeout(saving);
+      if (get().graph?.id === id) set({ graph: null, dirty: false });
       await api.deleteGraph(id);
-      const graphs = await api.listGraphs();
-      set({ graphs });
-      if (get().graph?.id === id) {
-        const next = graphs[0];
-        if (next) await get().openGraph(next.id);
-        else set({ graph: null });
-      }
+      set({ graphs: await api.listGraphs() });
     },
 
     save: async () => {
@@ -170,7 +328,6 @@ export const useStore = create<State & Actions>((set, get) => {
       set({ dirty: false, graphs: await api.listGraphs() });
     },
 
-    setTab: (tab) => set({ tab }),
     select: (selectedId) => set({ selectedId }),
     setEditing: (editingId) => set({ editingId }),
 
@@ -258,6 +415,9 @@ export const useStore = create<State & Actions>((set, get) => {
       if (graph) refresh(graph, set);
     },
 
+    setRunning: (running) => set({ running }),
+    setSkipped: (skipped) => set({ skipped }),
+
     recordRun: (events) => {
       const measured: Record<string, RunEvent> = {};
       for (const event of events) {
@@ -265,8 +425,6 @@ export const useStore = create<State & Actions>((set, get) => {
       }
       set({ measured });
     },
-
-    clearMeasured: () => set({ measured: {} }),
 
     setCompile: (change) => set({ compile: { ...get().compile, ...change } }),
   };

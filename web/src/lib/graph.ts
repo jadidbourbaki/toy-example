@@ -18,7 +18,8 @@ export function uniqueName(graph: AgentGraph, base: string): string {
  *  labels, so neither can be served by a model missing those. */
 export function defaultModel(kind: NodeKind, models: ModelSpec[]): string {
   const capable = models.filter(
-    (m) => (kind !== "react" || m.tools) && (kind !== "router" || m.structured),
+    (m) =>
+      (kind !== "react" || m.tools) && ((kind !== "router" && kind !== "judge") || m.structured),
   );
   const cheapest = [...capable].sort(
     (a, b) =>
@@ -35,7 +36,7 @@ export function defaultConfig(kind: NodeKind, models: ModelSpec[]): Node["config
     case "output":
       return { kind: "output", description: "The answer the agent returns." };
     case "tool":
-      return { kind: "tool", tool: "search_notes", arguments: { query: "${input}" } };
+      return { kind: "tool", tool: "search_policies", arguments: { query: "${input}" } };
     case "react":
       return {
         kind: "react",
@@ -43,7 +44,7 @@ export function defaultConfig(kind: NodeKind, models: ModelSpec[]): Node["config
         model,
         instructions: "Work step by step. Use the tools before answering.",
         prompt: "${input}",
-        tools: ["search_notes"],
+        tools: ["search_policies"],
         max_iterations: 6,
       };
     case "router":
@@ -60,6 +61,16 @@ export function defaultConfig(kind: NodeKind, models: ModelSpec[]): Node["config
       };
     case "subagent":
       return { kind: "subagent", graph_id: "", prompt: "${input}" };
+    case "judge":
+      return {
+        kind: "judge",
+        stage: "judge",
+        model,
+        criteria: "The answer is correct, complete, and says nothing the sources do not support.",
+        max_rounds: 2,
+      };
+    case "approve":
+      return { kind: "approve", question: "Send this?", max_rounds: 3 };
     default:
       return {
         kind: "llm",
@@ -80,7 +91,18 @@ export function makeNode(
 ): Node {
   return {
     id: uid("n"),
-    name: uniqueName(graph, kind === "llm" ? "stage" : kind === "tool" ? "search_notes" : kind),
+    name: uniqueName(
+      graph,
+      kind === "llm"
+        ? "prompt"
+        : kind === "tool"
+          ? "search_policies"
+          : kind === "react"
+            ? "agent"
+            : kind === "subagent"
+              ? "workflow"
+              : kind,
+    ),
     position: { x, y },
     notes: "",
     config: defaultConfig(kind, models),

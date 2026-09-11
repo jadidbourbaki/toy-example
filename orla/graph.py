@@ -50,8 +50,8 @@ class ToolConfig(BaseModel):
     """A deterministic call into the tool catalog. No model involved."""
 
     kind: Literal["tool"] = "tool"
-    tool: str = "echo"
-    arguments: dict[str, str] = Field(default_factory=dict)
+    tool: str = "search_policies"
+    arguments: dict[str, str] = Field(default_factory=lambda: {"query": "${input}"})
 
 
 class ReactConfig(BaseModel):
@@ -88,13 +88,38 @@ class RouterConfig(BaseModel):
 
 
 class SubagentConfig(BaseModel):
-    """A call into another graph in the same workspace. Saving a graph
-    puts it in the palette of every other graph, which is how a network
-    of agents gets assembled out of parts that were each built alone."""
+    """A call into another workflow in the same workspace. Saving a workflow
+    puts it in the palette of every other one, which is how a system gets
+    assembled out of parts that were each built alone."""
 
     kind: Literal["subagent"] = "subagent"
     graph_id: str = ""
     prompt: str = "${input}"
+
+
+class JudgeConfig(BaseModel):
+    """A judge on the stage feeding it. The judge reads that stage's output
+    against the criteria. A pass lets the output through untouched. A fail
+    sends the feedback back to the stage, which answers again, up to
+    max_rounds times. Downstream stages read the version that passed, or the
+    last attempt when nothing did."""
+
+    kind: Literal["judge"] = "judge"
+    stage: str = "judge"
+    model: str = ""
+    criteria: str = "The answer is correct, complete, and says nothing the sources do not support."
+    max_rounds: int = 2
+
+
+class ApproveConfig(BaseModel):
+    """A pause for a person. The run shows what the stage feeding it produced
+    and waits. Approving lets it through. Sending it back with a note asks the
+    Prompt or Agent behind it to answer again, up to max_rounds times.
+    Declining stops everything downstream."""
+
+    kind: Literal["approve"] = "approve"
+    question: str = "Send this?"
+    max_rounds: int = 3
 
 
 NodeConfig = Annotated[
@@ -104,7 +129,9 @@ NodeConfig = Annotated[
     | ToolConfig
     | ReactConfig
     | RouterConfig
-    | SubagentConfig,
+    | SubagentConfig
+    | JudgeConfig
+    | ApproveConfig,
     Field(discriminator="kind"),
 ]
 
@@ -187,7 +214,7 @@ def templates_of(node: Node) -> list[str]:
     """Every template string on a node, so validation can check the
     references in all of them at once."""
 
-    fields = ("prompt", "instructions", "question")
+    fields = ("prompt", "instructions", "question", "criteria")
     out = [getattr(node.config, f) for f in fields if hasattr(node.config, f)]
     if isinstance(node.config, ToolConfig):
         out.extend(node.config.arguments.values())
@@ -234,6 +261,42 @@ def find_cycle(graph: AgentGraph) -> list[str]:
 
 def entry_node(graph: AgentGraph) -> str:
     return next((n.id for n in graph.nodes if n.config.kind == "input"), "")
+
+
+def answer_chain(graph: AgentGraph, node_id: str) -> list[Node]:
+    """The stages an answer passed through on its way to node_id, nearest
+    first. Judge and Approve stages hand an answer along unchanged, so the
+    walk continues through them and stops at whatever wrote the answer."""
+
+    chain: list[Node] = []
+    current = node_id
+    while True:
+        incoming = graph.incoming(current)
+        if len(incoming) != 1:
+            return chain
+        feeder = graph.node(incoming[0].source)
+        if feeder is None or feeder in chain:
+            return chain
+        chain.append(feeder)
+        if not isinstance(feeder.config, JudgeConfig | ApproveConfig):
+            return chain
+        current = feeder.id
+
+
+def answering_stage(graph: AgentGraph, node_id: str) -> Node | None:
+    """The Prompt or Agent whose answer reaches node_id, which is the stage
+    asked to answer again when a person sends the answer back."""
+
+    chain = answer_chain(graph, node_id)
+    last = chain[-1] if chain else None
+    return last if last is not None and isinstance(last.config, LLMConfig | ReactConfig) else None
+
+
+def downstream(graph: AgentGraph, node_id: str) -> set[str]:
+    """Every node that runs after node_id."""
+
+    digraph = to_digraph(graph)
+    return nx.descendants(digraph, node_id) if digraph.has_node(node_id) else set()
 
 
 def branch_exclusive(graph: AgentGraph, router_id: str) -> dict[str, set[str]]:
@@ -390,6 +453,44 @@ def validate_graph(graph: AgentGraph, known_graphs: set[str] | None = None) -> l
                         severity="error",
                         node_id=node.id,
                         message=f"An edge out of {node.name} is labelled {stray!r}, which is not one of its routes.",
+                    )
+                )
+
+        if isinstance(node.config, JudgeConfig):
+            feeders = [graph.node(e.source) for e in graph.incoming(node.id)]
+            if len(feeders) != 1 or feeders[0] is None:
+                problems.append(
+                    Problem(
+                        severity="error",
+                        node_id=node.id,
+                        message=f"{node.name} needs exactly one stage feeding it, the stage it judges.",
+                    )
+                )
+            elif not isinstance(feeders[0].config, LLMConfig | ReactConfig):
+                problems.append(
+                    Problem(
+                        severity="error",
+                        node_id=node.id,
+                        message=f"{node.name} can only judge a Prompt or an Agent, since those are the stages that can answer again.",
+                    )
+                )
+
+        if isinstance(node.config, ApproveConfig):
+            feeders = [graph.node(e.source) for e in graph.incoming(node.id)]
+            if len(feeders) != 1 or feeders[0] is None:
+                problems.append(
+                    Problem(
+                        severity="error",
+                        node_id=node.id,
+                        message=f"{node.name} needs exactly one stage feeding it, the stage whose output a person approves.",
+                    )
+                )
+            elif answering_stage(graph, node.id) is None:
+                problems.append(
+                    Problem(
+                        severity="warning",
+                        node_id=node.id,
+                        message=f"No Prompt or Agent feeds {node.name}, so sending its output back with a note has nothing to answer again.",
                     )
                 )
 

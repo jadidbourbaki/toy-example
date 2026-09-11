@@ -1,14 +1,14 @@
 {
   "id": "research_brief",
-  "name": "Research brief",
-  "description": "Sharpen a vague question, gather notes on it, and write a short brief.",
+  "name": "Research and write",
+  "description": "Sharpen the question, look it up with a tool, and write the answer.",
   "nodes": [
     {
       "id": "n1",
       "name": "input",
       "position": {
         "x": 0,
-        "y": 292
+        "y": 320
       },
       "notes": "",
       "config": {
@@ -20,8 +20,8 @@
       "id": "n2",
       "name": "clarify",
       "position": {
-        "x": 240,
-        "y": 260
+        "x": 230,
+        "y": 290
       },
       "notes": "",
       "config": {
@@ -36,18 +36,18 @@
       "id": "n3",
       "name": "research",
       "position": {
-        "x": 560,
-        "y": 80
+        "x": 590,
+        "y": 40
       },
       "notes": "",
       "config": {
         "kind": "react",
         "stage": "research",
         "model": "qwen3-coder-30b",
-        "instructions": "Search the notes before answering. Cite the topic tag of every note you use.",
-        "prompt": "Gather what the notes say about: ${clarify}",
+        "instructions": "Search the policy documents before answering. Quote every section you use with its topic tag.",
+        "prompt": "Find what the policies say about: ${clarify}",
         "tools": [
-          "search_notes"
+          "search_policies"
         ],
         "max_iterations": 6
       }
@@ -56,8 +56,8 @@
       "id": "n4",
       "name": "brief",
       "position": {
-        "x": 880,
-        "y": 260
+        "x": 950,
+        "y": 290
       },
       "notes": "",
       "config": {
@@ -72,8 +72,8 @@
       "id": "n5",
       "name": "output",
       "position": {
-        "x": 1210,
-        "y": 292
+        "x": 1330,
+        "y": 320
       },
       "notes": "",
       "config": {
@@ -115,8 +115,8 @@
     }
   ],
   "sample": [
-    "How much chunk overlap should I use for retrieval?",
-    "Is an LLM judge reliable enough to compare two model versions?",
-    "Where does the money actually go in a multi stage agent?"
+    "How long do I have to return something?",
+    "Can I cancel halfway through the month?",
+    "How do I get a copy of my data?"
   ]
 }

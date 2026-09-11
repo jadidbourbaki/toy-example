@@ -30,10 +30,10 @@ def test_a_converse_entry_builds_a_bedrock_name(models: list[ModelSpec]) -> None
 
 
 def test_a_valid_graph_has_no_capability_problems(
-    brief: AgentGraph, desk: AgentGraph, models: list[ModelSpec]
+    brief: AgentGraph, support: AgentGraph, models: list[ModelSpec]
 ) -> None:
     assert capability_problems(brief, models) == []
-    assert capability_problems(desk, models) == []
+    assert capability_problems(support, models) == []
 
 
 def toolless(models: list[ModelSpec]) -> ModelSpec:
@@ -58,13 +58,13 @@ def test_a_react_stage_on_a_toolless_model_is_an_error(
 
 
 def test_a_router_on_a_model_without_typed_output_is_an_error(
-    desk: AgentGraph, models: list[ModelSpec]
+    support: AgentGraph, models: list[ModelSpec]
 ) -> None:
     untyped = toolless(models)
-    router = next(n for n in desk.nodes if n.config.kind == "router")
+    router = next(n for n in support.nodes if n.config.kind == "router")
     router.config.model = untyped.id  # ty: ignore[unresolved-attribute]
-    problems = capability_problems(desk, models)
-    assert any("fixed set of labels" in p.message for p in problems)
+    problems = capability_problems(support, models)
+    assert any("typed answer" in p.message for p in problems)
 
 
 def test_a_plain_call_on_a_toolless_model_is_fine(

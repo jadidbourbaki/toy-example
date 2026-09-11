@@ -3,7 +3,7 @@ from __future__ import annotations
 from orla.estimate import count_tokens, estimate
 from orla.graph import AgentGraph
 from orla.models import ModelSpec
-from tests.conftest import edge, graph_from, node
+from tests.conftest import cheapest, edge, graph_from, node
 
 INPUT = {"kind": "input"}
 OUTPUT = {"kind": "output"}
@@ -26,7 +26,11 @@ def test_a_graph_with_no_model_calls_costs_nothing() -> None:
             node(
                 "b",
                 "count",
-                {"kind": "tool", "tool": "word_count", "arguments": {"text": "${input}"}},
+                {
+                    "kind": "tool",
+                    "tool": "send_email",
+                    "arguments": {"to": "x", "body": "${input}"},
+                },
             ),
             node("c", "output", OUTPUT),
         ],
@@ -41,7 +45,7 @@ def test_a_cheaper_model_lowers_the_estimate(brief: AgentGraph, models: list[Mod
     before = estimate(brief, models).usd
     for graph_node in brief.nodes:
         if hasattr(graph_node.config, "model"):
-            graph_node.config.model = "haiku"  # ty: ignore[unresolved-attribute]
+            graph_node.config.model = cheapest(models)  # ty: ignore[unresolved-attribute]
     assert estimate(brief, models).usd < before
 
 
@@ -60,12 +64,15 @@ def test_a_longer_iteration_cap_costs_more(brief: AgentGraph, models: list[Model
 
 
 def test_a_router_branch_runs_a_share_of_the_time(
-    desk: AgentGraph, models: list[ModelSpec]
+    support: AgentGraph, models: list[ModelSpec]
 ) -> None:
-    priced = estimate(desk, models)
+    priced = estimate(support, models)
     rows = {row.node_id: row for row in priced.nodes}
-    assert rows["t2"].calls == 1.0
-    assert rows["t3"].calls == 0.5
+    # The router runs every time. Each branch behind it runs half the time,
+    # and an Agent's turn budget then scales the calls on that branch.
+    assert rows["c2"].calls == 1.0
+    assert rows["c3"].calls == 0.5 * (4 / 2)
+    assert rows["c6"].calls == 0.5 * (3 / 2)
 
 
 def test_a_model_the_registry_does_not_know_is_left_out(brief: AgentGraph) -> None:

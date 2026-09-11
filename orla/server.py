@@ -19,13 +19,14 @@ from pydantic import BaseModel, Field, TypeAdapter
 from sse_starlette.sse import EventSourceResponse
 
 from orla import assistant, compiler, measure, optimizer
+from orla.approvals import APPROVALS, Decision
 from orla.estimate import GraphEstimate, estimate
 from orla.graph import AgentGraph, Problem, validate_graph
 from orla.measure import MeasureEvent
 from orla.models import TOOL_CATALOG, ModelSpec, ToolSpec, capability_problems
 from orla.runner import RunEvent, run_graph
 from orla.settings import settings
-from orla.store import GraphSummary, Workspace
+from orla.store import Workspace, templates
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -37,6 +38,11 @@ class GraphRequest(BaseModel):
 class RunRequest(BaseModel):
     graph: AgentGraph
     request: str = "Say hello."
+
+
+class ApproveRequest(BaseModel):
+    token: str
+    decision: Decision
 
 
 class SampleRequest(BaseModel):
@@ -67,9 +73,16 @@ class ValidateResponse(BaseModel):
 
 
 class Health(BaseModel):
+    """Whether the server can call a model, and the workspace defaults the
+    settings page shows."""
+
     ok: bool = True
     model_credentials: bool
     compiler_model: str
+    judge_model: str
+    assistant_model: str
+    measure_budget_usd: float
+    workspace: str
 
 
 def create_app(workspace_root: Path | None = None) -> FastAPI:
@@ -89,11 +102,19 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
         return Health(
             model_credentials=settings.has_model_credentials,
             compiler_model=settings.compiler_model,
+            judge_model=settings.judge_model,
+            assistant_model=settings.assistant_model,
+            measure_budget_usd=settings.measure_budget_usd,
+            workspace=str(workspace.root),
         )
 
     @app.get("/api/graphs")
-    def list_graphs() -> list[GraphSummary]:
-        return workspace.list_graphs()
+    def list_graphs() -> list[AgentGraph]:
+        return workspace.all_graphs()
+
+    @app.get("/api/templates")
+    def list_templates() -> list[AgentGraph]:
+        return templates()
 
     @app.get("/api/graphs/{graph_id}")
     def read_graph(graph_id: str) -> AgentGraph:
@@ -207,10 +228,17 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
                 workspace.models(),
                 workspace.root,
                 workspace.all_graphs(),
+                APPROVALS,
             ):
                 yield {"event": event.type, "data": event.model_dump_json()}
 
         return EventSourceResponse(stream())
+
+    @app.post("/api/approve")
+    def approve_endpoint(body: ApproveRequest) -> dict[str, bool]:
+        if not APPROVALS.answer(body.token, body.decision):
+            raise HTTPException(status_code=404, detail="No run is waiting on that token.")
+        return {"answered": True}
 
     @app.get("/api/schema")
     def schema() -> dict[str, object]:
@@ -232,8 +260,8 @@ class Wire(BaseModel):
     problem: Problem
     model_spec: ModelSpec
     tool_spec: ToolSpec
-    graph_summary: GraphSummary
     graph_estimate: GraphEstimate
+    decision: Decision
     compile_result: compiler.CompileResult
     compile_event: compiler.CompileEvent
     optimize_result: optimizer.OptimizeResult

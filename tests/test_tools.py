@@ -28,16 +28,25 @@ def test_calculator_refuses_anything_but_arithmetic(expression: str) -> None:
     assert tools.calculator(expression).startswith("calculator error:")
 
 
-def test_word_count_reports_all_three_counts() -> None:
-    assert tools.word_count("one two\nthree") == "words=3 characters=13 lines=2"
+def test_search_policies_finds_a_matching_topic() -> None:
+    assert "[refunds]" in tools.search_policies("can I get a refund")
 
 
-def test_search_notes_finds_a_matching_topic() -> None:
-    assert "[retrieval]" in tools.search_notes("chunk overlap retrieval")
+def test_search_policies_says_so_when_nothing_matches() -> None:
+    assert tools.search_policies("xylophone") == "No policy matched that query."
 
 
-def test_search_notes_says_so_when_nothing_matches() -> None:
-    assert tools.search_notes("xylophone") == "No notes matched that query."
+def test_create_ticket_numbers_each_ticket() -> None:
+    first = tools.create_ticket("billing", "Charged twice for one order.")
+    second = tools.create_ticket("billing", "Charged twice for one order.")
+    assert first.startswith("Ticket #") and "billing team" in first
+    assert first != second
+
+
+def test_send_email_confirms_the_recipient_and_a_preview() -> None:
+    result = tools.send_email("the customer", "Your refund is on its way.\nThanks for waiting.")
+    assert result.startswith("Sent to the customer: Your refund is on its way.")
+    assert "\n" not in result
 
 
 def test_read_file_reads_inside_the_workspace(tmp_path: Path) -> None:
@@ -60,7 +69,7 @@ def test_call_reports_an_unknown_tool(tmp_path: Path) -> None:
 
 
 def test_call_reports_a_wrong_argument(tmp_path: Path) -> None:
-    assert tools.call("echo", {"wrong": "x"}, tmp_path).startswith("echo error:")
+    assert tools.call("send_email", {"wrong": "x"}, tmp_path).startswith("send_email error:")
 
 
 def test_the_registry_covers_the_catalog(tmp_path: Path) -> None:

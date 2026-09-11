@@ -22,6 +22,7 @@ from orla.estimate import estimate
 from orla.graph import (
     AgentGraph,
     Edge,
+    JudgeConfig,
     LLMConfig,
     Node,
     Position,
@@ -137,7 +138,7 @@ def apply_patch(graph: AgentGraph, patch: Patch) -> AgentGraph:
         return updated
 
     config = node.config
-    bindable = (LLMConfig, ReactConfig, RouterConfig)
+    bindable = (LLMConfig, ReactConfig, RouterConfig, JudgeConfig)
     promptable = (LLMConfig, ReactConfig, RouterConfig, SubagentConfig)
 
     if patch.op == "set_model" and isinstance(config, bindable):

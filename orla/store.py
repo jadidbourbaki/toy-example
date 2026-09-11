@@ -9,20 +9,31 @@ between workspaces or committed next to the code it generates.
 from __future__ import annotations
 
 import json
+from importlib import resources
 from pathlib import Path
-
-from pydantic import BaseModel
 
 from orla.graph import AgentGraph
 from orla.models import DEFAULT_MODELS, ModelSpec
 
+TEMPLATE_ASSETS = (
+    "answer.json",
+    "research_brief.json",
+    "route.json",
+    "review.json",
+    "customer_support.json",
+)
 
-class GraphSummary(BaseModel):
-    id: str
-    name: str
-    description: str
-    nodes: int
-    edges: int
+# The one template a fresh workspace opens on. It is the fullest example.
+SEED_TEMPLATE = "customer_support"
+
+
+def templates() -> list[AgentGraph]:
+    """The patterns a new workflow can start from, simplest first."""
+
+    return [
+        AgentGraph.model_validate_json(resources.files("orla.prompts").joinpath(asset).read_text())
+        for asset in TEMPLATE_ASSETS
+    ]
 
 
 class Workspace:
@@ -37,21 +48,6 @@ class Workspace:
         if not safe:
             raise ValueError(f"{graph_id!r} is not a usable graph id.")
         return self.graphs_dir / f"{safe}.json"
-
-    def list_graphs(self) -> list[GraphSummary]:
-        summaries: list[GraphSummary] = []
-        for path in sorted(self.graphs_dir.glob("*.json")):
-            graph = AgentGraph.model_validate_json(path.read_text(encoding="utf-8"))
-            summaries.append(
-                GraphSummary(
-                    id=graph.id,
-                    name=graph.name,
-                    description=graph.description,
-                    nodes=len(graph.nodes),
-                    edges=len(graph.edges),
-                )
-            )
-        return summaries
 
     def all_graphs(self) -> list[AgentGraph]:
         return [
@@ -97,14 +93,10 @@ class Workspace:
         return models
 
     def seed(self) -> None:
-        """Put the worked example in an empty workspace, so a fresh
-        checkout opens on something that already runs."""
+        """Put one worked example in an empty workspace, so a fresh checkout
+        opens on something that already runs. The rest are templates."""
 
         if any(self.graphs_dir.glob("*.json")):
             return
-        from importlib import resources
-
-        for asset in ("example_graph.json", "example_triage.json"):
-            body = resources.files("orla.prompts").joinpath(asset).read_text()
-            self.write(AgentGraph.model_validate_json(body))
+        self.write(next(t for t in templates() if t.id == SEED_TEMPLATE))
         self.models()

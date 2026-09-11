@@ -1,0 +1,43 @@
+{
+  "id": "answer",
+  "name": "Answer a question",
+  "description": "One model, one prompt, one answer.",
+  "nodes": [
+    {
+      "id": "a1",
+      "name": "input",
+      "position": { "x": 0, "y": 30 },
+      "notes": "",
+      "config": { "kind": "input", "description": "A question." }
+    },
+    {
+      "id": "a2",
+      "name": "answer",
+      "position": { "x": 230, "y": 0 },
+      "notes": "",
+      "config": {
+        "kind": "llm",
+        "stage": "answer",
+        "model": "glm-4.7-flash",
+        "instructions": "Answer in three sentences at most. Open with the answer.",
+        "prompt": "${input}"
+      }
+    },
+    {
+      "id": "a3",
+      "name": "output",
+      "position": { "x": 590, "y": 30 },
+      "notes": "",
+      "config": { "kind": "output", "description": "The answer." }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "a1", "target": "a2", "label": "" },
+    { "id": "e2", "source": "a2", "target": "a3", "label": "" }
+  ],
+  "sample": [
+    "What is the difference between a refund and store credit?",
+    "How long does standard shipping take?",
+    "Can I return something I bought as a gift?"
+  ]
+}

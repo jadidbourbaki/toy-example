@@ -9,7 +9,7 @@ if (!root) throw new Error("The page is missing its #root element.");
 
 createRoot(root).render(
   <StrictMode>
-    <Theme>
+    <Theme radius="large">
       <App />
     </Theme>
   </StrictMode>,

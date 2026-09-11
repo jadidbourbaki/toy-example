@@ -6,22 +6,33 @@ import pytest
 
 from orla.graph import AgentGraph
 from orla.models import DEFAULT_MODELS
-from orla.store import Workspace
+from orla.store import Workspace, templates
 
 
-def test_seed_puts_both_examples_in_an_empty_workspace(workspace: Workspace) -> None:
-    assert {s.id for s in workspace.list_graphs()} == {"research_brief", "support_desk"}
+def test_seed_puts_the_first_template_in_an_empty_workspace(workspace: Workspace) -> None:
+    assert {g.id for g in workspace.all_graphs()} == {"customer_support"}
 
 
-def test_seed_leaves_an_occupied_workspace_alone(workspace: Workspace) -> None:
-    workspace.delete("support_desk")
+def test_seed_leaves_an_occupied_workspace_alone(workspace: Workspace, brief: AgentGraph) -> None:
+    workspace.write(brief)
+    workspace.delete("customer_support")
     workspace.seed()
-    assert {s.id for s in workspace.list_graphs()} == {"research_brief"}
+    assert {g.id for g in workspace.all_graphs()} == {"research_brief"}
 
 
-def test_a_graph_survives_a_round_trip(workspace: Workspace, desk: AgentGraph) -> None:
-    workspace.write(desk)
-    assert workspace.read(desk.id) == desk
+def test_templates_are_the_bundled_workflows() -> None:
+    assert [t.id for t in templates()] == [
+        "answer",
+        "research_brief",
+        "route",
+        "review",
+        "customer_support",
+    ]
+
+
+def test_a_graph_survives_a_round_trip(workspace: Workspace, support: AgentGraph) -> None:
+    workspace.write(support)
+    assert workspace.read(support.id) == support
 
 
 def test_reading_a_missing_graph_raises(workspace: Workspace) -> None:

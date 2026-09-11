@@ -1,11 +1,11 @@
 import { Badge, Box, Button, Card, Checkbox, Flex, ScrollArea, Text } from "@radix-ui/themes";
-import { FlaskConical, Sparkles, Square } from "lucide-react";
+import { FlaskConical, Square } from "lucide-react";
 import { useRef, useState } from "react";
 import { api, streamMeasure } from "@/lib/api";
 import { ms, signedUsd, usd } from "@/lib/kinds";
 import { SampleEditor } from "@/panels/SampleEditor";
 import { useStore } from "@/store";
-import type { MeasurePlan, OptimizeResult, Patch, PatchMeasurement } from "@/types/wire";
+import type { MeasurePlan, Patch, PatchMeasurement } from "@/types/wire";
 
 function Measured({ measured }: { measured: PatchMeasurement }) {
   const worse = measured.losses > measured.wins;
@@ -71,35 +71,18 @@ export function OptimizePanel() {
   const graph = useStore((s) => s.graph);
   const setGraph = useStore((s) => s.setGraph);
   const setEditing = useStore((s) => s.setEditing);
-  const setTab = useStore((s) => s.setTab);
-  const [result, setResult] = useState<OptimizeResult | null>(null);
+  const { result, error: askError } = useStore((s) => s.optimize);
+  const clearImprovements = useStore((s) => s.clearImprovements);
   const [accepted, setAccepted] = useState<Set<string>>(new Set());
   const [measured, setMeasured] = useState<Record<string, PatchMeasurement>>({});
   const [plan, setPlan] = useState<MeasurePlan | null>(null);
   const [baselineUsd, setBaselineUsd] = useState<number | null>(null);
-  const [busy, setBusy] = useState(false);
   const [measuring, setMeasuring] = useState(false);
   const [error, setError] = useState("");
   const abort = useRef<AbortController | null>(null);
 
   const chosen: Patch[] =
     result?.patches.filter((p) => p.patch.id && accepted.has(p.patch.id)).map((p) => p.patch) ?? [];
-
-  const review = async () => {
-    if (!graph) return;
-    setBusy(true);
-    setError("");
-    setAccepted(new Set());
-    setMeasured({});
-    setBaselineUsd(null);
-    try {
-      setResult(await api.optimize(graph));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const toggle = async (id: string) => {
     const next = new Set(accepted);
@@ -146,10 +129,7 @@ export function OptimizePanel() {
     if (!graph || chosen.length === 0) return;
     const response = await api.patch(graph, chosen);
     setGraph(response.graph);
-    setResult(null);
-    setAccepted(new Set());
-    setMeasured({});
-    setTab("build");
+    clearImprovements();
   };
 
   const regressions = chosen.filter((p) => {
@@ -158,56 +138,11 @@ export function OptimizePanel() {
   }).length;
 
   return (
-    <Flex direction="column" flexGrow="1" style={{ minHeight: 0 }}>
-      <Flex
-        align="center"
-        gap="3"
-        px="4"
-        py="3"
-        style={{ borderBottom: "1px solid var(--gray-6)" }}
-      >
-        <Button size="2" onClick={() => void review()} disabled={busy || !graph}>
-          <Sparkles size={15} />
-          {busy ? "Reviewing" : "Review this agent"}
-        </Button>
-
-        {accepted.size > 0 && (
-          <>
-            {measuring ? (
-              <Button size="2" variant="outline" onClick={() => abort.current?.abort()}>
-                <Square size={14} /> Stop
-              </Button>
-            ) : (
-              <Button
-                size="2"
-                variant="outline"
-                onClick={() => void measure()}
-                disabled={!graph?.sample.length}
-              >
-                <FlaskConical size={15} /> Measure
-                {plan ? ` ${usd(plan.projected_usd)}` : ""}
-              </Button>
-            )}
-            <Flex flexGrow="1" />
-            {regressions > 0 && (
-              <Badge color="red" size="2">
-                {regressions} measured worse
-              </Badge>
-            )}
-            <Text size="2" color="gray" className="num">
-              {accepted.size} selected
-            </Text>
-            <Button size="2" onClick={() => void applyChosen()}>
-              Apply to the canvas
-            </Button>
-          </>
-        )}
-      </Flex>
-
-      {error && (
+    <Flex direction="column" style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+      {(error || askError) && (
         <Box px="4" py="2" style={{ background: "var(--red-2)" }}>
           <Text size="2" color="red">
-            {error}
+            {error || askError}
           </Text>
         </Box>
       )}
@@ -299,15 +234,45 @@ export function OptimizePanel() {
             </Box>
           );
         })}
-
-        {!result && !busy && (
-          <Box p="4">
-            <Text size="2" color="gray">
-              Ask for changes worth making, then measure the ones worth testing.
-            </Text>
-          </Box>
-        )}
       </ScrollArea>
+
+      {accepted.size > 0 && (
+        <Flex
+          align="center"
+          gap="3"
+          px="4"
+          py="3"
+          style={{ borderTop: "1px solid var(--gray-6)", flexShrink: 0 }}
+        >
+          {measuring ? (
+            <Button size="2" variant="outline" onClick={() => abort.current?.abort()}>
+              <Square size={14} /> Stop
+            </Button>
+          ) : (
+            <Button
+              size="2"
+              variant="outline"
+              onClick={() => void measure()}
+              disabled={!graph?.sample.length}
+            >
+              <FlaskConical size={15} /> Measure
+              {plan ? ` ${usd(plan.projected_usd)}` : ""}
+            </Button>
+          )}
+          {regressions > 0 && (
+            <Badge color="red" size="2">
+              {regressions} measured worse
+            </Badge>
+          )}
+          <Flex flexGrow="1" />
+          <Text size="2" color="gray" className="num">
+            {accepted.size} selected
+          </Text>
+          <Button size="2" onClick={() => void applyChosen()}>
+            Apply
+          </Button>
+        </Flex>
+      )}
     </Flex>
   );
 }

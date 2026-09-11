@@ -2,7 +2,7 @@ import { createParser } from "eventsource-parser";
 import type {
   AgentGraph,
   CompileEvent,
-  GraphSummary,
+  Decision,
   Health,
   MeasureEvent,
   MeasurePlan,
@@ -32,7 +32,8 @@ const post = <T>(path: string, body: unknown): Promise<T> =>
 
 export const api = {
   health: () => request<Health>("/health"),
-  listGraphs: () => request<GraphSummary[]>("/graphs"),
+  listGraphs: () => request<AgentGraph[]>("/graphs"),
+  templates: () => request<AgentGraph[]>("/templates"),
   readGraph: (id: string) => request<AgentGraph>(`/graphs/${id}`),
   saveGraph: (graph: AgentGraph) =>
     request<AgentGraph>(`/graphs/${graph.id}`, { method: "PUT", body: JSON.stringify(graph) }),
@@ -47,6 +48,8 @@ export const api = {
   writeSample: (graph: AgentGraph, count = 3) => post<string[]>("/sample", { graph, count }),
   measurePlan: (graph: AgentGraph, patches: Patch[], sample: string[]) =>
     post<MeasurePlan>("/measure/plan", { graph, patches, sample }),
+  approve: (token: string, decision: Decision) =>
+    post<{ answered: boolean }>("/approve", { token, decision }),
 };
 
 /** Read a server-sent event stream from a POST. EventSource only ever issues a

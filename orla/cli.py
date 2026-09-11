@@ -13,6 +13,7 @@ from rich.console import Console
 from rich.table import Table
 
 from orla import apiref, compiler, measure, optimizer, server
+from orla.approvals import APPROVALS, Decision
 from orla.estimate import estimate
 from orla.graph import validate_graph
 from orla.runner import run_graph
@@ -52,11 +53,9 @@ def serve(
 def list_graphs() -> None:
     """The graphs in the workspace."""
 
-    table = Table("id", "name", "nodes", "edges", "description")
-    for summary in _workspace().list_graphs():
-        table.add_row(
-            summary.id, summary.name, str(summary.nodes), str(summary.edges), summary.description
-        )
+    table = Table("id", "name", "stages", "description")
+    for graph in _workspace().all_graphs():
+        table.add_row(graph.id, graph.name, str(len(graph.nodes)), graph.description)
     console.print(table)
 
 
@@ -117,10 +116,23 @@ def run_command(graph_id: str, request: str) -> None:
 
     async def drive() -> None:
         async for event in run_graph(
-            graph, request, workspace.models(), workspace.root, workspace.all_graphs()
+            graph, request, workspace.models(), workspace.root, workspace.all_graphs(), APPROVALS
         ):
             indent = "  " * event.depth
-            if event.type == "node_done" and event.kind not in ("input", "output"):
+            if event.type == "approval":
+                # The runner is parked on this token until the answer lands,
+                # and a prompt in the terminal is the answer.
+                console.print(
+                    f"\n{indent}[bold]{event.name}[/bold]: {event.route}\n\n{event.text}\n"
+                )
+                approved = typer.confirm("Approve", default=True)
+                note = ""
+                if not approved:
+                    note = typer.prompt(
+                        "Send it back with a note, or leave empty to stop", default=""
+                    )
+                APPROVALS.answer(event.token, Decision(approved=approved, note=note))
+            elif event.type == "node_done" and event.kind not in ("input", "output"):
                 console.print(
                     f"{indent}[green]{event.name}[/green] {event.kind} "
                     f"stage={event.stage or '-'} {event.ms}ms ${event.usd:.6f}"

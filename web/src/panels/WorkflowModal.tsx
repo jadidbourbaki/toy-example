@@ -1,18 +1,17 @@
 import { Button, Dialog, Flex, Text, TextArea, TextField } from "@radix-ui/themes";
 import { useStore } from "@/store";
 
-export type AgentModalProps = { open: boolean; onClose: () => void };
+export type WorkflowModalProps = { open: boolean; onClose: () => void };
 
-export function AgentModal({ open, onClose }: AgentModalProps) {
+export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
   const graph = useStore((s) => s.graph);
   const patchGraph = useStore((s) => s.patchGraph);
-  const removeGraph = useStore((s) => s.removeGraph);
   if (!graph) return null;
 
   return (
     <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
       <Dialog.Content maxWidth="440px">
-        <Dialog.Title size="4">Agent settings</Dialog.Title>
+        <Dialog.Title size="5">Details</Dialog.Title>
 
         <Flex direction="column" gap="4" mt="4">
           <Flex align="center" gap="4">
@@ -38,18 +37,7 @@ export function AgentModal({ open, onClose }: AgentModalProps) {
           </Flex>
         </Flex>
 
-        <Flex align="center" mt="5">
-          <Button
-            variant="ghost"
-            color="red"
-            onClick={() => {
-              onClose();
-              void removeGraph(graph.id);
-            }}
-          >
-            Delete agent
-          </Button>
-          <Flex flexGrow="1" />
+        <Flex justify="end" mt="5">
           <Dialog.Close>
             <Button>Done</Button>
           </Dialog.Close>
