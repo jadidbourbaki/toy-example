@@ -25,9 +25,10 @@ where the request comes in and what goes back.
 
 The stages sit in a toolbar over the canvas. Click one to add it or drag it
 to where it should go. Double click a stage to edit it. A request goes in at
-the foot of the canvas and the answer comes back above it. Compile, Improve,
-and Chat open their own panels, and the canvas has the screen until they
-do. Every edit is saved as it is made.
+the foot of the canvas and the answer comes back above it. Code and
+Optimizations live in a drawer under the canvas that opens from its tab
+strip, the chat opens from the corner button, and every panel can be
+dragged to the size you want. Every edit is saved as it is made.
 
 The home screen is the workspace. Workflows lists what is saved, Templates
 holds the patterns a new workflow can start from, Models is the registry,

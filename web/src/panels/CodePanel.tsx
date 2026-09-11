@@ -1,6 +1,7 @@
-import { Button, Code, Flex, ScrollArea, Text } from "@radix-ui/themes";
+import { Button, Flex, ScrollArea, Text } from "@radix-ui/themes";
 import { Check, Copy } from "lucide-react";
 import { useEffect, useState } from "react";
+import { SourceView } from "@/panels/SourceView";
 import { useStore } from "@/store";
 
 const STEP_TEXT: Record<string, string> = {
@@ -26,6 +27,7 @@ function Elapsed({ since }: { since: number }) {
 
 export function CodePanel() {
   const compile = useStore((s) => s.compile);
+  const runCompile = useStore((s) => s.runCompile);
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -39,6 +41,14 @@ export function CodePanel() {
 
   return (
     <Flex direction="column" style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+      {!running && !result && !error && (
+        <Flex align="center" justify="center" style={{ flex: 1 }}>
+          <Button size="3" onClick={() => void runCompile()}>
+            Compile
+          </Button>
+        </Flex>
+      )}
+
       {running && (
         <Flex align="center" gap="3" px="4" py="2">
           <Text size="2" color="gray">
@@ -49,11 +59,16 @@ export function CodePanel() {
         </Flex>
       )}
 
-      {result?.source && !running && (
-        <Flex px="4" py="2">
-          <Button size="1" variant="ghost" color="gray" ml="auto" onClick={() => void copy()}>
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-            {copied ? "Copied" : "Copy"}
+      {(result || error) && !running && (
+        <Flex px="4" py="2" gap="2" justify="end">
+          {result?.source && (
+            <Button size="1" variant="ghost" color="gray" onClick={() => void copy()}>
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          )}
+          <Button size="1" variant="outline" onClick={() => void runCompile()}>
+            Compile again
           </Button>
         </Flex>
       )}
@@ -84,20 +99,7 @@ export function CodePanel() {
       )}
 
       <ScrollArea scrollbars="both" style={{ flex: 1, minWidth: 0 }}>
-        {result?.source && (
-          <Code
-            variant="ghost"
-            size="1"
-            style={{
-              display: "block",
-              whiteSpace: "pre",
-              padding: "var(--space-4)",
-              lineHeight: 1.6,
-            }}
-          >
-            {result.source}
-          </Code>
-        )}
+        {result?.source && <SourceView source={result.source} />}
       </ScrollArea>
     </Flex>
   );

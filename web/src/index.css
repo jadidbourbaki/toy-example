@@ -181,7 +181,29 @@ body {
   font-size: 19px;
 }
 
-/* The request goes in at the foot of the canvas, and answers rise above it. */
+/* Resizable panels: each one is a column whose children fill it, and the
+   separator between two of them is the one hairline they share. */
+.column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.separator {
+  flex: 0 0 1px;
+  background: var(--gray-6);
+  transition: background 120ms ease;
+}
+
+.separator:hover,
+.separator[data-resize="active"] {
+  background: var(--accent-8);
+}
+
+/* The request goes in at the foot of the canvas, and answers rise above it.
+   The composer is the box, so the text area inside it draws no box of its
+   own and grows with what is typed. */
 .composer-panel {
   width: min(720px, 80%);
   margin-bottom: var(--space-4);
@@ -189,13 +211,43 @@ body {
 
 .composer {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-5);
   background: var(--color-panel-solid);
   box-shadow: var(--shadow-3);
+}
+
+.composer .rt-TextAreaRoot {
+  flex: 1;
+  min-height: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.composer textarea {
+  field-sizing: content;
+  max-height: 160px;
+  resize: none;
+}
+
+.source-view {
+  margin: 0;
+  padding: var(--space-4);
+  font-family: var(--code-font-family);
+  font-size: var(--font-size-1);
+  line-height: 1.6;
+}
+
+.source-view pre {
+  margin: 0;
+  background: transparent !important;
+}
+
+.chat-toggle {
+  box-shadow: var(--shadow-4);
 }
 
 .drawer-strip {

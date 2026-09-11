@@ -1,6 +1,6 @@
-import { Flex } from "@radix-ui/themes";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useEffect } from "react";
+import { Group, Panel, Separator } from "react-resizable-panels";
 import { Canvas } from "@/Canvas";
 import { ChatPanel } from "@/panels/ChatPanel";
 import { Drawer } from "@/panels/Drawer";
@@ -13,6 +13,7 @@ export function App() {
   const boot = useStore((s) => s.boot);
   const graph = useStore((s) => s.graph);
   const chatOpen = useStore((s) => s.chatOpen);
+  const drawerOpen = useStore((s) => s.drawer.open);
 
   useEffect(() => {
     void boot();
@@ -21,19 +22,38 @@ export function App() {
   if (!graph) return <Home />;
 
   return (
-    <Flex style={{ height: "100vh", overflow: "hidden" }}>
-      <Flex direction="column" style={{ flex: 1, minWidth: 0 }}>
-        <TopBar />
-        <Flex direction="column" style={{ flex: 3, minHeight: 0 }}>
-          <ReactFlowProvider>
-            <Canvas />
-          </ReactFlowProvider>
-        </Flex>
-        <Drawer />
-      </Flex>
+    <>
+      <Group orientation="horizontal" style={{ height: "100vh" }}>
+        <Panel minSize={520} className="column">
+          <TopBar />
+          <Group orientation="vertical" style={{ flex: 1, minHeight: 0 }}>
+            <Panel minSize={240} className="column">
+              <ReactFlowProvider>
+                <Canvas />
+              </ReactFlowProvider>
+            </Panel>
+            {drawerOpen && (
+              <>
+                <Separator className="separator" />
+                <Panel defaultSize="40" minSize={160} className="column">
+                  <Drawer />
+                </Panel>
+              </>
+            )}
+          </Group>
+          {!drawerOpen && <Drawer />}
+        </Panel>
 
-      {chatOpen && <ChatPanel />}
+        {chatOpen && (
+          <>
+            <Separator className="separator" />
+            <Panel defaultSize={380} minSize={300} maxSize={720} className="column">
+              <ChatPanel />
+            </Panel>
+          </>
+        )}
+      </Group>
       <StageModal />
-    </Flex>
+    </>
   );
 }

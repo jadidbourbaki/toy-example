@@ -71,7 +71,8 @@ export function OptimizePanel() {
   const graph = useStore((s) => s.graph);
   const setGraph = useStore((s) => s.setGraph);
   const setEditing = useStore((s) => s.setEditing);
-  const { result, error: askError } = useStore((s) => s.optimize);
+  const { result, busy, error: askError } = useStore((s) => s.optimize);
+  const findImprovements = useStore((s) => s.findImprovements);
   const clearImprovements = useStore((s) => s.clearImprovements);
   const [accepted, setAccepted] = useState<Set<string>>(new Set());
   const [measured, setMeasured] = useState<Record<string, PatchMeasurement>>({});
@@ -139,6 +140,27 @@ export function OptimizePanel() {
 
   return (
     <Flex direction="column" style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+      {!result && !askError && (
+        <Flex align="center" justify="center" style={{ flex: 1 }}>
+          <Button size="3" onClick={() => void findImprovements()} disabled={busy}>
+            {busy ? "Looking" : "Find improvements"}
+          </Button>
+        </Flex>
+      )}
+
+      {(result || askError) && (
+        <Flex px="4" py="2" justify="end">
+          <Button
+            size="1"
+            variant="outline"
+            onClick={() => void findImprovements()}
+            disabled={busy}
+          >
+            {busy ? "Looking" : "Look again"}
+          </Button>
+        </Flex>
+      )}
+
       {(error || askError) && (
         <Box px="4" py="2" style={{ background: "var(--red-2)" }}>
           <Text size="2" color="red">
@@ -154,7 +176,7 @@ export function OptimizePanel() {
         </Box>
       )}
 
-      <ScrollArea style={{ flex: 1 }}>
+      <ScrollArea style={{ flex: 1, display: result ? undefined : "none" }}>
         <SampleEditor />
 
         {result?.summary && (

@@ -53,10 +53,7 @@ export function ChatPanel() {
   };
 
   return (
-    <Flex
-      direction="column"
-      style={{ width: 340, flexShrink: 0, borderLeft: "1px solid var(--gray-6)" }}
-    >
+    <Flex direction="column" style={{ flex: 1, minHeight: 0 }}>
       <div className="pane-header">
         <Heading size="5" style={{ flex: 1 }}>
           Chat

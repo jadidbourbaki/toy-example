@@ -4,30 +4,28 @@ import { CodePanel } from "@/panels/CodePanel";
 import { OptimizePanel } from "@/panels/OptimizePanel";
 import { type DrawerTab, useStore } from "@/store";
 
-/** Code and Optimizations under the canvas. The drawer appears once either
- *  has something to show and folds down to its tab strip. Both panels stay
- *  mounted while folded, so a half-measured set of patches survives. */
+/** Code and Optimizations under the canvas. The strip is always there, a
+ *  tab opens its pane, and both panes stay mounted while folded so a
+ *  half-measured set of patches survives. */
 export function Drawer() {
   const { tab, open } = useStore((s) => s.drawer);
   const setDrawer = useStore((s) => s.setDrawer);
-  const compile = useStore((s) => s.compile);
   const optimize = useStore((s) => s.optimize);
-
-  const hasContent =
-    compile.running || compile.result !== null || optimize.busy || optimize.result !== null;
-  if (!hasContent && !open) return null;
 
   return (
     <Flex
       direction="column"
       style={{
-        flex: open ? 2 : "0 0 auto",
+        flex: open ? 1 : "0 0 auto",
         minHeight: 0,
-        borderTop: "1px solid var(--gray-6)",
+        borderTop: open ? undefined : "1px solid var(--gray-6)",
       }}
     >
       <Flex align="center" px="3" className="drawer-strip">
-        <Tabs.Root value={tab} onValueChange={(value) => setDrawer(value as DrawerTab, true)}>
+        <Tabs.Root
+          value={open ? tab : ""}
+          onValueChange={(value) => setDrawer(value as DrawerTab, true)}
+        >
           <Tabs.List size="2">
             <Tabs.Trigger value="code">Code</Tabs.Trigger>
             <Tabs.Trigger value="optimize">Optimizations</Tabs.Trigger>

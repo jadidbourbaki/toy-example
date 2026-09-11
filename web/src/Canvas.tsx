@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { edgeTypes, flowEdges, flowNodes, nodeTypes } from "@/lib/flow";
 import { type NodeKind } from "@/lib/kinds";
 import { STAGE_SIZE, type SketchNodeData } from "@/nodes/SketchNode";
+import { ChatToggle } from "@/panels/ChatToggle";
 import { Composer } from "@/panels/Composer";
 import { StageToolbar } from "@/panels/StageToolbar";
 import { useStore } from "@/store";
@@ -138,6 +139,7 @@ export function Canvas() {
         <Controls showInteractive={false} position="bottom-left" />
         <StageToolbar />
         <Composer />
+        <ChatToggle />
       </ReactFlow>
     </div>
   );
