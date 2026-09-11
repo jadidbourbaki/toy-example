@@ -133,12 +133,14 @@ export function streamMeasure(
   return streamPost("/measure", { graph, patches, sample }, onEvent, signal);
 }
 
-/** Stream a run, lighting up the canvas as each stage reports. */
+/** Stream a run, lighting up the canvas as each stage reports. A stepped run
+ *  pauses before every stage until the pause is answered. */
 export function streamRun(
   graph: AgentGraph,
   prompt: string,
+  step: boolean,
   onEvent: (event: RunEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  return streamPost("/run", { graph, request: prompt }, onEvent, signal);
+  return streamPost("/run", { graph, request: prompt, step }, onEvent, signal);
 }

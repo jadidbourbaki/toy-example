@@ -26,12 +26,16 @@ export function sketchEllipse(
   height: number,
   stroke: string,
   fill: string,
+  single = false,
 ): SketchPath[] {
+  // A dashed outline drawn twice reads as a solid band, so a stage that is
+  // waiting to run gets one pass of the pen.
   const drawable = generator.ellipse(width / 2, height / 2, width - 8, height - 8, {
     ...base,
     seed: seedFor(key),
     stroke,
     fill,
+    disableMultiStroke: single,
   });
   return generator.toPaths(drawable).map((p) => ({
     d: p.d,

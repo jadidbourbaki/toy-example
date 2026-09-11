@@ -35,7 +35,7 @@ def test_templates_are_served(client: TestClient) -> None:
 def test_a_graph_reads_back(client: TestClient) -> None:
     body = client.get("/api/graphs/customer_support").json()
     assert body["id"] == "customer_support"
-    assert len(body["nodes"]) == 9
+    assert len(body["nodes"]) == 8
 
 
 def test_a_missing_graph_is_a_404(client: TestClient) -> None:

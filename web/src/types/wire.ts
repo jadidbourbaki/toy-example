@@ -481,6 +481,7 @@ export interface Problem {
 export interface RunEvent {
   type:
     | "run_start"
+    | "paused"
     | "node_start"
     | "node_done"
     | "node_skipped"

@@ -27,7 +27,7 @@ export function RunOutput({ error, approval, answer, onDecide, onDismiss }: RunO
     <>
       {error && (
         <Box px="4" pb="3">
-          <Callout.Root color="red" size="1">
+          <Callout.Root color="red" size="1" className="run-card">
             <Callout.Text>{error}</Callout.Text>
           </Callout.Root>
         </Box>
@@ -35,7 +35,7 @@ export function RunOutput({ error, approval, answer, onDecide, onDismiss }: RunO
 
       {approval && (
         <Box px="4" pb="3">
-          <Callout.Root color="crimson" size="2" variant="surface">
+          <Callout.Root color="crimson" size="2" variant="surface" className="run-card">
             <Flex direction="column" gap="3" style={{ flex: 1 }}>
               <Text size="3" weight="bold">
                 {approval.question}
@@ -64,7 +64,7 @@ export function RunOutput({ error, approval, answer, onDecide, onDismiss }: RunO
 
       {answer && (
         <Box px="4" pb="3">
-          <Callout.Root color="gray" size="2" variant="surface">
+          <Callout.Root color="gray" size="2" variant="surface" className="run-card">
             <Flex direction="column" gap="2" style={{ flex: 1 }}>
               <Text size="3" style={{ whiteSpace: "pre-wrap" }}>
                 {answer.text}

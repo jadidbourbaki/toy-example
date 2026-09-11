@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from orla.estimate import count_tokens, estimate
 from orla.graph import AgentGraph
 from orla.models import ModelSpec
@@ -71,8 +73,8 @@ def test_a_router_branch_runs_a_share_of_the_time(
     # The router runs every time. Each branch behind it runs half the time,
     # and an Agent's turn budget then scales the calls on that branch.
     assert rows["c2"].calls == 1.0
-    assert rows["c3"].calls == 0.5 * (4 / 2)
-    assert rows["c6"].calls == 0.5 * (3 / 2)
+    assert rows["c3"].calls == pytest.approx(0.5 * (4 / 2))
+    assert rows["c6"].calls == pytest.approx(0.5 * (3 / 2))
 
 
 def test_a_model_the_registry_does_not_know_is_left_out(brief: AgentGraph) -> None:

@@ -1,28 +1,19 @@
 {
   "id": "customer_support",
   "name": "Customer support",
-  "description": "Read a customer message, draft an answer from the policy documents, have a person approve it, and email it. A problem a team has to act on becomes a ticket for that team.",
+  "description": "Answer policy questions from the policy documents by email, and open a ticket for the right team when someone has to act.",
   "nodes": [
     {
       "id": "c1",
       "name": "input",
-      "position": {
-        "x": 0,
-        "y": 320
-      },
+      "position": { "x": 0, "y": 320 },
       "notes": "",
-      "config": {
-        "kind": "input",
-        "description": "A message from a customer."
-      }
+      "config": { "kind": "input", "description": "A message from a customer." }
     },
     {
       "id": "c2",
       "name": "classify",
-      "position": {
-        "x": 200,
-        "y": 290
-      },
+      "position": { "x": 200, "y": 290 },
       "notes": "",
       "config": {
         "kind": "router",
@@ -45,10 +36,7 @@
     {
       "id": "c3",
       "name": "research",
-      "position": {
-        "x": 520,
-        "y": 40
-      },
+      "position": { "x": 520, "y": 40 },
       "notes": "",
       "config": {
         "kind": "react",
@@ -56,19 +44,14 @@
         "model": "qwen3-coder-30b",
         "instructions": "Search the policy documents before answering. Return the policy sections that apply, quoted, with their topic tags. Say plainly when no policy covers the question.",
         "prompt": "Find the policy that answers this customer: ${input}",
-        "tools": [
-          "search_policies"
-        ],
+        "tools": ["search_policies"],
         "max_iterations": 4
       }
     },
     {
       "id": "c4",
       "name": "reply",
-      "position": {
-        "x": 820,
-        "y": 40
-      },
+      "position": { "x": 820, "y": 40 },
       "notes": "",
       "config": {
         "kind": "llm",
@@ -79,43 +62,9 @@
       }
     },
     {
-      "id": "c9",
-      "name": "approve",
-      "position": {
-        "x": 1420,
-        "y": 40
-      },
-      "notes": "",
-      "config": {
-        "kind": "approve",
-        "question": "Send this reply to the customer?",
-        "max_rounds": 3
-      }
-    },
-    {
-      "id": "c5",
-      "name": "email",
-      "position": {
-        "x": 1720,
-        "y": 40
-      },
-      "notes": "",
-      "config": {
-        "kind": "tool",
-        "tool": "send_email",
-        "arguments": {
-          "to": "the customer",
-          "body": "${approve}"
-        }
-      }
-    },
-    {
       "id": "c8",
       "name": "judge",
-      "position": {
-        "x": 1120,
-        "y": 40
-      },
+      "position": { "x": 1120, "y": 40 },
       "notes": "",
       "config": {
         "kind": "judge",
@@ -126,94 +75,48 @@
       }
     },
     {
+      "id": "c5",
+      "name": "email",
+      "position": { "x": 1420, "y": 40 },
+      "notes": "",
+      "config": {
+        "kind": "tool",
+        "tool": "send_email",
+        "arguments": { "to": "the customer", "body": "${judge}" }
+      }
+    },
+    {
       "id": "c6",
       "name": "route_to_team",
-      "position": {
-        "x": 520,
-        "y": 440
-      },
+      "position": { "x": 520, "y": 440 },
       "notes": "",
       "config": {
         "kind": "react",
         "stage": "triage",
         "model": "glm-4.7-flash",
-        "instructions": "Decide which team owns this problem, then open one ticket for them with a one sentence summary. Teams: billing, engineering, shipping, accounts.",
+        "instructions": "Decide which team owns this problem and open one ticket for them with a one sentence summary. Teams: billing, engineering, shipping, accounts. Answer with the ticket confirmation and nothing else.",
         "prompt": "${input}",
-        "tools": [
-          "create_ticket"
-        ],
+        "tools": ["create_ticket"],
         "max_iterations": 3
       }
     },
     {
       "id": "c7",
       "name": "output",
-      "position": {
-        "x": 2020,
-        "y": 320
-      },
+      "position": { "x": 1720, "y": 320 },
       "notes": "",
-      "config": {
-        "kind": "output",
-        "description": "What happened for this customer."
-      }
+      "config": { "kind": "output", "description": "What happened for this customer." }
     }
   ],
   "edges": [
-    {
-      "id": "e1",
-      "source": "c1",
-      "target": "c2",
-      "label": ""
-    },
-    {
-      "id": "e2",
-      "source": "c2",
-      "target": "c3",
-      "label": "policy"
-    },
-    {
-      "id": "e3",
-      "source": "c3",
-      "target": "c4",
-      "label": ""
-    },
-    {
-      "id": "e8",
-      "source": "c4",
-      "target": "c8",
-      "label": ""
-    },
-    {
-      "id": "e4",
-      "source": "c8",
-      "target": "c9",
-      "label": ""
-    },
-    {
-      "id": "e9",
-      "source": "c9",
-      "target": "c5",
-      "label": ""
-    },
-    {
-      "id": "e5",
-      "source": "c5",
-      "target": "c7",
-      "label": ""
-    },
-    {
-      "id": "e6",
-      "source": "c2",
-      "target": "c6",
-      "label": "team"
-    },
-    {
-      "id": "e7",
-      "source": "c6",
-      "target": "c7",
-      "label": ""
-    }
+    { "id": "e1", "source": "c1", "target": "c2", "label": "" },
+    { "id": "e2", "source": "c2", "target": "c3", "label": "policy" },
+    { "id": "e3", "source": "c3", "target": "c4", "label": "" },
+    { "id": "e8", "source": "c4", "target": "c8", "label": "" },
+    { "id": "e4", "source": "c8", "target": "c5", "label": "" },
+    { "id": "e5", "source": "c5", "target": "c7", "label": "" },
+    { "id": "e6", "source": "c2", "target": "c6", "label": "team" },
+    { "id": "e7", "source": "c6", "target": "c7", "label": "" }
   ],
   "sample": [
     "I bought a jacket three weeks ago and it does not fit. Can I get my money back?",

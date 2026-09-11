@@ -154,7 +154,7 @@ def test_an_edge_label_that_is_not_a_route_is_an_error(support: AgentGraph) -> N
 
 def test_branch_exclusive_holds_out_the_join(support: AgentGraph) -> None:
     branches = branch_exclusive(support, "c2")
-    assert branches["policy"] == {"c3", "c4", "c5", "c8", "c9"}
+    assert branches["policy"] == {"c3", "c4", "c8", "c5"}
     assert branches["team"] == {"c6"}
     # output is reached by both branches, so neither branch may skip it.
     assert all("c7" not in nodes for nodes in branches.values())

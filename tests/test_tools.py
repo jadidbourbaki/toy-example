@@ -43,10 +43,9 @@ def test_create_ticket_numbers_each_ticket() -> None:
     assert first != second
 
 
-def test_send_email_confirms_the_recipient_and_a_preview() -> None:
-    result = tools.send_email("the customer", "Your refund is on its way.\nThanks for waiting.")
-    assert result.startswith("Sent to the customer: Your refund is on its way.")
-    assert "\n" not in result
+def test_send_email_confirms_the_recipient_and_carries_the_whole_body() -> None:
+    body = "Your refund is on its way.\nThanks for waiting."
+    assert tools.send_email("the customer", body) == f"Sent to the customer: {body}"
 
 
 def test_read_file_reads_inside_the_workspace(tmp_path: Path) -> None:

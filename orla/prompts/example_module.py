@@ -1,8 +1,7 @@
 """Customer support
 
-Read a customer message, draft an answer from the policy documents, have a
-person approve it, and email it. A problem a team has to act on becomes a
-ticket for that team.
+Answer policy questions from the policy documents by email, and open a ticket
+for the right team when someone has to act.
 
 Generated from a sketch graph. Every model call is tagged with the stage it
 serves, and STAGES decides which model serves each stage, so retargeting a
@@ -14,7 +13,6 @@ from __future__ import annotations
 import asyncio
 import itertools
 import os
-from collections.abc import Callable
 from string import Template
 from typing import Any, Literal
 
@@ -100,8 +98,7 @@ def create_ticket(team: str, summary: str) -> str:
 def send_email(to: str, body: str) -> str:
     """Send an email to the customer and confirm what went out."""
 
-    preview = body.strip().replace("\n", " ")[:90]
-    return f"Sent to {to}: {preview}"
+    return f"Sent to {to}: {body.strip()}"
 
 
 deps = create_default_deps()
@@ -119,14 +116,12 @@ classify_agent = Agent(
     ),
 )
 
-# Only search_policies was drawn on this stage, so every other default
-# capability of create_deep_agent is switched off explicitly.
 research_agent = create_deep_agent(
     model=model_for("research"),
     instructions=(
         f"{BASE_PROMPT}\n\nSearch the policy documents before answering. Return the policy "
         "sections that apply, quoted, with their topic tags. Say plainly when no policy "
-        "covers the question."
+        "covers the question.\n\nYou may call tools at most 4 times."
     ),
     tools=[search_policies],
     web_search=False,
@@ -142,24 +137,18 @@ research_agent = create_deep_agent(
     include_memory=False,
 )
 
+reply_agent = Agent(
+    model_for("reply"),
+    instructions=(
+        "Write the email a support agent would send. Four sentences at most, warm and "
+        "direct, and cite the policy in plain words. Open with the answer."
+    ),
+)
+
 
 class Verdict(BaseModel):
     passed: bool
     feedback: str = ""
-
-
-class Decision(BaseModel):
-    approved: bool = True
-    note: str = ""
-
-
-def approve_on_console(question: str, text: str) -> Decision:
-    """The default way an approve stage asks: print the draft and read a line.
-    A blank line approves, and anything typed sends the draft back as a note."""
-
-    print(f"\n{question}\n\n{text}\n")
-    note = input("Press enter to approve, or type a note to send it back: ").strip()
-    return Decision(approved=not note, note=note)
 
 
 judge_agent = Agent[None, Verdict](
@@ -176,21 +165,12 @@ JUDGE_CRITERIA = (
     "most. Promises nothing the policy findings do not support."
 )
 
-APPROVE_QUESTION = "Send this reply to the customer?"
-
-reply_agent = Agent(
-    model_for("reply"),
-    instructions=(
-        "Write the email a support agent would send. Four sentences at most, warm and "
-        "direct, and cite the policy in plain words. Open with the answer."
-    ),
-)
-
 route_to_team_agent = create_deep_agent(
     model=model_for("triage"),
     instructions=(
-        f"{BASE_PROMPT}\n\nDecide which team owns this problem, then open one ticket for them "
-        "with a one sentence summary. Teams: billing, engineering, shipping, accounts."
+        f"{BASE_PROMPT}\n\nDecide which team owns this problem and open one ticket for them "
+        "with a one sentence summary. Teams: billing, engineering, shipping, accounts. Answer "
+        "with the ticket confirmation and nothing else.\n\nYou may call tools at most 3 times."
     ),
     tools=[create_ticket],
     web_search=False,
@@ -207,9 +187,7 @@ route_to_team_agent = create_deep_agent(
 )
 
 
-async def customer_support_run(
-    request: str, approve: Callable[[str, str], Decision] = approve_on_console
-) -> str:
+async def customer_support_run(request: str) -> str:
     """Run Customer support once and return its output."""
 
     values: dict[str, Any] = {"input": request}
@@ -245,23 +223,7 @@ async def customer_support_run(
             values["reply"] = (await reply_agent.run(reply_prompt + revision)).output
         values["judge"] = values["reply"]
 
-        # A person sees the reply before it goes out. A note sends it back to
-        # the reply stage and asks again, up to three asks in all.
-        decision = approve(APPROVE_QUESTION, values["judge"])
-        for _ in range(2):
-            if decision.approved or not decision.note:
-                break
-            revision = f"\n\nA reviewer sent the previous answer back: {decision.note}\nAnswer again with that fixed."
-            values["reply"] = (await reply_agent.run(reply_prompt + revision)).output
-            values["judge"] = values["reply"]
-            decision = approve(APPROVE_QUESTION, values["judge"])
-        if not decision.approved:
-            return "Declined at approve. Nothing after it ran."
-        values["approve"] = values["judge"]
-
-        values["email"] = send_email(
-            to=fill("the customer", values), body=fill("${approve}", values)
-        )
+        values["email"] = send_email(to=fill("the customer", values), body=fill("${judge}", values))
         return str(values["email"])
 
     triage = await route_to_team_agent.run(

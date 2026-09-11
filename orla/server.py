@@ -38,6 +38,7 @@ class GraphRequest(BaseModel):
 class RunRequest(BaseModel):
     graph: AgentGraph
     request: str = "Say hello."
+    step: bool = False
 
 
 class ApproveRequest(BaseModel):
@@ -229,6 +230,7 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
                 workspace.root,
                 workspace.all_graphs(),
                 APPROVALS,
+                body.step,
             ):
                 yield {"event": event.type, "data": event.model_dump_json()}
 

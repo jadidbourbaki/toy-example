@@ -62,8 +62,7 @@ def create_ticket(team: str, summary: str) -> str:
 def send_email(to: str, body: str) -> str:
     """Send an email to the customer and confirm what went out."""
 
-    preview = body.strip().replace("\n", " ")[:90]
-    return f"Sent to {to}: {preview}"
+    return f"Sent to {to}: {body.strip()}"
 
 
 def calculator(expression: str) -> str:

@@ -2,52 +2,70 @@
 
 It reads. It does not edit. A helper that quietly rewrites the canvas is
 hard to trust, and the optimizer already exists for changing a graph on
-purpose. What this one has is context: the graph, its stage bindings, the
-model registry with its rates, and whatever the validator is complaining
-about. Most questions someone asks while building are answerable from
-those four things.
+purpose. What this one has is tools: the graph, the estimate for each
+stage, the model registry, the validator, and a way to price a binding it
+has not been given. It is the same pydantic-deep harness an Agent stage on
+the canvas runs on, with everything the harness adds by default switched
+off, so the assistant is an instance of the thing it explains.
 
-The graph goes in the agent's instructions rather than in the prompt.
-pydantic-ai rebuilds instructions on every run and keeps them out of the
-message history, so each question is answered against the graph as it
-stands now, and an edit between two questions is picked up without the
-history carrying a stale copy of it.
+The tools close over the graph the question was asked about, so each
+question is answered against the graph as it stands now, and an edit
+between two questions is picked up without the history carrying a stale
+copy of it.
 """
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from typing import Any
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent
-from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
+from pydantic_ai import AgentRunResultEvent
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelMessagesTypeAdapter,
+    PartDeltaEvent,
+    PartStartEvent,
+    TextPart,
+    TextPartDelta,
+)
+from pydantic_ai.usage import UsageLimits
+from pydantic_deep import BASE_PROMPT, create_deep_agent, create_default_deps
 
 from orla.estimate import estimate
-from orla.graph import AgentGraph, validate_graph
-from orla.models import ModelSpec, capability_problems, driver_model
+from orla.graph import (
+    AgentGraph,
+    JudgeConfig,
+    LLMConfig,
+    ReactConfig,
+    RouterConfig,
+    validate_graph,
+)
+from orla.models import ModelSpec, by_id, capability_problems, driver_model
 from orla.settings import settings
+
+BOUND = (LLMConfig, ReactConfig, RouterConfig, JudgeConfig)
 
 INSTRUCTIONS = """
 You are the assistant inside a workflow builder, talking with the person
-building the workflow shown below. Answer them the way a helpful colleague
-would. A greeting gets a greeting and a one line offer of what you can help
-with. Never describe the message you were sent, and never say what was not
-asked for.
+building the workflow open in front of them. Answer the way a helpful
+colleague would. A greeting gets a greeting and a one line offer of what you
+can help with. Never describe the message you were sent.
 
-Answer in two or three sentences. Name the stages and the models involved
-rather than talking in general terms, and give the number when there is one.
+Use the tools before answering anything about the workflow, its cost, or
+its models. Name the stages and the models involved rather than talking in
+general terms, and give the number when there is one. Before calling one
+model cheaper or dearer than another, read both rates from the registry and
+quote both. To say what a change would cost, price it with the tool rather
+than estimating in your head.
 
-When someone asks how to change the graph, say what to change and where. Do
-not offer to make the change yourself, because you cannot edit the canvas.
-
-Before calling one model cheaper or dearer than another, read both of their
-rates out of the registry below and quote both numbers. A larger model is
-often the dearer one, and the registry is the only thing that settles it.
-
-When the graph does not tell you the answer, say so in one sentence rather
-than guessing. Use no em-dashes.
+When someone asks how to change the workflow, say what to change and where.
+You cannot edit the canvas, so do not offer to. Two or three sentences is
+the right length, and lists are welcome when there are several items. Use
+no em-dashes.
 """
+
+TOOL_CALLS = 6
 
 
 class AskRequest(BaseModel):
@@ -58,47 +76,62 @@ class AskRequest(BaseModel):
     history: list[Any] = Field(default_factory=list)
 
 
-def context(graph: AgentGraph, models: list[ModelSpec], known: set[str]) -> str:
-    """Everything the assistant is allowed to reason from."""
+def tools_for(
+    graph: AgentGraph, models: list[ModelSpec], known: set[str]
+) -> list[Callable[..., str]]:
+    """Read-only tools closed over one graph."""
 
-    priced = estimate(graph, models)
-    problems = validate_graph(graph, known) + capability_problems(graph, models)
+    def workflow() -> str:
+        """The workflow as JSON: its stages, what feeds what, and each stage's settings."""
 
-    rates = "\n".join(
-        f"- {m.id}: {m.label}, ${m.input_usd_per_mtok} in and ${m.output_usd_per_mtok} out "
-        f"per million tokens, quality prior {m.quality_prior}"
-        for m in models
-    )
-    per_stage = "\n".join(
-        f"- {row.name}: {row.model}, about ${row.usd:.6f} per request, "
-        f"{row.input_tokens} input and {row.output_tokens} output tokens"
-        for row in priced.nodes
-    )
-    faults = "\n".join(f"- {p.severity}: {p.message}" for p in problems) or "None."
+        return graph.model_dump_json(indent=2)
 
-    return f"""
-{INSTRUCTIONS}
+    def stage_costs() -> str:
+        """What each stage is estimated to cost per request, and the total."""
 
-## The graph
+        priced = estimate(graph, models)
+        rows = "\n".join(
+            f"- {row.name}: {row.model}, about ${row.usd:.6f} per request, "
+            f"{row.input_tokens} input and {row.output_tokens} output tokens"
+            for row in priced.nodes
+        )
+        return (
+            f"{rows or 'No stage makes a model call yet.'}\n\nTotal: ${priced.usd:.6f} per request."
+        )
 
-```json
-{graph.model_dump_json(indent=2)}
-```
+    def model_registry() -> str:
+        """Every model a stage can be bound to, with its rates per million tokens."""
 
-## What each stage costs, estimated
+        return "\n".join(
+            f"- {m.id}: {m.label}, ${m.input_usd_per_mtok} in and ${m.output_usd_per_mtok} out, "
+            f"tools {'yes' if m.tools else 'no'}, typed answers {'yes' if m.structured else 'no'}"
+            for m in models
+        )
 
-{per_stage or "No stage makes a model call yet."}
+    def problems() -> str:
+        """What the validator says about the workflow as it stands."""
 
-Estimated total: ${priced.usd:.6f} per request.
+        found = validate_graph(graph, known) + capability_problems(graph, models)
+        return "\n".join(f"- {p.severity}: {p.message}" for p in found) or "None."
 
-## The model registry
+    def price_with(stage_name: str, model_id: str) -> str:
+        """What the workflow would cost per request with one stage bound to another model."""
 
-{rates}
+        changed = graph.model_copy(deep=True)
+        target = next((n for n in changed.nodes if n.name == stage_name), None)
+        if target is None or not isinstance(target.config, BOUND):
+            return f"No stage named {stage_name!r} takes a model."
+        if by_id(models, model_id) is None:
+            return f"The registry has no model named {model_id!r}."
+        target.config.model = model_id
+        before = estimate(graph, models).usd
+        after = estimate(changed, models).usd
+        return (
+            f"${before:.6f} per request now, ${after:.6f} with {stage_name} on {model_id}, "
+            f"a change of ${after - before:+.6f}."
+        )
 
-## What the validator says
-
-{faults}
-""".strip()
+    return [workflow, stage_costs, model_registry, problems, price_with]
 
 
 async def ask(
@@ -109,21 +142,49 @@ async def ask(
     question should be asked with."""
 
     if not settings.has_model_credentials:
-        yield "delta", "Set AWS_BEARER_TOKEN_BEDROCK and I can answer questions about this graph."
+        yield (
+            "delta",
+            "Set AWS_BEARER_TOKEN_BEDROCK and I can answer questions about this workflow.",
+        )
         yield "history", "[]"
         return
 
-    agent = Agent[None, str](
-        driver_model(settings.assistant_model),
-        instructions=context(request.graph, models, known),
-        model_settings={"max_tokens": 1024},
+    agent = create_deep_agent(
+        model=driver_model(settings.assistant_model),
+        instructions=f"{BASE_PROMPT}\n\n{INSTRUCTIONS}",
+        tools=tools_for(request.graph, models, known),
+        web_search=False,
+        web_fetch=False,
+        thinking=False,
+        include_todo=False,
+        include_filesystem=False,
+        include_execute=False,
+        include_subagents=False,
+        include_skills=False,
+        include_builtin_subagents=False,
+        include_plan=False,
+        include_memory=False,
     )
 
     history: list[ModelMessage] = (
         ModelMessagesTypeAdapter.validate_python(request.history) if request.history else []
     )
 
-    async with agent.run_stream(request.question, message_history=history) as result:
-        async for delta in result.stream_text(delta=True):
-            yield "delta", delta
-        yield "history", ModelMessagesTypeAdapter.dump_json(result.all_messages()).decode()
+    # run_stream stops at the first response carrying text, and a tool-using
+    # agent's first response is a tool call beside an empty text part. The
+    # event stream runs the whole loop and hands over text as it appears.
+    async with agent.run_stream_events(
+        request.question,
+        deps=create_default_deps(),
+        message_history=history,
+        usage_limits=UsageLimits(request_limit=TOOL_CALLS + 2),
+    ) as events:
+        async for event in events:
+            if isinstance(event, PartStartEvent) and isinstance(event.part, TextPart):
+                if event.part.content:
+                    yield "delta", event.part.content
+            elif isinstance(event, PartDeltaEvent) and isinstance(event.delta, TextPartDelta):
+                yield "delta", event.delta.content_delta
+            elif isinstance(event, AgentRunResultEvent):
+                messages = event.result.all_messages()
+                yield "history", ModelMessagesTypeAdapter.dump_json(messages).decode()

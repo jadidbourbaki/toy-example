@@ -33,6 +33,7 @@ export function flowEdges(graph: AgentGraph, live: Set<string>): FlowEdge<Sketch
 
 export const STILL: Omit<SketchNodeData, "node"> = {
   running: false,
+  next: false,
   skipped: false,
   invalid: false,
   onRemove: () => undefined,

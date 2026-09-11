@@ -4,6 +4,7 @@ import { Pencil, X } from "lucide-react";
 import { memo } from "react";
 import { BILLED, KIND_LABELS, KIND_TINT, usd } from "@/lib/kinds";
 import { sketchEllipse } from "@/lib/sketch";
+import { OutputBubble } from "@/nodes/OutputBubble";
 import type { Node, NodeEstimate, RunEvent } from "@/types/wire";
 
 export type SketchNodeData = {
@@ -11,6 +12,8 @@ export type SketchNodeData = {
   estimate?: NodeEstimate;
   measured?: RunEvent;
   running: boolean;
+  /** A stepped run is paused and this stage is the one it will start next. */
+  next: boolean;
   skipped: boolean;
   invalid: boolean;
   onRemove: (id: string) => void;
@@ -23,17 +26,24 @@ export const STAGE_SIZE = { width: 260, height: 168 };
 export const BOUNDARY_SIZE = { width: 108, height: 108 };
 
 /** A stage as a hand-drawn ellipse. rough.js draws the outline the way a pen
- *  would, and the same seed keeps a stage's wobble still while it is dragged. */
+ *  would, and the same seed keeps a stage's wobble still while it is dragged.
+ *  A running stage fills with the accent, and the stage a stepped run will
+ *  take next is drawn dashed. */
 function SketchNodeImpl({ data, selected }: SketchNodeProps) {
-  const { node, estimate, measured, running, skipped, invalid, onRemove, onEdit } = data;
+  const { node, estimate, measured, running, next, skipped, invalid, onRemove, onEdit } = data;
   const config = node.config;
   const kind = config.kind;
   const tint = KIND_TINT[kind];
   const boundary = kind === "input" || kind === "output";
   const size = boundary ? BOUNDARY_SIZE : STAGE_SIZE;
 
-  const stroke = invalid ? "var(--red-9)" : selected ? "var(--accent-9)" : "var(--gray-12)";
-  const paths = sketchEllipse(node.id, size.width, size.height, stroke, "var(--color-panel-solid)");
+  const stroke = invalid
+    ? "var(--red-9)"
+    : running || next || selected
+      ? "var(--accent-9)"
+      : "var(--gray-12)";
+  const fill = running ? "var(--accent-3)" : "var(--color-panel-solid)";
+  const paths = sketchEllipse(node.id, size.width, size.height, stroke, fill, next);
 
   const routes = kind === "router" ? config.routes : [];
   const detail =
@@ -46,6 +56,7 @@ function SketchNodeImpl({ data, selected }: SketchNodeProps) {
           : "model" in config
             ? config.model || "pick a model"
             : "";
+  const said = kind !== "input" ? measured?.text : "";
 
   return (
     <div
@@ -58,7 +69,8 @@ function SketchNodeImpl({ data, selected }: SketchNodeProps) {
             key={i}
             d={p.d}
             stroke={p.stroke}
-            strokeWidth={p.strokeWidth}
+            strokeWidth={running ? p.strokeWidth * 1.5 : p.strokeWidth}
+            strokeDasharray={next && p.fill === "none" ? "9 7" : undefined}
             fill={p.fill}
             strokeLinecap="round"
           />
@@ -160,6 +172,8 @@ function SketchNodeImpl({ data, selected }: SketchNodeProps) {
             );
           })
         : kind !== "output" && <Handle type="source" position={Position.Right} />}
+
+      {said && <OutputBubble text={said} />}
     </div>
   );
 }

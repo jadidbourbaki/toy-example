@@ -70,10 +70,12 @@ type State = {
   editingId: string | null;
   problems: Problem[];
   estimate: GraphEstimate | null;
-  /** Per node id, what the last run actually spent. Empty until a run finishes. */
+  /** Per node id, what the current or last run produced there. */
   measured: Record<string, RunEvent>;
   running: Set<string>;
   skipped: Set<string>;
+  /** The stage a stepped run is waiting to start. */
+  paused: string | null;
   dirty: boolean;
   error: string;
   compile: CompileState;
@@ -108,6 +110,7 @@ type Actions = {
   setModels: (models: ModelSpec[]) => Promise<void>;
   setRunning: (ids: Set<string>) => void;
   setSkipped: (ids: Set<string>) => void;
+  setPaused: (id: string | null) => void;
   recordRun: (events: RunEvent[]) => void;
   setCompile: (change: Partial<CompileState>) => void;
 };
@@ -195,6 +198,7 @@ export const useStore = create<State & Actions>((set, get) => {
     measured: {},
     running: new Set(),
     skipped: new Set(),
+    paused: null,
     dirty: false,
     error: "",
     compile: IDLE_COMPILE,
@@ -417,6 +421,7 @@ export const useStore = create<State & Actions>((set, get) => {
 
     setRunning: (running) => set({ running }),
     setSkipped: (skipped) => set({ skipped }),
+    setPaused: (paused) => set({ paused }),
 
     recordRun: (events) => {
       const measured: Record<string, RunEvent> = {};

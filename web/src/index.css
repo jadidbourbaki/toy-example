@@ -110,18 +110,100 @@ body {
   opacity: 1;
 }
 
-.stage-running svg path {
+.stage-running svg {
   animation: stage-running 1.2s ease-in-out infinite;
 }
 
 @keyframes stage-running {
   0%,
   100% {
-    opacity: 0.5;
+    opacity: 0.55;
   }
   50% {
     opacity: 1;
   }
+}
+
+/* What a stage produced hangs under it. The tail is a turned square. */
+.output-bubble {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
+  background: var(--color-panel-solid);
+  box-shadow: var(--shadow-2);
+  color: var(--gray-12);
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.output-bubble::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: calc(50% - 5px);
+  width: 10px;
+  height: 10px;
+  border-left: 1px solid var(--gray-6);
+  border-top: 1px solid var(--gray-6);
+  background: var(--color-panel-solid);
+  transform: rotate(45deg);
+}
+
+.output-bubble:hover {
+  border-color: var(--gray-8);
+}
+
+/* Model output in the chat is markdown more often than not. */
+.markdown {
+  font-size: var(--font-size-3);
+  line-height: var(--line-height-3);
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown p,
+.markdown ul,
+.markdown ol {
+  margin: 0 0 var(--space-2);
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: var(--space-5);
+}
+
+.markdown code {
+  font-family: var(--code-font-family);
+  font-size: 0.9em;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-2);
+  background: var(--gray-a3);
+}
+
+.markdown pre {
+  overflow-x: auto;
+  padding: var(--space-3);
+  border-radius: var(--radius-3);
+  background: var(--gray-a3);
+}
+
+.markdown pre code {
+  padding: 0;
+  background: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -190,15 +272,23 @@ body {
   min-height: 0;
 }
 
+/* The library sizes the separator itself, to nothing, so each panel draws
+   its own hairline and the separator is only the grab zone over it. */
 .separator {
-  flex: 0 0 1px;
-  background: var(--gray-6);
+  position: relative;
+  z-index: 1;
+}
+
+.separator::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
   transition: background 120ms ease;
 }
 
-.separator:hover,
-.separator[data-resize="active"] {
-  background: var(--accent-8);
+.separator:hover::after,
+.separator[data-resize="active"]::after {
+  background: var(--accent-a5);
 }
 
 /* The request goes in at the foot of the canvas, and answers rise above it.
@@ -211,20 +301,79 @@ body {
 
 .composer {
   display: flex;
-  align-items: flex-end;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
   border: 1px solid var(--gray-6);
-  border-radius: var(--radius-5);
-  background: var(--color-panel-solid);
+  border-radius: var(--radius-4);
+  background: var(--gray-2);
   box-shadow: var(--shadow-3);
 }
 
 .composer .rt-TextAreaRoot {
-  flex: 1;
   min-height: 0;
+  background: var(--color-panel-solid);
+}
+
+.chat-composer {
   box-shadow: none;
-  background: transparent;
+  background: var(--color-panel-solid);
+}
+
+/* What a run says floats over the canvas and has to be read against it. */
+.composer-panel .run-card {
+  background: var(--color-panel-solid);
+  box-shadow: var(--shadow-3);
+}
+
+/* The chat is its own surface, tinted like the sidebar, with a hairline
+   between it and the canvas. */
+.chat-panel {
+  background: var(--gray-2);
+  border-left: 1px solid var(--gray-6);
+}
+
+.chat-starter {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.chat-turn-user {
+  background: var(--accent-3);
+}
+
+.chat-turn-assistant {
+  background: var(--color-panel-solid);
+  border: 1px solid var(--gray-5);
+}
+
+/* The workflow's name, editable on click, with a pencil that says so on hover. */
+.inline-text {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-2);
+  background: none;
+  color: inherit;
+  cursor: text;
+}
+
+.inline-text:hover {
+  background: var(--gray-a3);
+}
+
+.inline-text-pencil {
+  flex-shrink: 0;
+  color: var(--gray-9);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.inline-text:hover .inline-text-pencil {
+  opacity: 1;
 }
 
 .composer textarea {
@@ -251,9 +400,11 @@ body {
 }
 
 .drawer-strip {
-  height: 48px;
+  height: 56px;
   flex-shrink: 0;
+  gap: var(--space-4);
   border-bottom: 1px solid var(--gray-6);
+  background: var(--gray-2);
 }
 
 .sidebar {

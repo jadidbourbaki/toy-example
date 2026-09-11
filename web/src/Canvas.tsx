@@ -26,6 +26,7 @@ export function Canvas() {
   const measured = useStore((s) => s.measured);
   const problems = useStore((s) => s.problems);
   const running = useStore((s) => s.running);
+  const paused = useStore((s) => s.paused);
   const skipped = useStore((s) => s.skipped);
   const selectedId = useStore((s) => s.selectedId);
   const select = useStore((s) => s.select);
@@ -45,12 +46,13 @@ export function Canvas() {
       estimate: estimates.get(node.id),
       measured: measured[node.id] as RunEvent | undefined,
       running: running.has(node.id),
+      next: paused === node.id,
       skipped: skipped.has(node.id),
       invalid: invalid.has(node.id),
       onRemove: removeNode,
       onEdit: setEditing,
     }));
-  }, [graph, estimate, measured, running, skipped, problems, removeNode, setEditing]);
+  }, [graph, estimate, measured, running, paused, skipped, problems, removeNode, setEditing]);
 
   // React Flow owns node state while a drag is in flight, so a pointer move
   // touches local state and nothing else. Positions reach the store on drag

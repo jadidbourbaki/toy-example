@@ -15,6 +15,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 from pydantic_ai import Agent
+from pydantic_ai.settings import ModelSettings
 from pydantic_ai.usage import UsageLimits
 from pydantic_deep import BASE_PROMPT, create_deep_agent, create_default_deps
 
@@ -39,11 +40,22 @@ from orla.graph import (
 from orla.models import ModelSpec, build_model, by_id
 
 EventType = Literal[
-    "run_start", "node_start", "node_done", "node_skipped", "approval", "run_done", "run_error"
+    "run_start",
+    "paused",
+    "node_start",
+    "node_done",
+    "node_skipped",
+    "approval",
+    "run_done",
+    "run_error",
 ]
 
 # How long a run waits at an Approve stage before treating silence as a no.
 APPROVAL_TIMEOUT_S = 15 * 60
+
+# A reasoning model can spend a provider's default token ceiling on thinking
+# and fail before it answers, so every plain call names its own ceiling.
+SETTINGS: ModelSettings = {"max_tokens": 4096}
 
 # request_limit raises rather than stopping the loop, so a cap set exactly at
 # the tool budget turns a stage that wanted one more turn into a failed run.
@@ -103,6 +115,7 @@ class Runner:
         workspace_root: Path,
         graphs: list[AgentGraph],
         approvals: Approvals | None = None,
+        step: bool = False,
     ) -> None:
         self.models = models
         self.workspace_root = workspace_root
@@ -112,6 +125,9 @@ class Runner:
         # Without somewhere to ask, an Approve stage lets everything through.
         # Measuring runs a graph many times with nobody watching.
         self.approvals = approvals
+        # Stepping pauses before every stage on the same token mechanism an
+        # Approve stage uses, so the canvas advances one stage per answer.
+        self.step = step and approvals is not None
 
     def _model(self, model_id: str) -> Any:
         spec = by_id(self.models, model_id)
@@ -177,7 +193,9 @@ class Runner:
             )
         else:
             plain: Agent[None, str] = Agent(
-                self._model(config.model), instructions=config.instructions
+                self._model(config.model),
+                instructions=config.instructions,
+                model_settings=SETTINGS,
             )
             result = await plain.run(prompt)
         usd, input_tokens, output_tokens = self._charge(config.model, result)
@@ -200,7 +218,7 @@ class Runner:
 
         values: dict[str, Any] = {}
         skipped: set[str] = set()
-        declined_at = ""
+        halted = ""
 
         for node_id in order:
             node = graph.node(node_id)
@@ -220,11 +238,7 @@ class Runner:
                     kind=config.kind,
                     graph_id=graph.id,
                     depth=depth,
-                    text=(
-                        f"Declined at {declined_at}."
-                        if declined_at
-                        else "A router took a different branch."
-                    ),
+                    text=halted or "A router took a different branch.",
                 )
                 continue
 
@@ -240,6 +254,33 @@ class Runner:
                     text=request,
                 )
                 continue
+
+            if self.step and self.approvals is not None:
+                token = self.approvals.open()
+                yield RunEvent(
+                    type="paused",
+                    token=token,
+                    node_id=node.id,
+                    name=node.name,
+                    kind=config.kind,
+                    graph_id=graph.id,
+                    depth=depth,
+                )
+                decision = await self.approvals.wait(token, APPROVAL_TIMEOUT_S)
+                if not decision.approved:
+                    halted = f"Stopped before {node.name}."
+                    skipped |= {node.id} | downstream(graph, node.id)
+                    self.totals.nodes_skipped += 1
+                    yield RunEvent(
+                        type="node_skipped",
+                        node_id=node.id,
+                        name=node.name,
+                        kind=config.kind,
+                        graph_id=graph.id,
+                        depth=depth,
+                        text=halted,
+                    )
+                    continue
 
             yield RunEvent(
                 type="node_start",
@@ -286,6 +327,7 @@ class Runner:
                         self._model(model_id),
                         output_type=Literal[tuple(labels)],  # ty: ignore[invalid-type-form]
                         instructions=f"{config.question}\n\nAnswer with exactly one label.\n\n{described}",
+                        model_settings=SETTINGS,
                     )
                     result = await agent.run(render(config.prompt, values))
                     route = str(result.output)
@@ -306,6 +348,7 @@ class Runner:
                     judge = Agent[None, Verdict](
                         self._model(model_id),
                         output_type=Verdict,
+                        model_settings=SETTINGS,
                         instructions=(
                             "You review one stage's output against the criteria. Pass it only "
                             "when every criterion holds. When it fails, say what to change in "
@@ -403,7 +446,7 @@ class Runner:
                             values[passed.name] = candidate
                     text = candidate
                     if route == "declined":
-                        declined_at = node.name
+                        halted = f"Declined at {node.name}."
                         skipped |= downstream(graph, node.id)
 
                 else:
@@ -446,8 +489,8 @@ class Runner:
 
         final = next((n for n in graph.nodes if n.config.kind == "output"), None)
         answer = str(values.get(final.name, "")) if final else ""
-        if declined_at:
-            answer = f"Declined at {declined_at}. Nothing after it ran."
+        if halted:
+            answer = f"{halted} Nothing after it ran."
         yield RunEvent(
             type="run_done",
             graph_id=graph.id,
@@ -468,7 +511,8 @@ async def run_graph(
     workspace_root: Path,
     graphs: list[AgentGraph] | None = None,
     approvals: Approvals | None = None,
+    step: bool = False,
 ) -> AsyncIterator[RunEvent]:
-    runner = Runner(models, workspace_root, graphs or [], approvals)
+    runner = Runner(models, workspace_root, graphs or [], approvals, step)
     async for event in runner.run(graph, request):
         yield event

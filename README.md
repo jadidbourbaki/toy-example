@@ -45,17 +45,21 @@ define the graph's entry function, and route every model call through a
 the model once with the problem quoted. The file that comes out runs on
 its own.
 
-**A runner.** Execute the graph and get a line per stage: what it
-produced, how long it took, and what it spent. The canvas lights up as the
-run moves through it.
+**A runner.** Send a request through the workflow. The running stage fills
+with colour, each finished stage hangs what it produced under itself in a
+bubble you can open, and the answer comes back above the request. Step
+instead of Run pauses before every stage, draws the next one dashed, and
+moves on one stage per click.
 
 **An optimizer.** A model proposes changes drawn from a closed set of
 operations, and each one is priced by applying it alone to the graph and
 re-estimating. Accept the ones you want and they land on the canvas.
 
-**An assistant.** The chat on the right answers questions about the
-workflow you have open, with the stage bindings, the estimated cost of each
-stage, the model rates, and the validator's complaints as its context. It
+**An assistant.** The chat answers questions about the workflow you have
+open. It is a pydantic-deep agent, the same harness an Agent stage runs on,
+with read-only tools: the workflow, the estimate per stage, the model
+registry, the validator, and a tool that prices one stage on another model
+so "what would glm-5 on reply cost" gets a number rather than a guess. It
 reads and never edits, because a helper that quietly rewrites a canvas is
 hard to trust.
 
@@ -196,13 +200,12 @@ patterns, simplest first. `answer` is one Prompt. `research_brief` looks a
 question up with a tool and writes the answer. `route` sorts a request into
 one of two kinds. `review` drafts a reply, has a Judge check it, has a
 person approve it, and sends it. `customer_support` is the full example: it
-reads a customer message and branches. A policy question goes to an Agent that searches the
-policy documents, then a Prompt that drafts the reply, then a Judge that
-grades the draft and sends it back once if it falls short, then an Approve
-that shows the reply to a person, then a Tool that emails it. A problem a
-team has to act on goes to an Agent that decides which team owns it and
-opens a ticket. `research_brief` is a short linear pipeline for looking a
-question up in the same policy documents.
+reads a customer message and branches. A policy question goes to an Agent
+that searches the policy documents, then a Prompt that drafts the reply,
+then a Judge that grades the draft and sends it back once if it falls
+short, then a Tool that emails it. A problem a team has to act on goes to an
+Agent that decides which team owns it and opens the ticket, which is the
+handoff.
 
 An Approve stage parks the run on a token until someone answers. The
 browser answers from the bar above the canvas, `orla run` asks in the

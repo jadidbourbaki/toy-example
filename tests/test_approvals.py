@@ -126,8 +126,25 @@ def test_an_approve_stage_needs_one_feeder() -> None:
 
 
 def test_the_answering_stage_is_found_through_a_judge(support: AgentGraph) -> None:
-    approve = next(n for n in support.nodes if n.config.kind == "approve")
-    answering = answering_stage(support, approve.id)
+    email = next(n for n in support.nodes if n.name == "email")
+    answering = answering_stage(support, email.id)
     assert answering is not None
     assert isinstance(answering.config, LLMConfig)
     assert answering.name == "reply"
+
+
+def test_stepping_pauses_before_every_stage_after_the_input(
+    models: list[ModelSpec], tmp_path: Path
+) -> None:
+    async def go() -> list[str]:
+        approvals = Approvals()
+        paused: list[str] = []
+        async for event in run_graph(gated(), "refund", models, tmp_path, [], approvals, step=True):
+            if event.type == "paused":
+                paused.append(event.name)
+                approvals.answer(event.token, Decision(approved=True))
+            if event.type == "approval":
+                approvals.answer(event.token, Decision(approved=True))
+        return paused
+
+    assert asyncio.run(go()) == ["lookup", "approve", "output"]
