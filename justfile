@@ -204,13 +204,92 @@ deploy:
     aws lightsail get-container-services --service-name {{service}} --region {{region}} \
         --query 'containerServices[0].url' --output text
 
+# Set the account-wide billing alarm a deployed copy is watched by.
+budget:
+    #!/usr/bin/env bash
+    # The app's own cap only counts what went through the app, so anything
+    # that reaches the key another way is invisible to it. This alarm sits
+    # outside the process and survives every restart.
+    #
+    # It watches the whole account rather than Bedrock alone, because Bedrock
+    # bills third-party models under their own service names and a filter
+    # would quietly miss most of the registry.
+    set -euo pipefail
+    set -a && source .env && set +a
+    : "${DEPLOY_ALERT_EMAIL:?put the address the alarm should mail in .env}"
+    export DEPLOY_BUDGET_USD="${DEPLOY_BUDGET_USD:-300}"
+    export ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+    name={{service}}-monthly
+
+    spec=$(mktemp)
+    notes=$(mktemp)
+    trap 'rm -f "$spec" "$notes"' EXIT
+    export BUDGET_NAME="$name"
+    python3 - <<'PY' > "$spec"
+    import json, os
+
+    print(json.dumps({
+        "BudgetName": os.environ["BUDGET_NAME"],
+        "BudgetLimit": {"Amount": os.environ["DEPLOY_BUDGET_USD"], "Unit": "USD"},
+        "TimeUnit": "MONTHLY",
+        "BudgetType": "COST",
+    }))
+    PY
+    python3 - <<'PY' > "$notes"
+    import json, os
+
+    subscriber = {"SubscriptionType": "EMAIL", "Address": os.environ["DEPLOY_ALERT_EMAIL"]}
+    print(json.dumps([
+        {
+            "Notification": {
+                "NotificationType": kind,
+                "ComparisonOperator": "GREATER_THAN",
+                "Threshold": threshold,
+                "ThresholdType": "PERCENTAGE",
+            },
+            "Subscribers": [subscriber],
+        }
+        for kind, threshold in [("ACTUAL", 50), ("ACTUAL", 80), ("ACTUAL", 100), ("FORECASTED", 100)]
+    ]))
+    PY
+
+    if aws budgets describe-budget --account-id "$ACCOUNT" --budget-name "$name" > /dev/null 2>&1; then
+        aws budgets update-budget --account-id "$ACCOUNT" --new-budget "file://$spec"
+        echo "Updated the $name budget at \$$DEPLOY_BUDGET_USD a month."
+    else
+        aws budgets create-budget --account-id "$ACCOUNT" --budget "file://$spec" \
+            --notifications-with-subscribers "file://$notes"
+        echo "Created the $name budget at \$$DEPLOY_BUDGET_USD a month, mailing $DEPLOY_ALERT_EMAIL."
+    fi
+
 # What the deployed container has been saying.
 logs:
     aws lightsail get-container-log --service-name {{service}} --container-name app --region {{region}}
 
-# Delete the deployed copy, which is everything it costs.
+# Delete the deployed copy: the service, and the key it ran on.
 teardown:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    user={{service}}-bedrock
+
     aws lightsail delete-container-service --service-name {{service}} --region {{region}}
+
+    # An IAM user cannot be deleted while anything still hangs off it, so the
+    # credential and the policy go first.
+    if aws iam get-user --user-name "$user" > /dev/null 2>&1; then
+        for id in $(aws iam list-service-specific-credentials --user-name "$user" \
+            --service-name bedrock.amazonaws.com \
+            --query 'ServiceSpecificCredentials[].ServiceSpecificCredentialId' --output text); do
+            aws iam delete-service-specific-credential --user-name "$user" \
+                --service-specific-credential-id "$id"
+        done
+        aws iam delete-user-policy --user-name "$user" --policy-name invoke-bedrock 2>/dev/null || true
+        aws iam delete-user --user-name "$user"
+        echo "Deleted the $user key and user."
+    fi
+
+    echo "The billing alarm is left alone. Remove it with:"
+    echo "  aws budgets delete-budget --account-id \$(aws sts get-caller-identity --query Account --output text) --budget-name {{service}}-monthly"
 
 # The read-only gate, the way CI runs it.
 check:

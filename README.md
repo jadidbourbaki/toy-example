@@ -183,9 +183,15 @@ someone's Bedrock bill. So a deployed copy also carries a spend cap, set by
 anywhere in the app adds to one running total, and once the total passes the
 cap the endpoints that drive a model refuse to start while drawing a
 workflow and pricing one carry on. The total lives in the process, so
-restarting the container starts the count again. Pair the cap with an AWS
-budget alarm on the account, because the cap only knows about spending that
-went through this app.
+restarting the container starts the count again.
+
+`just budget` is the other half, and worth running once. The cap counts only
+what went through the app and starts again at every restart, so a key used
+some other way is invisible to it. A monthly budget on the account is
+outside the process and survives every restart. It watches the whole account
+rather than Bedrock alone, because Bedrock bills third-party models under
+their own names in Cost Explorer and a filter would quietly miss most of the
+registry. Set `DEPLOY_ALERT_EMAIL` and `DEPLOY_BUDGET_USD` first.
 
 The workspace lives inside the container, so a workflow someone draws is
 gone at the next deployment and the bundled templates come back in its
