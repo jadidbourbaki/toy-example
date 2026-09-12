@@ -152,7 +152,7 @@ deploy:
     : "${DEPLOY_PASSWORD:?needs a value in .env, since anyone holding the link reaches the demo}"
     # Everyone sharing the link shares one Bedrock bill, so the copy carries a
     # ceiling on what it may spend between restarts.
-    export DEPLOY_SPEND_CAP_USD="${DEPLOY_SPEND_CAP_USD:-25}"
+    export DEPLOY_SPEND_CAP_USD="${DEPLOY_SPEND_CAP_USD:-200}"
 
     state() {
         aws lightsail get-container-services --service-name {{service}} --region {{region}} \

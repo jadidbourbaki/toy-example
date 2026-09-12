@@ -179,7 +179,7 @@ working in the app is throttled.
 A password decides who gets in and says nothing about what they cost, and
 behind it sit a chat, a compiler, and a measurement that all spend money on
 someone's Bedrock bill. So a deployed copy also carries a spend cap, set by
-`DEPLOY_SPEND_CAP_USD` and twenty five dollars by default. Every model call
+`DEPLOY_SPEND_CAP_USD` and two hundred dollars by default. Every model call
 anywhere in the app adds to one running total, and once the total passes the
 cap the endpoints that drive a model refuse to start while drawing a
 workflow and pricing one carry on. The total lives in the process, so

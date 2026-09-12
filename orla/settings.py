@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     # A measurement runs the graph once per sample request per candidate, so a
     # careless click on a large sample can spend real money. The run refuses to
     # start when its own projection passes this line.
-    measure_budget_usd: float = 5.0
+    measure_budget_usd: float = 25.0
     # How many graph runs may be in flight at once. Higher finishes sooner and
     # is likelier to meet a provider rate limit.
     measure_concurrency: int = 4
