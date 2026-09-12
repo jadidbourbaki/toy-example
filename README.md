@@ -56,8 +56,8 @@ operations, and each one is priced by applying it alone to the graph and
 re-estimating. Accept the ones you want and they land on the canvas.
 
 **An assistant.** The chat answers questions about the workflow you have
-open. It is a pydantic-deep agent, the same harness an Agent stage runs on,
-with read-only tools: the workflow, the estimate per stage, the model
+open. The chat is a pydantic-deep agent, the same harness an Agent stage
+runs on, with read-only tools: the workflow, the estimate per stage, the model
 registry, the validator, and a tool that prices one stage on another model
 so "what would glm-5 on reply cost" gets a number rather than a guess. It
 reads and never edits, because a helper that quietly rewrites a canvas is
@@ -142,6 +142,38 @@ just serve            # http://127.0.0.1:8000
 
 `AWS_BEARER_TOKEN_BEDROCK` is what every model call uses. Editing the
 canvas, validating a graph, and pricing one need no key at all.
+
+## Deploying a copy
+
+`just deploy` puts a copy on an Amazon Lightsail container service, which
+runs the image and hands back an HTTPS address with no load balancer, no
+certificate, and no domain to arrange. You need Docker, credentials in the
+AWS CLI, and the
+[lightsailctl plugin](https://lightsail.aws.amazon.com/ls/docs/en_us/articles/amazon-lightsail-install-software)
+that `push-container-image` uses, which on a Mac is
+`brew install aws/tap/lightsailctl`.
+
+```bash
+cp .env.example .env   # the Bedrock token, and a password to guard the copy
+just deploy            # builds, pushes, deploys, prints the address
+```
+
+The same command creates the service the first time and rolls out a change
+every time after. Every route sits behind HTTP Basic under the user name
+`orla`, so the address is safe to send to a few people and to nobody else.
+`just logs` says what the container has been saying. `just teardown` deletes
+the service, which is everything a deployment costs.
+
+The workspace lives inside the container, so a workflow someone draws is
+gone at the next deployment and the bundled templates come back in its
+place. A demo is the only thing that arrangement suits. An EC2 instance with
+a disk keeps the workspace, at the cost of arranging a domain and a
+certificate.
+
+A Micro service is ten dollars a month and free for the first three. The
+model calls are billed separately, by Bedrock, against the token in the
+deployment. Lightsail holds that token as a plain environment variable on
+the service, so anyone who can read the account can read the token.
 
 ## Models
 

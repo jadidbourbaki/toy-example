@@ -1,0 +1,14 @@
+.git
+.github
+.env
+.env.*
+.venv
+.ruff_cache
+.pytest_cache
+**/__pycache__
+**/node_modules
+web/dist
+orla/static
+workspace
+deploy
+tests

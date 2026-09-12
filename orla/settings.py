@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     workspace: Path = PROJECT_ROOT / "workspace"
     host: str = "127.0.0.1"
     port: int = 8000
+    # A deployed copy is reachable by anyone holding its link, so it sits
+    # behind HTTP Basic. An empty password leaves the door open, which is
+    # what a local run wants.
+    username: str = "orla"
+    password: str = ""
 
     @property
     def aws_region(self) -> str:

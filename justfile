@@ -1,5 +1,8 @@
 # Task runner. `just check` is the gate CI runs.
 
+# The Lightsail container service a deployed copy runs on.
+service := "orla-demo"
+
 default:
     @just --list
 
@@ -50,6 +53,72 @@ typecheck:
 
 test:
     uv run pytest -q
+
+# Put a copy on Lightsail, or push a change to the one already there.
+deploy:
+    #!/usr/bin/env bash
+    # Needs docker, the lightsailctl plugin, and credentials in the AWS CLI.
+    set -euo pipefail
+    set -a && source .env && set +a
+    : "${AWS_BEARER_TOKEN_BEDROCK:?needs a value in .env}"
+    : "${DEPLOY_PASSWORD:?needs a value in .env, since anyone holding the link reaches the demo}"
+
+    state() {
+        aws lightsail get-container-services --service-name {{service}} \
+            --query 'containerServices[0].state' --output text 2>/dev/null || echo NONE
+    }
+
+    if [ "$(state)" = NONE ]; then
+        echo "Creating the service, which takes a few minutes the first time."
+        aws lightsail create-container-service \
+            --service-name {{service}} --power micro --scale 1 > /dev/null
+    fi
+    while [ "$(state)" != READY ] && [ "$(state)" != RUNNING ]; do sleep 10; done
+
+    # Lightsail names the image it stores, so the name is read back from the
+    # registry rather than chosen here.
+    docker build --platform linux/amd64 -t {{service}}:latest .
+    aws lightsail push-container-image \
+        --service-name {{service}} --label app --image {{service}}:latest > /dev/null
+    export IMAGE=$(aws lightsail get-container-images --service-name {{service}} \
+        --query 'containerImages[0].image' --output text)
+
+    # The token and the password ride along in the deployment, so it is
+    # written where only this user can read it and removed on the way out.
+    containers=$(mktemp)
+    trap 'rm -f "$containers"' EXIT
+    chmod 600 "$containers"
+    python3 - > "$containers" <<'PY'
+    import json, os
+
+    print(json.dumps({
+        "app": {
+            "image": os.environ["IMAGE"],
+            "ports": {"8000": "HTTP"},
+            "environment": {
+                "AWS_BEARER_TOKEN_BEDROCK": os.environ["AWS_BEARER_TOKEN_BEDROCK"],
+                "ORLA_PASSWORD": os.environ["DEPLOY_PASSWORD"],
+            },
+        },
+    }))
+    PY
+
+    aws lightsail create-container-service-deployment \
+        --service-name {{service}} --containers "file://$containers" \
+        --public-endpoint '{"containerName":"app","containerPort":8000,"healthCheck":{"path":"/healthz","successCodes":"200"}}' \
+        > /dev/null
+
+    echo "Rolling out. It answers at:"
+    aws lightsail get-container-services --service-name {{service}} \
+        --query 'containerServices[0].url' --output text
+
+# What the deployed container has been saying.
+logs:
+    aws lightsail get-container-log --service-name {{service}} --container-name app
+
+# Delete the deployed copy, which is everything it costs.
+teardown:
+    aws lightsail delete-container-service --service-name {{service}}
 
 # The read-only gate, the way CI runs it.
 check:

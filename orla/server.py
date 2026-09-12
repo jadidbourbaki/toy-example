@@ -20,6 +20,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from orla import assistant, compiler, measure, optimizer
 from orla.approvals import APPROVALS, Decision
+from orla.auth import OPEN_PATH, BasicAuth
 from orla.estimate import GraphEstimate, estimate
 from orla.graph import AgentGraph, Problem, validate_graph
 from orla.measure import MeasureEvent
@@ -97,6 +98,14 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    if settings.password:
+        app.add_middleware(BasicAuth, username=settings.username, password=settings.password)
+
+    # What a load balancer asks, and the one route that answers without the
+    # password. It says the process is up and nothing else.
+    @app.get(OPEN_PATH)
+    def probe() -> dict[str, bool]:
+        return {"ok": True}
 
     @app.get("/api/health")
     def health() -> Health:
