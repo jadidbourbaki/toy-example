@@ -30,9 +30,10 @@ from typing import Literal
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
+from orla.budget import LEDGER
 from orla.estimate import estimate
 from orla.graph import AgentGraph
-from orla.models import ModelSpec, by_id, driver_model
+from orla.models import DEFAULT_MODELS, ModelSpec, by_id, driver_model
 from orla.optimizer import Patch, apply_patch
 from orla.runner import run_graph
 from orla.settings import settings
@@ -236,7 +237,9 @@ async def _judge_pass(request: str, first: str, second: str) -> JudgePass:
         model_settings={"max_tokens": 1024},
     )
     prompt = f"## The request\n\n{request}\n\n## Answer A\n\n{first}\n\n## Answer B\n\n{second}"
-    return (await agent.run(prompt)).output
+    run = await agent.run(prompt)
+    LEDGER.charge(DEFAULT_MODELS, settings.judge_model, run)
+    return run.output
 
 
 async def judge(request: str, baseline: str, candidate: str) -> Verdict:
@@ -418,4 +421,6 @@ async def propose_sample(graph: AgentGraph, count: int = 3) -> list[str]:
         f"What it receives: {receives or 'not stated'}\n"
         f"Its stages: {stages}"
     )
-    return (await agent.run(prompt)).output.requests[:count]
+    run = await agent.run(prompt)
+    LEDGER.charge(DEFAULT_MODELS, settings.compiler_model, run)
+    return run.output.requests[:count]

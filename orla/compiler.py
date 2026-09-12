@@ -26,8 +26,9 @@ from typing import Literal
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
+from orla.budget import LEDGER
 from orla.graph import AgentGraph, SubagentConfig
-from orla.models import ModelSpec, by_id, driver_model, provider_model_string
+from orla.models import DEFAULT_MODELS, ModelSpec, by_id, driver_model, provider_model_string
 from orla.settings import settings
 
 MAX_ATTEMPTS = 2
@@ -411,6 +412,7 @@ async def compile_stream(
 
         yield CompileEvent(type="writing", attempt=attempt)
         run = await agent.run(message)
+        LEDGER.charge(DEFAULT_MODELS, settings.compiler_model, run)
         source = run.output.source.strip()
         if source.startswith("```"):
             source = source.split("\n", 1)[-1].rsplit("```", 1)[0].strip()

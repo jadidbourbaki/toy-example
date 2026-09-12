@@ -41,6 +41,14 @@ export function SettingsPage() {
           <DataList.Value className="num">{usd(health.measure_budget_usd)}</DataList.Value>
         </DataList.Item>
         <DataList.Item>
+          <DataList.Label>Spent on model calls</DataList.Label>
+          <DataList.Value className="num">
+            {health.spend_cap_usd > 0
+              ? `${usd(health.spent_usd)} of ${usd(health.spend_cap_usd)}`
+              : usd(health.spent_usd)}
+          </DataList.Value>
+        </DataList.Item>
+        <DataList.Item>
           <DataList.Label>Workspace</DataList.Label>
           <DataList.Value>
             <Text className="num">{health.workspace}</Text>

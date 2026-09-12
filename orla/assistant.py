@@ -32,6 +32,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.usage import UsageLimits
 from pydantic_deep import BASE_PROMPT, create_deep_agent, create_default_deps
 
+from orla.budget import LEDGER
 from orla.estimate import estimate
 from orla.graph import (
     AgentGraph,
@@ -41,7 +42,7 @@ from orla.graph import (
     RouterConfig,
     validate_graph,
 )
-from orla.models import ModelSpec, by_id, capability_problems, driver_model
+from orla.models import DEFAULT_MODELS, ModelSpec, by_id, capability_problems, driver_model
 from orla.settings import settings
 
 BOUND = (LLMConfig, ReactConfig, RouterConfig, JudgeConfig)
@@ -186,5 +187,6 @@ async def ask(
             elif isinstance(event, PartDeltaEvent) and isinstance(event.delta, TextPartDelta):
                 yield "delta", event.delta.content_delta
             elif isinstance(event, AgentRunResultEvent):
+                LEDGER.charge(DEFAULT_MODELS, settings.assistant_model, event.result)
                 messages = event.result.all_messages()
                 yield "history", ModelMessagesTypeAdapter.dump_json(messages).decode()

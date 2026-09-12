@@ -21,6 +21,7 @@ from sse_starlette.sse import EventSourceResponse
 from orla import assistant, compiler, measure, optimizer
 from orla.approvals import APPROVALS, Decision
 from orla.auth import OPEN_PATH, BasicAuth
+from orla.budget import LEDGER
 from orla.estimate import GraphEstimate, estimate
 from orla.graph import AgentGraph, Problem, validate_graph
 from orla.measure import MeasureEvent
@@ -85,6 +86,16 @@ class Health(BaseModel):
     assistant_model: str
     measure_budget_usd: float
     workspace: str
+    # What this copy has spent on model calls since it started, against the
+    # ceiling it was given. A cap of zero is no ceiling.
+    spent_usd: float
+    spend_cap_usd: float
+
+
+def _sse(event: BaseModel) -> dict[str, str]:
+    """One server-sent event, in the shape every stream here sends."""
+
+    return {"event": getattr(event, "type", "message"), "data": event.model_dump_json()}
 
 
 def create_app(workspace_root: Path | None = None) -> FastAPI:
@@ -116,6 +127,8 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
             assistant_model=settings.assistant_model,
             measure_budget_usd=settings.measure_budget_usd,
             workspace=str(workspace.root),
+            spent_usd=round(LEDGER.spent_usd, 6),
+            spend_cap_usd=settings.spend_cap_usd,
         )
 
     @app.get("/api/graphs")
@@ -168,6 +181,9 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
     @app.post("/api/compile")
     async def compile_endpoint(body: GraphRequest) -> EventSourceResponse:
         async def stream() -> AsyncIterator[dict[str, str]]:
+            if (refusal := LEDGER.refusal()) is not None:
+                yield _sse(compiler.CompileEvent(type="error", text=refusal))
+                return
             async for event in compiler.compile_stream(
                 body.graph, workspace.models(), workspace.all_graphs()
             ):
@@ -177,6 +193,8 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
 
     @app.post("/api/optimize")
     async def optimize_endpoint(body: GraphRequest) -> optimizer.OptimizeResult:
+        if (refusal := LEDGER.refusal()) is not None:
+            return optimizer.OptimizeResult(summary="", baseline_usd=0.0, ok=False, error=refusal)
         return await optimizer.optimize(body.graph, workspace.models())
 
     @app.post("/api/patch")
@@ -193,6 +211,10 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
         known = {g.id for g in workspace.all_graphs()} | {body.graph.id}
 
         async def stream() -> AsyncIterator[dict[str, str]]:
+            if (refusal := LEDGER.refusal()) is not None:
+                yield {"event": "delta", "data": refusal}
+                yield {"event": "history", "data": "[]"}
+                return
             async for event, data in assistant.ask(body, workspace.models(), known):
                 yield {"event": event, "data": data}
 
@@ -200,6 +222,8 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
 
     @app.post("/api/sample")
     async def sample_endpoint(body: SampleRequest) -> list[str]:
+        if (refusal := LEDGER.refusal()) is not None:
+            raise HTTPException(status_code=429, detail=refusal)
         if not settings.has_model_credentials:
             raise HTTPException(
                 status_code=400,
@@ -217,6 +241,9 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
         sample = body.sample or body.graph.sample
 
         async def stream() -> AsyncIterator[dict[str, str]]:
+            if (refusal := LEDGER.refusal()) is not None:
+                yield _sse(MeasureEvent(type="error", text=refusal))
+                return
             async for event in measure.measure(
                 body.graph,
                 body.patches,
@@ -232,6 +259,9 @@ def create_app(workspace_root: Path | None = None) -> FastAPI:
     @app.post("/api/run")
     async def run_endpoint(body: RunRequest) -> EventSourceResponse:
         async def stream() -> AsyncIterator[dict[str, str]]:
+            if (refusal := LEDGER.refusal()) is not None:
+                yield _sse(RunEvent(type="run_error", text=refusal))
+                return
             async for event in run_graph(
                 body.graph,
                 body.request,

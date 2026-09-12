@@ -271,6 +271,8 @@ export interface Health {
   assistant_model: string;
   measure_budget_usd: number;
   workspace: string;
+  spent_usd: number;
+  spend_cap_usd: number;
 }
 /**
  * This interface was referenced by `Orla`'s JSON-Schema

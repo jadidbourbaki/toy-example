@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     # what a local run wants.
     username: str = "orla"
     password: str = ""
+    # What everyone sharing a deployed copy may spend on model calls between
+    # restarts, counted across every endpoint that drives one. Zero lifts the
+    # ceiling, which is what a local run wants.
+    spend_cap_usd: float = 0.0
 
     @property
     def aws_region(self) -> str:

@@ -18,6 +18,7 @@ from deepdiff import DeepDiff
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
+from orla.budget import LEDGER
 from orla.estimate import estimate
 from orla.graph import (
     AgentGraph,
@@ -31,7 +32,7 @@ from orla.graph import (
     SubagentConfig,
     validate_graph,
 )
-from orla.models import TOOL_CATALOG, ModelSpec, driver_model
+from orla.models import DEFAULT_MODELS, TOOL_CATALOG, ModelSpec, driver_model
 from orla.settings import settings
 
 Operation = Literal[
@@ -260,6 +261,7 @@ async def optimize(graph: AgentGraph, models: list[ModelSpec]) -> OptimizeResult
     )
 
     run = await agent.run(prompt)
+    LEDGER.charge(DEFAULT_MODELS, settings.compiler_model, run)
     proposal = run.output
 
     priced: list[PricedPatch] = []

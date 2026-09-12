@@ -255,6 +255,12 @@
         },
         "workspace": {
           "type": "string"
+        },
+        "spent_usd": {
+          "type": "number"
+        },
+        "spend_cap_usd": {
+          "type": "number"
         }
       },
       "required": [
@@ -264,6 +270,8 @@
         "measure_budget_usd",
         "model_credentials",
         "ok",
+        "spend_cap_usd",
+        "spent_usd",
         "workspace"
       ],
       "type": "object",

@@ -164,6 +164,17 @@ every time after. Every route sits behind HTTP Basic under the user name
 `just logs` says what the container has been saying. `just teardown` deletes
 the service, which is everything a deployment costs.
 
+A password decides who gets in and says nothing about what they cost, and
+behind it sit a chat, a compiler, and a measurement that all spend money on
+someone's Bedrock bill. So a deployed copy also carries a spend cap, set by
+`DEPLOY_SPEND_CAP_USD` and twenty five dollars by default. Every model call
+anywhere in the app adds to one running total, and once the total passes the
+cap the endpoints that drive a model refuse to start while drawing a
+workflow and pricing one carry on. The total lives in the process, so
+restarting the container starts the count again. Pair the cap with an AWS
+budget alarm on the account, because the cap only knows about spending that
+went through this app.
+
 The workspace lives inside the container, so a workflow someone draws is
 gone at the next deployment and the bundled templates come back in its
 place. A demo is the only thing that arrangement suits. An EC2 instance with

@@ -21,6 +21,7 @@ from pydantic_deep import BASE_PROMPT, create_deep_agent, create_default_deps
 
 from orla import tools
 from orla.approvals import Approvals, Decision
+from orla.budget import LEDGER
 from orla.graph import (
     AgentGraph,
     ApproveConfig,
@@ -136,24 +137,11 @@ class Runner:
         return build_model(spec)
 
     def _charge(self, model_id: str, result: Any) -> tuple[float, int, int]:
-        # pydantic-ai exposes run usage as a property on current versions and as
-        # a method on older ones. Accept either so a version bump does not
-        # silently stop charging a run.
-        usage = result.usage
-        if callable(usage):
-            usage = usage()
-        spec = by_id(self.models, model_id)
-        input_tokens = int(getattr(usage, "input_tokens", 0) or 0)
-        output_tokens = int(getattr(usage, "output_tokens", 0) or 0)
-        usd = 0.0
-        if spec is not None:
-            usd = (
-                input_tokens * spec.input_usd_per_mtok + output_tokens * spec.output_usd_per_mtok
-            ) / 1_000_000
+        usd, input_tokens, output_tokens = LEDGER.charge(self.models, model_id, result)
         self.totals.usd += usd
         self.totals.input_tokens += input_tokens
         self.totals.output_tokens += output_tokens
-        return round(usd, 6), input_tokens, output_tokens
+        return usd, input_tokens, output_tokens
 
     def _tool_functions(self, names: list[str]) -> list[Any]:
         registry = tools.registry(self.workspace_root)
