@@ -155,14 +155,26 @@ that `push-container-image` uses, which on a Mac is
 
 ```bash
 cp .env.example .env   # the Bedrock token, and a password to guard the copy
+just key               # a Bedrock key that only invokes models, good for 30 days
 just deploy            # builds, pushes, deploys, prints the address
 ```
+
+`just key` is worth running before the first deploy and again whenever the
+key expires. It makes an IAM user that may invoke models and nothing else,
+mints a credential that dies after thirty days, and writes it to `.env` as
+`DEPLOY_BEDROCK_TOKEN`. A copy passed around by link then carries a
+credential that can do less and lasts less long than the one on your laptop.
 
 The same command creates the service the first time and rolls out a change
 every time after. Every route sits behind HTTP Basic under the user name
 `orla`, so the address is safe to send to a few people and to nobody else.
 `just logs` says what the container has been saying. `just teardown` deletes
 the service, which is everything a deployment costs.
+
+Ten wrong passwords a minute from one caller is where the door stops
+answering, counted by [limits](https://limits.readthedocs.io) against the
+address the load balancer saw. A right password is never counted, so nobody
+working in the app is throttled.
 
 A password decides who gets in and says nothing about what they cost, and
 behind it sit a chat, a compiler, and a measurement that all spend money on

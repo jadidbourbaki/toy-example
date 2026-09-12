@@ -57,13 +57,98 @@ typecheck:
 test:
     uv run pytest -q
 
+# Mint the 30 day Bedrock key a deployed copy runs on.
+key:
+    #!/usr/bin/env bash
+    # A user that may only invoke models, and a credential that expires. The
+    # secret is shown once, at creation, so it goes straight into .env.
+    set -euo pipefail
+    user={{service}}-bedrock
+
+    aws iam get-user --user-name "$user" > /dev/null 2>&1 \
+        || aws iam create-user --user-name "$user" > /dev/null
+
+    policy=$(mktemp)
+    trap 'rm -f "$policy"' EXIT
+    cat > "$policy" <<'JSON'
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "UseABearerToken",
+          "Effect": "Allow",
+          "Action": ["bedrock:CallWithBearerToken", "bedrock-mantle:CallWithBearerToken"],
+          "Resource": "*"
+        },
+        {
+          "Sid": "ConverseApi",
+          "Effect": "Allow",
+          "Action": [
+            "bedrock:InvokeModel",
+            "bedrock:InvokeModelWithResponseStream",
+            "bedrock:Converse",
+            "bedrock:ConverseStream"
+          ],
+          "Resource": "*"
+        },
+        {
+          "Sid": "MantleOpenAiApi",
+          "Effect": "Allow",
+          "Action": [
+            "bedrock-mantle:CreateInference",
+            "bedrock-mantle:GetInference",
+            "bedrock-mantle:ListModels"
+          ],
+          "Resource": "*",
+          "Condition": {
+            "StringEquals": {"aws:RequestedRegion": "{{region}}"}
+          }
+        }
+      ]
+    }
+    JSON
+    aws iam put-user-policy --user-name "$user" \
+        --policy-name invoke-bedrock --policy-document "file://$policy"
+
+    # IAM keeps at most two of these per user, so the old ones make way.
+    for id in $(aws iam list-service-specific-credentials --user-name "$user" \
+        --service-name bedrock.amazonaws.com \
+        --query 'ServiceSpecificCredentials[].ServiceSpecificCredentialId' --output text); do
+        aws iam delete-service-specific-credential --user-name "$user" \
+            --service-specific-credential-id "$id"
+    done
+
+    export MINTED=$(aws iam create-service-specific-credential --user-name "$user" \
+        --service-name bedrock.amazonaws.com --credential-age-days 30 --output json)
+    python3 - <<'PY'
+    import json, os, pathlib
+
+    minted = json.loads(os.environ["MINTED"])["ServiceSpecificCredential"]
+    env = pathlib.Path(".env")
+    kept = [
+        line
+        for line in env.read_text().splitlines()
+        if not line.startswith("DEPLOY_BEDROCK_TOKEN=")
+    ]
+    kept.append(f"DEPLOY_BEDROCK_TOKEN={minted['ServiceCredentialSecret']}")
+    env.write_text("\n".join(kept) + "\n")
+    print(f"Wrote DEPLOY_BEDROCK_TOKEN to .env. It expires {minted['ExpirationDate'][:10]}.")
+    PY
+
+    # A credential answers 401 for a few seconds after IAM reports creating it,
+    # which would otherwise fail the health check of a deploy run straight after.
+    sleep 20
+
 # Put a copy on Lightsail, or push a change to the one already there.
 deploy:
     #!/usr/bin/env bash
     # Needs docker, the lightsailctl plugin, and credentials in the AWS CLI.
     set -euo pipefail
     set -a && source .env && set +a
-    : "${AWS_BEARER_TOKEN_BEDROCK:?needs a value in .env}"
+    # The scoped key `just key` mints is what a deployed copy should run on.
+    # Falling back to the personal token keeps a first deploy from stalling.
+    export DEPLOY_BEDROCK_TOKEN="${DEPLOY_BEDROCK_TOKEN:-${AWS_BEARER_TOKEN_BEDROCK:-}}"
+    : "${DEPLOY_BEDROCK_TOKEN:?run `just key`, or put AWS_BEARER_TOKEN_BEDROCK in .env}"
     : "${DEPLOY_PASSWORD:?needs a value in .env, since anyone holding the link reaches the demo}"
     # Everyone sharing the link shares one Bedrock bill, so the copy carries a
     # ceiling on what it may spend between restarts.
@@ -102,7 +187,7 @@ deploy:
             "image": os.environ["IMAGE"],
             "ports": {"8000": "HTTP"},
             "environment": {
-                "AWS_BEARER_TOKEN_BEDROCK": os.environ["AWS_BEARER_TOKEN_BEDROCK"],
+                "AWS_BEARER_TOKEN_BEDROCK": os.environ["DEPLOY_BEDROCK_TOKEN"],
                 "ORLA_PASSWORD": os.environ["DEPLOY_PASSWORD"],
                 "ORLA_SPEND_CAP_USD": os.environ["DEPLOY_SPEND_CAP_USD"],
             },

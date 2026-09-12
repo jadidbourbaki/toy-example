@@ -19,6 +19,9 @@ import base64
 import binascii
 import secrets
 
+from limits import RateLimitItemPerMinute
+from limits.storage import MemoryStorage
+from limits.strategies import MovingWindowRateLimiter
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -29,6 +32,26 @@ CHALLENGE = {"WWW-Authenticate": 'Basic realm="orla", charset="UTF-8"'}
 # answers without being asked for one. A probe that got 401 would read the
 # service as down and take it out of service.
 OPEN_PATH = "/healthz"
+
+# Only a wrong password is counted, so someone working in the app is never
+# throttled while someone guessing gets ten tries a minute. The window and
+# the counting come from limits, which is the library flask-limiter and
+# slowapi are both built on.
+ATTEMPTS = RateLimitItemPerMinute(10)
+
+
+def client_key(request: Request) -> str:
+    """Who a failed attempt is counted against.
+
+    Behind a load balancer the peer address is the balancer, so the client
+    comes from the forwarded header. The balancer appends what it saw to
+    that header, which makes the rightmost entry the one a caller cannot
+    forge."""
+
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.rsplit(",", 1)[-1].strip()
+    return request.client.host if request.client else "unknown"
 
 
 def credentials(header: str) -> tuple[str, str] | None:
@@ -51,12 +74,26 @@ class BasicAuth:
         self.app = app
         self.username = username
         self.password = password
+        self.guesses = MovingWindowRateLimiter(MemoryStorage())
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http" or self.allows(Request(scope)):
+        if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
-        refusal = PlainTextResponse("Not authorised.", status_code=401, headers=CHALLENGE)
+
+        request = Request(scope)
+        if self.allows(request):
+            await self.app(scope, receive, send)
+            return
+
+        # A caller who has already spent the window is turned away without the
+        # password being looked at, so guessing costs them time and costs the
+        # service nothing.
+        key = client_key(request)
+        if self.guesses.hit(ATTEMPTS, key):
+            refusal = PlainTextResponse("Not authorised.", status_code=401, headers=CHALLENGE)
+        else:
+            refusal = PlainTextResponse("Too many attempts. Wait a minute.", status_code=429)
         await refusal(scope, receive, send)
 
     def allows(self, request: Request) -> bool:

@@ -49,6 +49,31 @@ def test_the_load_balancer_probe_needs_no_password(locked: TestClient) -> None:
     assert locked.get(OPEN_PATH).json() == {"ok": True}
 
 
+def test_guessing_is_throttled_and_working_is_not(locked: TestClient) -> None:
+    """Ten wrong passwords a minute is room for a typo and no room for a
+    search. Getting it right is never counted, so nobody at work is stopped."""
+
+    codes = [locked.get("/api/health", auth=("orla", "wrong")).status_code for _ in range(11)]
+    assert codes[:10] == [401] * 10
+    assert codes[10] == 429
+    assert locked.get("/api/health", auth=("orla", PASSWORD)).status_code == 200
+
+
+def test_the_throttle_counts_each_caller_on_its_own(locked: TestClient) -> None:
+    """Behind a load balancer every caller shares one peer address, so the
+    forwarded client is what separates them."""
+
+    for _ in range(11):
+        locked.get("/api/health", auth=("orla", "wrong"), headers={"x-forwarded-for": "10.0.0.1"})
+    blocked = locked.get(
+        "/api/health", auth=("orla", "wrong"), headers={"x-forwarded-for": "10.0.0.1"}
+    )
+    other = locked.get(
+        "/api/health", auth=("orla", "wrong"), headers={"x-forwarded-for": "10.0.0.2"}
+    )
+    assert (blocked.status_code, other.status_code) == (429, 401)
+
+
 def test_a_password_outside_ascii_still_works(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
