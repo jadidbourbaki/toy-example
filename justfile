@@ -214,12 +214,18 @@ budget:
     # every restart.
     #
     # It watches Bedrock rather than the whole account, because a figure that
-    # also covers compute has to be set high enough to clear compute, and a
-    # demo that should cost single digits deserves a sharper line than that.
+    # also covers compute has to be set high enough to clear compute. It
+    # counts what was consumed rather than what was billed, so credits
+    # running out changes nothing about when it fires.
+    #
+    # A budget cannot tell one caller from another, and Bedrock use here
+    # swings by two orders of magnitude between months, so the figure is a
+    # backstop against a runaway rather than a fine measure. The app's own
+    # ledger is what reports the demo on its own.
     set -euo pipefail
     set -a && source .env && set +a
     : "${DEPLOY_ALERT_EMAIL:?put the address the alarm should mail in .env}"
-    export DEPLOY_BUDGET_USD="${DEPLOY_BUDGET_USD:-50}"
+    export DEPLOY_BUDGET_USD="${DEPLOY_BUDGET_USD:-250}"
     export ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
     export BUDGET_NAME={{service}}-bedrock-monthly
 
@@ -236,6 +242,9 @@ budget:
         "BudgetLimit": {"Amount": os.environ["DEPLOY_BUDGET_USD"], "Unit": "USD"},
         "TimeUnit": "MONTHLY",
         "BudgetType": "COST",
+        # Credits are left out so the figure tracks consumption. Counting what
+        # was billed would go quiet exactly when a credit is masking a leak.
+        "CostTypes": {"IncludeCredit": False, "IncludeRefund": False},
         "CostFilters": {
             "Service": [
                 "Amazon Bedrock",
