@@ -204,63 +204,73 @@ deploy:
     aws lightsail get-container-services --service-name {{service}} --region {{region}} \
         --query 'containerServices[0].url' --output text
 
-# Set the account-wide billing alarm a deployed copy is watched by.
+# Set the billing alarm on Bedrock that a deployed copy is watched by.
 budget:
     #!/usr/bin/env bash
-    # The app's own cap only counts what went through the app, so anything
-    # that reaches the key another way is invisible to it. This alarm sits
-    # outside the process and survives every restart.
+    # The app's own cap counts only what went through the app, and the key it
+    # runs on is a plain environment variable on the service. Anything that
+    # reads that key can call Bedrock straight and the ledger never sees it,
+    # so the alarm is what notices. It sits outside the process and survives
+    # every restart.
     #
-    # It watches the whole account rather than Bedrock alone, because Bedrock
-    # bills third-party models under their own service names and a filter
-    # would quietly miss most of the registry.
+    # It watches Bedrock rather than the whole account, because a figure that
+    # also covers compute has to be set high enough to clear compute, and a
+    # demo that should cost single digits deserves a sharper line than that.
     set -euo pipefail
     set -a && source .env && set +a
     : "${DEPLOY_ALERT_EMAIL:?put the address the alarm should mail in .env}"
-    export DEPLOY_BUDGET_USD="${DEPLOY_BUDGET_USD:-300}"
+    export DEPLOY_BUDGET_USD="${DEPLOY_BUDGET_USD:-50}"
     export ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
-    name={{service}}-monthly
+    export BUDGET_NAME={{service}}-bedrock-monthly
 
     spec=$(mktemp)
     notes=$(mktemp)
     trap 'rm -f "$spec" "$notes"' EXIT
-    export BUDGET_NAME="$name"
     python3 - <<'PY' > "$spec"
     import json, os
 
+    # Bedrock bills some models under their own name, so every name that
+    # carries Bedrock spend is listed rather than the obvious one alone.
     print(json.dumps({
         "BudgetName": os.environ["BUDGET_NAME"],
         "BudgetLimit": {"Amount": os.environ["DEPLOY_BUDGET_USD"], "Unit": "USD"},
         "TimeUnit": "MONTHLY",
         "BudgetType": "COST",
+        "CostFilters": {
+            "Service": [
+                "Amazon Bedrock",
+                "Claude Sonnet 4.5 (Amazon Bedrock Edition)",
+                "OpenAI GPT-5.6 Sol (Amazon Bedrock Edition)",
+            ]
+        },
     }))
     PY
     python3 - <<'PY' > "$notes"
     import json, os
 
+    # Only what has actually been spent raises the alarm. A forecast on an
+    # account that bursts for other work cries wolf every time it bursts.
     subscriber = {"SubscriptionType": "EMAIL", "Address": os.environ["DEPLOY_ALERT_EMAIL"]}
     print(json.dumps([
         {
             "Notification": {
-                "NotificationType": kind,
+                "NotificationType": "ACTUAL",
                 "ComparisonOperator": "GREATER_THAN",
                 "Threshold": threshold,
                 "ThresholdType": "PERCENTAGE",
             },
             "Subscribers": [subscriber],
         }
-        for kind, threshold in [("ACTUAL", 50), ("ACTUAL", 80), ("ACTUAL", 100), ("FORECASTED", 100)]
+        for threshold in (50, 80, 100)
     ]))
     PY
 
-    if aws budgets describe-budget --account-id "$ACCOUNT" --budget-name "$name" > /dev/null 2>&1; then
-        aws budgets update-budget --account-id "$ACCOUNT" --new-budget "file://$spec"
-        echo "Updated the $name budget at \$$DEPLOY_BUDGET_USD a month."
-    else
-        aws budgets create-budget --account-id "$ACCOUNT" --budget "file://$spec" \
-            --notifications-with-subscribers "file://$notes"
-        echo "Created the $name budget at \$$DEPLOY_BUDGET_USD a month, mailing $DEPLOY_ALERT_EMAIL."
-    fi
+    # Notifications belong to a budget rather than being replaced with it, so
+    # the budget is made again from nothing each time.
+    aws budgets delete-budget --account-id "$ACCOUNT" --budget-name "$BUDGET_NAME" 2>/dev/null || true
+    aws budgets create-budget --account-id "$ACCOUNT" --budget "file://$spec" \
+        --notifications-with-subscribers "file://$notes"
+    echo "Watching Bedrock at \$$DEPLOY_BUDGET_USD a month, mailing $DEPLOY_ALERT_EMAIL."
 
 # What the deployed container has been saying.
 logs:

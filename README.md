@@ -186,12 +186,21 @@ workflow and pricing one carry on. The total lives in the process, so
 restarting the container starts the count again.
 
 `just budget` is the other half, and worth running once. The cap counts only
-what went through the app and starts again at every restart, so a key used
-some other way is invisible to it. A monthly budget on the account is
-outside the process and survives every restart. It watches the whole account
-rather than Bedrock alone, because Bedrock bills third-party models under
-their own names in Cost Explorer and a filter would quietly miss most of the
-registry. Set `DEPLOY_ALERT_EMAIL` and `DEPLOY_BUDGET_USD` first.
+what went through the app and starts again at every restart, and the key it
+runs on is a plain environment variable on the service. Anything that reads
+that key can call Bedrock straight, and the ledger never sees it. A monthly
+budget is outside the process and survives every restart. Set
+`DEPLOY_ALERT_EMAIL` and `DEPLOY_BUDGET_USD` first.
+
+The budget watches Bedrock rather than the whole account, and it names every
+service that carries Bedrock spend, because some models bill under their own
+name in Cost Explorer. A figure covering compute as well would have to be
+set high enough to clear compute, and a demo that should cost single digits
+deserves a sharper line. Only spending that has happened raises it, since a
+forecast on an account that bursts for other work cries wolf every time it
+bursts. Two things to know when reading the number it reports: a budget
+counts usage before credits are applied, and a monthly budget says nothing
+about the rest of the account, which is worth its own.
 
 The workspace lives inside the container, so a workflow someone draws is
 gone at the next deployment and the bundled templates come back in its
