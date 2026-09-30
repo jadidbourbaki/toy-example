@@ -308,7 +308,7 @@ teardown:
     fi
 
     echo "The billing alarm is left alone. Remove it with:"
-    echo "  aws budgets delete-budget --account-id \$(aws sts get-caller-identity --query Account --output text) --budget-name {{service}}-monthly"
+    echo "  aws budgets delete-budget --account-id \$(aws sts get-caller-identity --query Account --output text) --budget-name {{service}}-bedrock-monthly"
 
 # The read-only gate, the way CI runs it.
 check:
